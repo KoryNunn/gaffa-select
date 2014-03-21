@@ -1,7 +1,7 @@
 {
   "name": "gaffa-select",
   "author": "Kory Nunn <knunn187@gmail.com>",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "main": "select.js",
   "repository": {
     "type": "git",
@@ -15,11 +15,11 @@
     "select",
     "dropdown"
   ],
-  "dependencies":{
-    "statham":"^0.0.5"
+  "dependencies": {
+    "statham": "^0.0.5"
   },
-  "peerDependencies":{
-    "gaffa":"^1.0.0"
+  "peerDependencies": {
+    "gaffa": "^1.0.0"
   },
   "license": "MIT"
 }
