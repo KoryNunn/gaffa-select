@@ -68,17 +68,6 @@ Select.prototype.options = new Gaffa.Property({
                     property.elements.push(option);
                 }
             }
-
-            if (viewModel.value.value == null) {
-
-                if (viewModel.defaultIndex.value >= 0) {
-                    element.selectedIndex = viewModel.defaultIndex.value
-                    element.change();
-                } else {
-                    element.selectedIndex = -1;
-                }
-
-            }
         }
     }
 });
@@ -104,6 +93,5 @@ Select.prototype.value = new Gaffa.Property({
 });
 
 Select.prototype.showBlank = new Gaffa.Property();
-Select.prototype.defaultIndex = new Gaffa.Property();
 
 module.exports = Select;
