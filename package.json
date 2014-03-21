@@ -15,6 +15,9 @@
     "select",
     "dropdown"
   ],
+  "dependencies":{
+    "statham":"^0.0.5"
+  },
   "peerDependencies":{
     "gaffa":"^1.0.0"
   },
