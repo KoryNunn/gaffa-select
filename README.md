@@ -9,6 +9,8 @@ select view for gaffa
     
 ## Add to gaffa:
 
+    gaffa.views.constructors.select = require('gaffa-select');
+
 # API
 
 ## Properties (instanceof Gaffa.Property)
