@@ -13,8 +13,12 @@
   "keywords": [
     "gaffa",
     "select",
-    "view"
+    "view",
+    "dropdown"
   ],
+  "dependencies": {
+    "statham": "^0.0.5"
+  },
   "peerDependencies": {
     "gaffa": "^1.0.0"
   },
