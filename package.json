@@ -1,0 +1,22 @@
+{
+  "name": "gaffa-select",
+  "author": "Kory Nunn <knunn187@gmail.com>",
+  "version": "1.0.0",
+  "main": "select.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KoryNunn/gaffa-select.git"
+  },
+  "bugs": {
+    "url": "https://github.com/KoryNunn/gaffa-select/issues"
+  },
+  "keywords": [
+    "gaffa",
+    "select",
+    "view"
+  ],
+  "peerDependencies": {
+    "gaffa": "^1.0.0"
+  },
+  "license": "MIT"
+}
