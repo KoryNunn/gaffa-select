@@ -1,7 +1,7 @@
 {
   "name": "gaffa-select",
   "author": "Kory Nunn <knunn187@gmail.com>",
-  "version": "0.0.3",
+  "version": "1.0.0",
   "main": "select.js",
   "repository": {
     "type": "git",
