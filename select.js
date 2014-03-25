@@ -43,32 +43,37 @@ Select.prototype.options = new Gaffa.Property({
         var property = this,
             element = viewModel.renderedElement.childNodes[0];
 
-        if(!Array.isArray(value)){
-            value = [];
+        if(!element){
+            return;
         }
 
-        if(element){
-            element.innerHTML = '';
-            property.elements = [];
+        element.innerHTML = '';
+        property.elements = [];
 
-            if(viewModel.showBlank.value)
-            {
-                element.appendChild(document.createElement("option"));
-            }
+        if(!value){
+            return;
+        }
 
-            for(var i = 0; i < value.length; i ++){
-                var optionData = value[i];
-                if(optionData !== undefined){
-                    var option = document.createElement('option');
+        if(viewModel.showBlank.value)
+        {
+            element.appendChild(document.createElement("option"));
+        }
 
-                    option.value = option.data = property.valueBinding ? gaffa.gedi.get(property.valueBinding, property.getPath(), {option: optionData}) : optionData;
-                    option.textContent = property.textBinding ? gaffa.gedi.get(property.textBinding, property.getPath(), {option: optionData}) : optionData;
+        for(var key in value){
+            var optionData = value[key];
+            if(optionData !== undefined){
+                var option = document.createElement('option');
 
-                    element.appendChild(option);
-                    property.elements.push(option);
-                }
+                option.value = option.data = property.valueBinding ? gaffa.gedi.get(property.valueBinding, property.getPath(), {option: optionData}) : optionData;
+                option.textContent = property.textBinding ? gaffa.gedi.get(property.textBinding, property.getPath(), {option: optionData}) : optionData;
+
+                element.appendChild(option);
+                property.elements.push(option);
             }
         }
+
+        element.value = null;
+        viewModel.value.update(viewModel, viewModel.value.value);
     }
 });
 
