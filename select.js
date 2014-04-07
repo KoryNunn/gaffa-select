@@ -10,7 +10,7 @@ Select = Gaffa.createSpec(Select, Gaffa.View);
 Select.prototype.type = viewType;
 
 Select.prototype.render = function(){
-    var viewModel = this,
+    var view = this,
         select,
         renderedElement = crel('span',
             select = crel('select')
@@ -30,7 +30,7 @@ Select.prototype.render = function(){
 
         data = option && option.data || undefined;
 
-        viewModel.value.set(data);
+        view.value.set(data);
     });
 
     this.renderedElement = renderedElement;
@@ -39,9 +39,9 @@ Select.prototype.render = function(){
 
 Select.prototype.options = new Gaffa.Property({
     elements: [],
-    update: function(viewModel, value) {
+    update: function(view, value) {
         var property = this,
-            element = viewModel.renderedElement.childNodes[0];
+            element = view.renderedElement.childNodes[0];
 
         if(!element){
             return;
@@ -54,7 +54,7 @@ Select.prototype.options = new Gaffa.Property({
             return;
         }
 
-        if(viewModel.showBlank.value)
+        if(view.showBlank.value)
         {
             element.appendChild(document.createElement("option"));
         }
@@ -73,16 +73,16 @@ Select.prototype.options = new Gaffa.Property({
         }
 
         element.value = null;
-        viewModel.value.update(viewModel, viewModel.value.value);
+        view.value.update(view, view.value.value);
     }
 });
 
 Select.prototype.value = new Gaffa.Property({
-    update: function(viewModel, value) {
-        viewModel.renderedElement.childNodes[0].value = value;
-        for(var i = 0; i < viewModel.options.elements.length; i++){
-            if(viewModel.options.elements[i].data === value){
-                viewModel.options.elements[i].selected = true;
+    update: function(view, value) {
+        view.renderedElement.childNodes[0].value = value;
+        for(var i = 0; i < view.options.elements.length; i++){
+            if(view.options.elements[i].data === value){
+                view.options.elements[i].selected = true;
                 break;
             }
         }
@@ -98,5 +98,13 @@ Select.prototype.value = new Gaffa.Property({
 });
 
 Select.prototype.showBlank = new Gaffa.Property();
+
+Select.prototype.required = new Gaffa.Property(function(view, value){
+    if (value){
+        view.renderedElement.setAttribute('required', 'required');
+    }else{
+        view.renderedElement.removeAttribute('required');
+    }
+});
 
 module.exports = Select;
