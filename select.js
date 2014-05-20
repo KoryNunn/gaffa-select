@@ -34,14 +34,14 @@ Select.prototype.render = function(){
     });
 
     this.renderedElement = renderedElement;
-
+    this.selectElement = select;
 };
 
 Select.prototype.options = new Gaffa.Property({
     elements: [],
     update: function(view, value) {
         var property = this,
-            element = view.renderedElement.childNodes[0];
+            element = view.selectElement;
 
         if(!element){
             return;
@@ -79,7 +79,7 @@ Select.prototype.options = new Gaffa.Property({
 
 Select.prototype.value = new Gaffa.Property({
     update: function(view, value) {
-        view.renderedElement.childNodes[0].value = value;
+        view.selectElement.value = value;
         for(var i = 0; i < view.options.elements.length; i++){
             if(view.options.elements[i].data === value){
                 view.options.elements[i].selected = true;
@@ -105,6 +105,13 @@ Select.prototype.required = new Gaffa.Property(function(view, value){
     }else{
         view.renderedElement.removeAttribute('required');
     }
+});
+
+Select.prototype.enabled = new Gaffa.Property({
+    update: function(view, value){
+        view.selectElement[value ? 'removeAttribute' : 'setAttribute']('disabled','disabled');
+    },
+    value: true
 });
 
 module.exports = Select;

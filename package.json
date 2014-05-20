@@ -17,10 +17,16 @@
     "dropdown"
   ],
   "dependencies": {
-    "statham": "^0.0.5"
+    "statham": "^0.0.5",
+    "doc-js": "^0.4.7"
   },
   "peerDependencies": {
     "gaffa": "^1.0.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "crel": "^1.1.2",
+    "gaffa": "^1.6.0",
+    "gaffa-text": "^1.0.0"
+  }
 }
