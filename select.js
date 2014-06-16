@@ -64,7 +64,8 @@ Select.prototype.options = new Gaffa.Property({
             if(optionData !== undefined){
                 var option = document.createElement('option');
 
-                option.value = option.data = property.valueBinding ? gaffa.gedi.get(property.valueBinding, property.getPath(), {option: optionData}) : optionData;
+                option.value = key;
+                option.data = property.valueBinding ? gaffa.gedi.get(property.valueBinding, property.getPath(), {option: optionData}) : optionData;
                 option.textContent = property.textBinding ? gaffa.gedi.get(property.textBinding, property.getPath(), {option: optionData}) : optionData;
 
                 element.appendChild(option);
