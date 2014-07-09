@@ -21,7 +21,7 @@
     "doc-js": "^0.4.7"
   },
   "peerDependencies": {
-    "gaffa": "^1.0.0"
+    "gaffa": "^1.10.0"
   },
   "license": "MIT",
   "devDependencies": {

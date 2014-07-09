@@ -87,14 +87,6 @@ Select.prototype.value = new Gaffa.Property({
                 break;
             }
         }
-    },
-    sameAsPrevious: function(){
-        var oldHash = this.getPreviousHash(),
-            newHash = statham.stringify(this.value);
-
-        this.setPreviousHash(newHash);
-
-        return oldHash === newHash;
     }
 });
 
