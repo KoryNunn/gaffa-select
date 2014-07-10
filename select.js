@@ -41,6 +41,7 @@ Select.prototype.options = new Gaffa.Property({
     elements: [],
     update: function(view, value) {
         var property = this,
+            gaffa = this.gaffa,
             element = view.selectElement;
 
         if(!element){
