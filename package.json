@@ -17,8 +17,8 @@
     "dropdown"
   ],
   "dependencies": {
-    "statham": "^0.0.5",
-    "doc-js": "^0.4.7"
+    "statham": "^1.0.0",
+    "doc-js": "^1.0.0"
   },
   "peerDependencies": {
     "gaffa": "^1.10.0"
