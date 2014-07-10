@@ -2,12 +2,11 @@ var Gaffa = require('gaffa'),
     crel = require('crel'),
     doc = require('doc-js'),
     statham = require('statham'),
-    viewType = "select",
     cachedElement;
 
 function Select(){}
 Select = Gaffa.createSpec(Select, Gaffa.View);
-Select.prototype.type = viewType;
+Select.prototype._type = 'select';
 
 Select.prototype.render = function(){
     var view = this,
