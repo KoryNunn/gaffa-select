@@ -687,16 +687,22 @@ function floc(target){
     return new Floc(instance);
 }
 
+var returnsSelf = 'addClass removeClass append prepend'.split(' ');
+
 for(var key in doc){
     if(typeof doc[key] === 'function'){
         floc[key] = doc[key];
         flocProto[key] = (function(key){
+            var instance = this;
             // This is also extremely dodgy and fast
             return function(a,b,c,d,e,f){
                 var result = doc[key](this, a,b,c,d,e,f);
 
                 if(result !== doc && isList(result)){
                     return floc(result);
+                }
+                if(returnsSelf.indexOf(key) >=0){
+                    return instance;
                 }
                 return result;
             };
@@ -722,6 +728,16 @@ flocProto.off = function(events, target, callback){
         reference = null;
     }
     doc.off(events, target, callback, reference);
+    return this;
+};
+
+flocProto.addClass = function(className){
+    doc.addClass(this, className);
+    return this;
+};
+
+flocProto.removeClass = function(className){
+    doc.removeClass(this, className);
     return this;
 };
 
@@ -780,6 +796,100 @@ module.exports = function isList(object){
 },{}],7:[function(require,module,exports){
 var Gaffa = require('gaffa'),
     crel = require('crel'),
+    doc = require('doc-js');
+
+function FormElement(){}
+FormElement = Gaffa.createSpec(FormElement, Gaffa.View);
+FormElement.prototype._type = 'formElement';
+
+FormElement.prototype.render = function(){
+    var view = this,
+        renderedElement = this.renderedElement = this.renderedElement || crel('input'),
+        formElement = this.formElement = this.formElement || renderedElement,
+        updateEventNames = (this.updateEventName || "change").split(' ');
+
+    doc.on(this.updateEventName || "change", formElement, function(){
+        view.value.set(formElement.value);
+        view.valid.set(formElement.validity.valid);
+    });
+};
+
+FormElement.prototype.value = new Gaffa.Property(function(view, value){
+    value = value || '';
+
+    var element = view.formElement,
+        caretPosition = 0,
+        hasCaret = element === document.activeElement; //this is only necissary because IE10 is a pile of crap (i know what a surprise)
+
+    // Skip if the text hasnt changed
+    if(value === element.value){
+        return;
+    }
+
+    // Inspiration taken from http://stackoverflow.com/questions/2897155/get-caret-position-within-an-text-input-field
+    // but WOW is that some horrendous code!
+    if(hasCaret){
+        if (window.document.selection) {
+            var selection = window.document.selection.createRange();
+            selection.moveStart('character', -element.value.length);
+            caretPosition = selection.text.length;
+        }
+        else if (element.selectionStart || element.selectionStart == '0'){
+            caretPosition = element.selectionStart;
+        }
+    }
+
+    element.value = value;
+
+    if(hasCaret){
+        if(element.createTextRange) {
+            var range = element.createTextRange();
+
+            range.move('character', caretPosition);
+
+            range.select();
+        }
+        if(element.selectionStart) {
+            element.setSelectionRange(caretPosition, caretPosition);
+        }
+    }
+
+    view.valid.set(element.validity.valid);
+});
+
+FormElement.prototype.type = new Gaffa.Property(function(view, value){
+    view.formElement.setAttribute('type', value != null ? value : "");
+});
+
+FormElement.prototype.placeholder = new Gaffa.Property(function(view, value){
+    view.formElement.setAttribute('placeholder', value != null ? value : "");
+});
+
+FormElement.prototype.required = new Gaffa.Property(function(view, value){
+    if (value){
+        view.formElement.setAttribute('required', 'required');
+    }else{
+        view.formElement.removeAttribute('required');
+    }
+});
+
+FormElement.prototype.valid = new Gaffa.Property();
+FormElement.prototype.validity = new Gaffa.Property(function(view, value){
+    value = value || '';
+
+    view.formElement.setCustomValidity(value);
+});
+FormElement.prototype.enabled = new Gaffa.Property({
+    update: function(view, value){
+        view.formElement[value ? 'removeAttribute' : 'setAttribute']('disabled','disabled');
+    },
+    value: true
+});
+
+module.exports = FormElement;
+},{"crel":1,"doc-js":3,"gaffa":14}],8:[function(require,module,exports){
+var Gaffa = require('gaffa'),
+    crel = require('crel'),
     viewType = "text";
 
 function Text(){}
@@ -804,7 +914,166 @@ Text.prototype.enabled = undefined;
 Text.prototype.classes = undefined;
 
 module.exports = Text;
-},{"crel":1,"gaffa":8}],8:[function(require,module,exports){
+},{"crel":1,"gaffa":14}],9:[function(require,module,exports){
+var createSpec = require('spec-js'),
+    Property = require('./property'),
+    ViewItem = require('./viewItem');
+
+function Action(actionDescription){
+}
+Action = createSpec(Action, ViewItem);
+Action.prototype.bind = function(parent){
+    ViewItem.prototype.bind.call(this, parent);
+};
+Action.prototype.trigger = function(parent, scope, event){
+    this.bind(parent);
+
+    scope = scope || {};
+
+    var gaffa = this.gaffa = parent.gaffa;
+
+
+    for(var propertyKey in this.constructor.prototype){
+        var property = this[propertyKey];
+
+        if(property instanceof Property && property.binding){
+            property.gaffa = gaffa;
+            property.parent = this;
+            property.value = property.get(scope);
+        }
+    }
+
+    this.debind();
+};
+
+module.exports = Action;
+},{"./property":51,"./viewItem":56,"spec-js":40}],10:[function(require,module,exports){
+var createSpec = require('spec-js'),
+    ViewItem = require('./viewItem');
+
+function Behaviour(behaviourDescription){}
+Behaviour = createSpec(Behaviour, ViewItem);
+
+module.exports = Behaviour;
+},{"./viewItem":56,"spec-js":40}],11:[function(require,module,exports){
+var createSpec = require('spec-js'),
+    EventEmitter = require('events').EventEmitter,
+    Consuela = require('consuela'),
+    jsonConverter = require('./jsonConverter');
+
+function getItemPath(item){
+    var gedi = item.gaffa.gedi,
+        paths = [],
+        referencePath,
+        referenceItem = item;
+
+    while(referenceItem){
+
+        // item.path should be a child ref after item.sourcePath
+        if(referenceItem.path != null){
+            paths.push(referenceItem.path);
+        }
+
+        // item.sourcePath is most root level path
+        if(referenceItem.sourcePath != null){
+            paths.push(gedi.paths.create(referenceItem.sourcePath));
+        }
+
+        referenceItem = referenceItem.parent;
+    }
+
+    return gedi.paths.resolve.apply(this, paths.reverse());
+}
+
+var iuid = 0;
+function Bindable(){
+    this.setMaxListeners(1000);
+    var consuela = new Consuela();
+    this._watch = consuela._watch.bind(consuela);
+    this._cleanup = consuela._cleanup.bind(consuela);
+    this._on = consuela._on.bind(consuela);
+
+    // instance unique ID
+    this.__iuid = iuid++;
+}
+Bindable = createSpec(Bindable, EventEmitter);
+Bindable.prototype.getPath = function(){
+    return getItemPath(this);
+};
+Bindable.prototype.getDataAtPath = function(){
+    if(!this.gaffa){
+        return;
+    }
+    return this.gaffa.model.get(getItemPath(this));
+};
+Bindable.prototype.toJSON = function(){
+    var tempObject = jsonConverter(this, this.__serialiseExclude__, this.__serialiseInclude__);
+
+    return tempObject;
+};
+Bindable.prototype.bind = function(){
+    this._bound = true;
+};
+Bindable.prototype.debind = function(){
+    this._bound = false;
+    this._cleanup();
+};
+
+module.exports = Bindable;
+},{"./jsonConverter":20,"consuela":21,"events":74,"spec-js":40}],12:[function(require,module,exports){
+/**
+    ## ContainerView
+
+    A base constructor for gaffa Views that can hold child views.
+
+    All Views that inherit from ContainerView will have:
+
+        someView.views.content
+*/
+
+var createSpec = require('spec-js'),
+    View = require('./view'),
+    ViewContainer = require('./viewContainer');
+
+function ContainerView(viewDescription){
+    this.views = this.views || {};
+    this.views.content = new ViewContainer(this.views.content);
+}
+ContainerView = createSpec(ContainerView, View);
+ContainerView.prototype.bind = function(parent){
+    View.prototype.bind.apply(this, arguments);
+    for(var key in this.views){
+        var viewContainer = this.views[key];
+
+        if(viewContainer instanceof ViewContainer){
+            viewContainer.bind(this);
+        }
+    }
+};
+ContainerView.prototype.debind = function(){
+    View.prototype.debind.apply(this, arguments);
+};
+
+module.exports = ContainerView;
+},{"./view":54,"./viewContainer":55,"spec-js":40}],13:[function(require,module,exports){
+function createModelScope(parent, gediEvent){
+    var possibleGroup = parent,
+        groupKey,
+        scope = {};
+
+    while(possibleGroup && !groupKey){
+        groupKey = possibleGroup.group;
+        possibleGroup = possibleGroup.parent;
+    }
+
+    scope.viewItem = parent;
+    scope.groupKey = groupKey;
+    scope.modelTarget = gediEvent && gediEvent.target;
+
+    return scope;
+}
+module.exports = createModelScope;
+},{}],14:[function(require,module,exports){
 //Copyright (C) 2012 Kory Nunn, Matt Ginty & Maurice Butler
 
 //Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
@@ -820,60 +1089,28 @@ module.exports = Text;
 var Gedi = require('gedi'),
     doc = require('doc-js'),
     crel = require('crel'),
-    fastEach = require('fasteach'),
-    deepEqual = require('deep-equal'),
     createSpec = require('spec-js'),
     EventEmitter = require('events').EventEmitter,
     animationFrame = require('./raf.js'),
+    merge = require('merge'),
+    statham = require('statham'),
     requestAnimationFrame = animationFrame.requestAnimationFrame,
     cancelAnimationFrame = animationFrame.cancelAnimationFrame;
 
 // Storage for applications default styles.
 var defaultViewStyles;
 
-//internal functions
+var removeViews = require('./removeViews'),
+    getClosestItem = require('./getClosestItem'),
+    jsonConverter = require('./jsonConverter');
 
-
-//http://stackoverflow.com/questions/610406/javascript-equivalent-to-printf-string-format/4673436#4673436
-//changed to a single array argument
-String.prototype.format = function (values) {
-    return this.replace(/{(\d+)}/g, function (match, number) {
-        return (values[number] == undefined || values[number] == null) ? match : values[number];
-    }).replace(/{(\d+)}/g, "");
-};
-
-//http://stackoverflow.com/questions/5346158/parse-string-using-format-template
-//Haxy de-formatter
-String.prototype.deformat = function (template) {
-
-    var findFormatNumbers = /{(\d+)}/g,
-        currentMatch,
-        matchOrder = [],
-        index = 0;
-
-    while ((currentMatch = findFormatNumbers.exec(template)) != null) {
-        matchOrder[index] = parseInt(currentMatch[1]);
-        index++;
-    }
-
-    //http://simonwillison.net/2006/Jan/20/escape/
-    var pattern = new RegExp("^" + template.replace(/[-[\]()*+?.,\\^$|#\s]/g, "\\$&").replace(/(\{\d+\})/g, "(.*?)") + "$", "g");
-
-    var matches = pattern.exec(this);
-
-    if (!matches) {
-        return false;
-    }
-
-    var values = [];
-
-    for (var i = 0; i < matchOrder.length; i++) {
-        values.push(matches[matchOrder[i] + 1]);
-    }
-
-    return values;
-};
-
+var Property = require('./property'),
+    ViewContainer = require('./viewContainer'),
+    ViewItem = require('./viewItem'),
+    View = require('./view'),
+    ContainerView = require('./containerView'),
+    Action = require('./action'),
+    Behaviour = require('./behaviour');
 
 function parseQueryString(url){
     var urlParts = url.split('?'),
@@ -895,7 +1132,6 @@ function parseQueryString(url){
     return result;
 }
 
-
 function toQueryString(data){
     var queryString = '';
 
@@ -908,20 +1144,9 @@ function toQueryString(data){
     return queryString;
 }
 
-
 function clone(value){
-    if(value != null && typeof value === "object"){
-        if(Array.isArray(value)){
-            return extend([], value);
-        }else if (value instanceof Date) {
-            return new Date(value);
-        }else{
-            return extend({}, value);
-        }
-    }
-    return value;
+    return statham.revive(value);
 }
-
 
 function tryParseJson(data){
     try{
@@ -930,7 +1155,6 @@ function tryParseJson(data){
         return error;
     }
 }
-
 
 function ajax(settings){
     var queryStringData,
@@ -1030,79 +1254,10 @@ function ajax(settings){
     return request;
 }
 
-
-function getClosestItem(target){
-    var viewModel = target.viewModel;
-
-    while(!viewModel && target){
-        target = target.parentNode;
-
-        if(target){
-            viewModel = target.viewModel;
-        }
-    }
-
-    return viewModel;
-}
-
-
-function langify(fn, context){
-    return function(scope, args){
-        var args = args.all();
-
-        return fn.apply(context, args);
-    }
-}
-
-
-function getDistinctGroups(gaffa, collection, expression){
-    var distinctValues = {},
-        values = gaffa.model.get('(map items ' + expression + ')', {items: collection});
-
-    if(collection && typeof collection === "object"){
-        if(Array.isArray(collection)){
-            for(var i = 0; i < values.length; i++) {
-                distinctValues[values[i]] = null;
-            }
-        }else{
-            throw "Object collections are not currently supported";
-        }
-    }
-
-    return Object.keys(distinctValues);
-}
-
-
-
-function deDom(node){
-    var parent = node.parentNode,
-        nextSibling;
-
-    if(!parent){
-        return false;
-    }
-
-    nextSibling = node.nextSibling;
-
-    parent.removeChild(node);
-
-    return function(){
-        if(nextSibling){
-            parent.insertBefore(node, nextSibling && nextSibling.parent && nextSibling);
-        }else {
-            parent.appendChild(node);
-        }
-    };
-}
-
-
-
 function triggerAction(action, parent, scope, event) {
     Action.prototype.trigger.call(action, parent, scope, event);
     action.trigger(parent, scope, event);
 }
-
-
 
 function triggerActions(actions, parent, scope, event) {
     if(Array.isArray(actions)){
@@ -1112,1015 +1267,14 @@ function triggerActions(actions, parent, scope, event) {
     }
 }
 
-
-function insertFunction(selector, renderedElement, insertIndex){
-    var target = ((typeof selector === "string") ? document.querySelectorAll(selector)[0] : selector),
-        referenceSibling;
-
-    if(target && target.childNodes){
-        referenceSibling = target.childNodes[insertIndex];
-    }
-    if (referenceSibling){
-        target.insertBefore(renderedElement, referenceSibling);
-    }  else {
-        target.appendChild(renderedElement);
-    }
-}
-
-
-function getItemPath(item){
-    var gedi = item.gaffa.gedi,
-        paths = [],
-        referencePath,
-        referenceItem = item;
-
-    while(referenceItem){
-
-        // item.path should be a child ref after item.sourcePath
-        if(referenceItem.path != null){
-            paths.push(referenceItem.path);
-        }
-
-        // item.sourcePath is most root level path
-        if(referenceItem.sourcePath != null){
-            paths.push(gedi.paths.create(referenceItem.sourcePath));
-        }
-
-        referenceItem = referenceItem.parent;
-    }
-
-    return gedi.paths.resolve.apply(this, paths.reverse());
-}
-
-
-function extend(target, source){
-    var args = Array.prototype.slice.call(arguments),
-        target = args[0] || {},
-        source = args[1] || {},
-        visited = [];
-
-    function internalExtend(target, source){
-        for(var key in source){
-            var sourceProperty = source[key],
-                targetProperty = target[key];
-
-            if(typeof sourceProperty === "object" && sourceProperty != null){
-                if(!(targetProperty instanceof sourceProperty.constructor)){
-                    targetProperty = new sourceProperty.constructor();
-                }
-                if(sourceProperty instanceof Date){
-                    targetProperty = new Date(sourceProperty);
-                }else{
-                    if(visited.indexOf(sourceProperty)>=0){
-                        target[key] = sourceProperty;
-                        continue;
-                    }
-                    visited.push(sourceProperty);
-                    internalExtend(targetProperty, sourceProperty);
-                }
-            }else{
-                targetProperty = sourceProperty;
-            }
-            target[key] = targetProperty;
-        }
-    }
-
-    internalExtend(target, source);
-
-    if(args[2] !== undefined && args[2] !== null){
-        args[0] = args.shift();
-        extend.apply(this, args);
-    }
-
-    return target;
-}
-
-
-function sameAs(a,b){
-    var typeofA = typeof a,
-        typeofB = typeof b;
-
-    if(typeofA !== typeofB){
-        return false;
-    }
-
-    switch (typeof a){
-        case 'string': return a === b;
-
-        case 'number':
-            if(isNaN(a) && isNaN(b)){
-                return true;
-            }
-            return a === b;
-
-        case 'date': return +a === +b;
-
-        default: return false;
-    }
-}
-
-
-function addDefaultStyle(style){
-    defaultViewStyles = defaultViewStyles || (function(){
-        defaultViewStyles = crel('style', {type: 'text/css', 'class':'dropdownDefaultStyle'});
-
-        //Prepend so it can be overriden easily.
-        var addToHead = function(){
-            if(window.document.head){
-                window.document.head.insertBefore(defaultViewStyles);
-            }else{
-                setTimeout(addToHead, 100);
-            }
-        };
-
-        addToHead();
-
-        return defaultViewStyles;
-    })();
-
-    if (defaultViewStyles.styleSheet) {   // for IE
-        defaultViewStyles.styleSheet.cssText = style;
-    } else {                // others
-        defaultViewStyles.innerHTML += style;
-    }
-
-}
-
-
-function initialiseViewItem(viewItem, gaffa, specCollection, references) {
-    references = references || {
-        objects: [],
-        viewItems: []
-    };
-
-    // ToDo: Deprecate .type
-    var viewItemType = viewItem._type || viewItem.type;
-
-    if(!(viewItem instanceof ViewItem)){
-        if (!specCollection[viewItemType]) {
-            throw "No constructor is loaded to handle view of type " + viewItemType;
-        }
-
-        var referenceIndex = references.objects.indexOf(viewItem);
-        if(referenceIndex >= 0){
-            return references.viewItems[referenceIndex];
-        }
-
-        references.objects.push(viewItem);
-        viewItem = new specCollection[viewItemType](viewItem);
-        references.viewItems.push(viewItem);
-    }
-
-    for(var key in viewItem.views){
-        if(!(viewItem.views[key] instanceof ViewContainer)){
-            viewItem.views[key] = new ViewContainer(viewItem.views[key]);
-        }
-        var views = viewItem.views[key];
-        for (var viewIndex = 0; viewIndex < views.length; viewIndex++) {
-            var view = initialiseView(views[viewIndex], gaffa, references);
-            views[viewIndex] = view;
-            view.parentContainer = views;
-        }
-    }
-
-    for(var key in viewItem.actions){
-        var actions = viewItem.actions[key];
-        for (var actionIndex = 0; actionIndex < actions.length; actionIndex++) {
-            var action = initialiseAction(actions[actionIndex], gaffa, references);
-            actions[actionIndex] = action;
-            action.parentContainer = actions;
-        }
-    }
-
-    if(viewItem.behaviours){
-        for (var behaviourIndex = 0; behaviourIndex < viewItem.behaviours.length; behaviourIndex++) {
-            var behaviour = initialiseBehaviour(viewItem.behaviours[behaviourIndex], gaffa, references);
-            viewItem.behaviours[behaviourIndex] = behaviour;
-            behaviour.parentContainer = viewItem.behaviours;
-        }
-    }
-
-    return viewItem;
-}
-
-
-function initialiseView(viewItem, gaffa, references) {
-    return initialiseViewItem(viewItem, gaffa, gaffa.views._constructors, references);
-}
-
-
-function initialiseAction(viewItem, gaffa, references) {
-    return initialiseViewItem(viewItem, gaffa, gaffa.actions._constructors, references);
-}
-
-
-function initialiseBehaviour(viewItem, gaffa, references) {
-    return initialiseViewItem(viewItem, gaffa, gaffa.behaviours._constructors, references);
-}
-
-
-function removeViews(views){
-    if(!views){
-        return;
-    }
-
-    views = views instanceof Array ? views : [views];
-
-    views = views.slice();
-
-    for(var i = 0; i < views.length; i++) {
-        views[i].remove();
-    }
-}
-
-
-function jsonConverter(object, exclude, include){
-    var plainInstance = new object.constructor(),
-        tempObject = Array.isArray(object) || object instanceof Array && [] || {},
-        excludeProps = ["gaffa", "parent", "parentContainer", "renderedElement", "_removeHandlers", "gediCallbacks", "__super__", "_events"],
-        includeProps = ["type", "_type"];
-
-    //console.log(object.constructor.name);
-
-    if(exclude){
-        excludeProps = excludeProps.concat(exclude);
-    }
-
-    if(include){
-        includeProps = includeProps.concat(include);
-    }
-
-    for(var key in object){
-        if(
-            includeProps.indexOf(key)>=0 ||
-            object.hasOwnProperty(key) &&
-            excludeProps.indexOf(key)<0 &&
-            !deepEqual(plainInstance[key], object[key])
-        ){
-            tempObject[key] = object[key];
-        }
-    }
-
-    if(!Object.keys(tempObject).length){
-        return;
-    }
-
-    return tempObject;
-}
-
-
-function createModelScope(parent, gediEvent){
-    var possibleGroup = parent,
-        groupKey;
-
-    while(possibleGroup && !groupKey){
-        groupKey = possibleGroup.group;
-        possibleGroup = possibleGroup.parent;
-    }
-
-    return {
-        viewItem: parent,
-        groupKey: groupKey,
-        modelTarget: gediEvent && gediEvent.target
-    };
-}
-
-
-function updateProperty(property, firstUpdate){
-    // Update immediately, reduces reflows,
-    // as things like classes are added before
-    //  the element is inserted into the DOM
-    if(firstUpdate){
-        property.update(property.parent, property.value);
-    }
-
-    // Still run the sameAsPrevious function,
-    // because it sets up the last value hash,
-    // and it will be false anyway.
-    if(!property.sameAsPrevious() && !property.nextUpdate){
-        if(property.gaffa.debug){
-            property.update(property.parent, property.value);
-            return;
-        }
-        property.nextUpdate = requestAnimationFrame(function(){
-            property.update(property.parent, property.value);
-            property.nextUpdate = null;
-        });
-    }
-}
-
-
-function createPropertyCallback(property){
-    return function (event) {
-        var value,
-            scope,
-            valueTokens;
-
-        if(event){
-
-            scope = createModelScope(property.parent, event);
-
-            if(event === true){ // Initial update.
-
-                valueTokens = property.get(scope, true);
-
-            }else if(event.captureType === 'bubble' && property.ignoreBubbledEvents){
-
-                return;
-
-            }else if(property.binding){ // Model change update.
-
-                if(property.ignoreTargets && event.target.toString().match(property.ignoreTargets)){
-                    return;
-                }
-
-                valueTokens = property.get(scope, true);
-            }
-
-            if(valueTokens){
-                var valueToken = valueTokens[valueTokens.length - 1];
-                value = valueToken.result;
-                property._sourcePathInfo = valueToken.sourcePathInfo;
-            }
-
-            property.value = value;
-        }
-
-        // Call the properties update function, if it has one.
-        // Only call if the changed value is an object, or if it actually changed.
-        if(!property.update){
-            return;
-        }
-
-        updateProperty(property, event === true);
-    }
-}
-
-
-function bindProperty(parent) {
-    this.parent = parent;
-
-    // Shortcut for properties that have no binding.
-    // This has a significant impact on performance.
-    if(this.binding == null){
-        if(this.update){
-            this.update(parent, this.value);
-        }
-        return;
-    }
-
-    var propertyCallback = createPropertyCallback(this);
-
-    this.gaffa.model.bind(this.binding, propertyCallback, this);
-    propertyCallback(true);
-}
-
-
-//Public Objects ******************************************************************************
-
-function createValueHash(value){
-    if(value && typeof value === 'object'){
-        return Object.keys(value);
-    }
-
-    return value;
-}
-
-
-function compareToHash(value, hash){
-    if(value && hash && typeof value === 'object' && typeof hash === 'object'){
-        var keys = Object.keys(value);
-        if(keys.length !== hash.length){
-            return;
-        }
-        for (var i = 0; i < hash.length; i++) {
-            if(hash[i] !== keys[i]){
-                return;
-            }
-        };
-        return true;
-    }
-
-    return value === hash;
-}
-
-
-function Property(propertyDescription){
-    if(typeof propertyDescription === 'function'){
-        this.update = propertyDescription;
-    }else{
-        for(var key in propertyDescription){
-            this[key] = propertyDescription[key];
-        }
-    }
-
-    this.gediCallbacks = [];
-}
-Property = createSpec(Property);
-Property.prototype.set = function(value, isDirty){
-    var gaffa = this.gaffa;
-
-    if(this.binding){
-        var setValue = this.setTransform ? gaffa.model.get(this.setTransform, this, {value: value}) : value;
-        gaffa.model.set(
-            this.binding,
-            setValue,
-            this,
-            isDirty
-        );
-    }else{
-        this.value = value;
-        this._previousHash = createValueHash(value);
-        if(this.update){
-            this.update(this.parent, value);
-        }
-    }
-
-};
-Property.prototype.get = function(scope, asTokens){
-    if(this.binding){
-        var value = this.gaffa.model.get(this.binding, this, scope, asTokens);
-        if(this.getTransform){
-            scope.value = asTokens ? value[value.length-1].result : value;
-            return this.gaffa.model.get(this.getTransform, this, scope, asTokens);
-        }
-        return value;
-    }else{
-        return this.value;
-    }
-};
-Property.prototype.sameAsPrevious = function () {
-    if(compareToHash(this.value, this._previousHash)){
-        return true;
-    }
-    this._previousHash = createValueHash(this.value);
-};
-Property.prototype.setPreviousHash = function(hash){
-    this._previousHash = hash;
-};
-Property.prototype.getPreviousHash = function(hash){
-    return this._previousHash;
-};
-Property.prototype.bind = bindProperty;
-Property.prototype.debind = function(){
-    cancelAnimationFrame(this.nextUpdate);
-    this.gaffa && this.gaffa.model.debind(this);
-};
-Property.prototype.getPath = function(){
-    return getItemPath(this);
-};
-Property.prototype.toJSON = function(){
-    var tempObject = jsonConverter(this, ['_previousHash']);
-
-    return tempObject;
-};
-
-
-function ViewContainer(viewContainerDescription){
-    var viewContainer = this;
-
-    this._deferredViews = [];
-
-    if(viewContainerDescription instanceof Array){
-        viewContainer.add(viewContainerDescription);
-    }
-}
-ViewContainer = createSpec(ViewContainer, Array);
-ViewContainer.prototype.bind = function(parent){
-    this.parent = parent;
-    this.gaffa = parent.gaffa;
-
-    if(this._bound){
-        return;
-    }
-
-    this._bound = true;
-
-    for(var i = 0; i < this.length; i++){
-        this.add(this[i], i);
-    }
-
-    return this;
-};
-ViewContainer.prototype.debind = function(){
-    if(!this._bound){
-        return;
-    }
-
-    this._bound = false;
-
-    for (var i = 0; i < this.length; i++) {
-        this[i].detach();
-        this[i].debind();
-    }
-};
-ViewContainer.prototype.getPath = function(){
-    return getItemPath(this);
-};
-
-/*
-    ViewContainers handle their own array state.
-    A View that is added to a ViewContainer will
-    be automatically removed from its current
-    container, if it has one.
-*/
-ViewContainer.prototype.add = function(view, insertIndex){
-    // If passed an array
-    if(Array.isArray(view)){
-        for(var i = 0; i < view.length; i++){
-            this.add(view[i]);
-        }
-        return this;
-    }
-
-    // Is already in the tree somewhere? remove it.
-    if(view.parentContainer){
-        view.parentContainer.splice(view.parentContainer.indexOf(view),1);
-    }
-
-    this.splice(insertIndex >= 0 ? insertIndex : this.length,0,view);
-
-    view.parentContainer = this;
-
-    if(this._bound){
-        if(!(view instanceof View)){
-            view = this[this.indexOf(view)] = initialiseViewItem(view, this.gaffa, this.gaffa.views._constructors);
-        }
-        view.gaffa = this.gaffa;
-
-        this.gaffa.namedViews[view.name] = view;
-
-        if(!view.renderedElement){
-            view.render();
-            view.renderedElement.viewModel = view;
-        }
-        view.bind(this.parent);
-        view.insert(this, insertIndex);
-    }
-
-
-    return this;
-};
-
-/*
-    adds 5 (5 is arbitrary) views at a time to the target viewContainer,
-    then queues up another add.
-*/
-function executeDeferredAdd(viewContainer){
-    var currentOpperation = viewContainer._deferredViews.splice(0,5);
-
-    if(!currentOpperation.length){
-        return;
-    }
-
-    for (var i = 0; i < currentOpperation.length; i++) {
-        viewContainer.add(currentOpperation[i][0], currentOpperation[i][1]);
-    };
-    requestAnimationFrame(function(time){
-        executeDeferredAdd(viewContainer);
-    });
-}
-
-/*
-    Adds children to the view container over time, via RAF.
-    Will only begin the render cycle if there are no _deferredViews,
-    because if _deferredViews.length is > 0, the render loop will
-    already be going.
-*/
-ViewContainer.prototype.deferredAdd = function(view, insertIndex){
-    var viewContainer = this,
-        shouldStart = !this._deferredViews.length;
-
-    this._deferredViews.push([view, insertIndex]);
-
-    if(shouldStart){
-        requestAnimationFrame(function(){
-            executeDeferredAdd(viewContainer);
-        });
-    }
-};
-
-ViewContainer.prototype.abortDeferredAdd = function(){
-    this._deferredViews = [];
-};
-ViewContainer.prototype.remove = function(viewModel){
-    viewModel.remove();
-};
-ViewContainer.prototype.empty = function(){
-    removeViews(this);
-};
-ViewContainer.prototype.toJSON = function(){
-    return jsonConverter(this, ['element']);
-};
-
-
-function copyProperties(source, target){
-    if(
-        !source || typeof source !== 'object' ||
-        !target || typeof target !== 'object'
-    ){
-        return;
-    }
-
-    for(var key in source){
-        if(source.hasOwnProperty(key)){
-            target[key] = source[key];
-        }
-    }
-}
-
-
-function debindViewItem(viewItem){
-    for(var key in viewItem){
-        if(viewItem[key] instanceof Property){
-            viewItem[key].debind();
-        }
-    }
-    viewItem.emit('debind');
-    viewItem._bound = false;
-}
-
-
-function removeViewItem(viewItem){
-    if(!viewItem.parentContainer){
-        return;
-    }
-
-    if(viewItem.parentContainer){
-        viewItem.parentContainer.splice(viewItem.parentContainer.indexOf(viewItem), 1);
-        viewItem.parentContainer = null;
-    }
-
-    viewItem.debind();
-
-    viewItem.emit('remove');
-}
-
-
-/**
-    ## ViewItem
-
-    The base constructor for all gaffa ViewItems.
-
-    Views, Behaviours, and Actions inherrit from ViewItem.
-*/
-function ViewItem(viewItemDescription){
-
-    for(var key in this){
-        if(this[key] instanceof Property){
-            this[key] = new this[key].constructor(this[key]);
-        }
-    }
-
-    /**
-        ## .actions
-
-        All ViewItems have an actions object which can be overriden.
-
-        The actions object looks like this:
-
-            viewItem.actions = {
-                click: [action1, action2],
-                hover: [action3, action4]
-            }
-
-        eg:
-
-            // Some ViewItems
-            var someButton = new views.button(),
-                removeItem = new actions.remove();
-
-            // Set removeItem as a child of someButton.
-            someButton.actions.click = [removeItem];
-
-        If a Views action.[name] matches a DOM event name, it will be automatically _bound.
-
-            myView.actions.click = [
-                // actions to trigger when a 'click' event is raised by the views renderedElement
-            ];
-    */
-    this.actions = this.actions ? clone(this.actions) : {};
-
-    for(var key in viewItemDescription){
-        var prop = this[key];
-        if(prop instanceof Property || prop instanceof ViewContainer){
-            copyProperties(viewItemDescription[key], prop);
-        }else{
-            this[key] = viewItemDescription[key];
-        }
-    }
-}
-ViewItem = createSpec(ViewItem, EventEmitter);
-
-    /**
-        ## .path
-
-        the base path for a viewItem.
-
-        Any bindings on a ViewItem will recursivly resolve through the ViewItems parent's paths.
-
-        Eg:
-
-            // Some ViewItems
-            var viewItem1 = new views.button(),
-                viewItem2 = new actions.set();
-
-            // Give viewItem1 a path.
-            viewItem1.path = '[things]';
-            // Set viewItem2 as a child of viewItem1.
-            viewItem1.actions.click = [viewItem2];
-
-            // Give viewItem2 a path.
-            viewItem2.path = '[stuff]';
-            // Set viewItem2s target binding.
-            viewItem2.target.binding = '[majigger]';
-
-        viewItem2.target.binding will resolve to:
-
-            '[/things/stuff/majigger]'
-    */
-ViewItem.prototype.path = '[]';
-ViewItem.prototype.bind = function(parent){
-    var viewItem = this,
-        property;
-
-    this.parent = parent;
-
-    this._bound = true;
-
-    // Only set up properties that were on the prototype.
-    // Faster and 'safer'
-    for(var propertyKey in this.constructor.prototype){
-        property = this[propertyKey];
-        if(property instanceof Property){
-            property.gaffa = viewItem.gaffa;
-            property.bind(this);
-        }
-    }
-};
-ViewItem.prototype.debind = function(){
-    debindViewItem(this);
-};
-ViewItem.prototype.remove = function(){
-    removeViewItem(this);
-};
-ViewItem.prototype.getPath = function(){
-    return getItemPath(this);
-};
-ViewItem.prototype.getDataAtPath = function(){
-    if(!this.gaffa){
-        return;
-    }
-    return this.gaffa.model.get(getItemPath(this));
-};
-ViewItem.prototype.toJSON = function(){
-    return jsonConverter(this);
-};
-ViewItem.prototype.triggerActions = function(actionName, scope, event){
-    if(!this.gaffa){
-        return;
-    }
-    this.gaffa.actions.trigger(this.actions[actionName], this, scope, event);
-};
-
-
-function createEventedActionScope(view, event){
-    var scope = createModelScope(view);
-
-    scope.event = {
-        shiftKey: event.shiftKey,
-        altKey: event.altKey,
-        which: event.which,
-        target: event.target,
-        targetViewItem: getClosestItem(event.target),
-        preventDefault: langify(event.preventDefault, event),
-        stopPropagation: langify(event.stopPropagation, event)
-    };
-
-    return scope;
-}
-
-
-function bindViewEvent(view, eventName){
-    return view.gaffa.events.on(eventName, view.renderedElement, function (event) {
-        triggerActions(view.actions[eventName], view, createEventedActionScope(view, event), event);
-    });
-}
-
-
-/**
-    ## View
-
-    A base constructor for gaffa Views that have content view.
-
-    All Views that inherit from ContainerView will have:
-
-        someView.views.content
-*/
-function View(viewDescription){
-    var view = this;
-
-    view._removeHandlers = [];
-    view.behaviours = view.behaviours || [];
-}
-View = createSpec(View, ViewItem);
-
-View.prototype.bind = function(parent){
-    ViewItem.prototype.bind.apply(this, arguments);
-
-    for(var key in this.actions){
-        var actions = this.actions[key],
-            off;
-
-        if(actions.__bound){
-            continue;
-        }
-
-        actions.__bound = true;
-
-        off = bindViewEvent(this, key);
-
-        if(off){
-            this._removeHandlers.push(off);
-        }
-    }
-
-    this.triggerActions('load');
-
-    for(var i = 0; i < this.behaviours.length; i++){
-        this.behaviours[i].gaffa = this.gaffa;
-        Behaviour.prototype.bind.call(this.behaviours[i], this);
-        this.behaviours[i].bind(this);
-    }
-};
-
-View.prototype.detach = function(){
-    this.renderedElement && this.renderedElement.parentNode && this.renderedElement.parentNode.removeChild(this.renderedElement);
-};
-
-View.prototype.remove = function(){
-    this.detach();
-    removeViewItem(this);
-}
-
-View.prototype.debind = function () {
-    for(var i = 0; i < this.behaviours.length; i++){
-        this.behaviours[i].debind();
-    }
-
-    this.triggerActions('unload');
-
-    while(this._removeHandlers.length){
-        this._removeHandlers.pop()();
-    }
-    for(var key in this.actions){
-        this.actions[key].__bound = false;
-    }
-
-    debindViewItem(this);
-};
-
-View.prototype.render = function(){};
-
-function insert(view, viewContainer, insertIndex){
-    var gaffa = view.gaffa,
-        renderTarget = view.insertSelector || view.renderTarget || viewContainer && viewContainer.element || gaffa.views.renderTarget;
-
-    if(view.afterInsert){
-        var off = doc.on('DOMNodeInserted', renderTarget, function (event) {
-            if(doc.closest(view.renderedElement, event.target)){
-                view.afterInsert();
-                off();
-            }
-        });
-    }
-
-    if(viewContainer.indexOf(view) !== insertIndex){
-        viewContainer.splice(insertIndex, 1, view);
-    }
-
-    view.insertFunction(view.insertSelector || renderTarget, view.renderedElement, insertIndex);
-}
-
-View.prototype.insert = function(viewContainer, insertIndex){
-    insert(this, viewContainer, insertIndex);
-};
-
-function Classes(){};
-Classes = createSpec(Classes, Property);
-Classes.prototype.update = function(view, value){
-    doc.removeClass(view.renderedElement, this._previousClasses);
-    this._previousClasses = value;
-    doc.addClass(view.renderedElement, value);
-};
-View.prototype.classes = new Classes();
-
-function Visible(){};
-Visible = createSpec(Visible, Property);
-Visible.prototype.value = true;
-Visible.prototype.update = function(view, value) {
-    view.renderedElement.style.display = value ? '' : 'none';
-};
-View.prototype.visible = new Visible();
-
-function Enabled(){};
-Enabled = createSpec(Enabled, Property);
-Enabled.prototype.value = true;
-Enabled.prototype.update = function(view, value) {
-    if(!value === !!view.renderedElement.getAttribute('disabled')){
-        return;
-    }
-    view.renderedElement[!value ? 'setAttribute' : 'removeAttribute']('disabled','disabled');
-};
-View.prototype.enabled = new Enabled();
-
-function Title(){};
-Title = createSpec(Title, Property);
-Title.prototype.update = function(view, value) {
-    view.renderedElement[value ? 'setAttribute' : 'removeAttribute']('title',value);
-};
-View.prototype.title = new Title();
-
-View.prototype.insertFunction = insertFunction;
-
-
-/**
-    ## ContainerView
-
-    A base constructor for gaffa Views that can hold child views.
-
-    All Views that inherit from ContainerView will have:
-
-        someView.views.content
-*/
-function ContainerView(viewDescription){
-    this.views = this.views || {};
-    this.views.content = new ViewContainer(this.views.content);
-}
-ContainerView = createSpec(ContainerView, View);
-ContainerView.prototype.bind = function(parent){
-    View.prototype.bind.apply(this, arguments);
-    for(var key in this.views){
-        var viewContainer = this.views[key];
-
-        if(viewContainer instanceof ViewContainer){
-            viewContainer.bind(this);
-        }
-    }
-};
-ContainerView.prototype.debind = function(){
-    View.prototype.debind.apply(this, arguments);
-    for(var key in this.views){
-        var viewContainer = this.views[key];
-
-        if(viewContainer instanceof ViewContainer){
-            viewContainer.debind();
-        }
-    }
-};
-
-
-function Action(actionDescription){
-}
-Action = createSpec(Action, ViewItem);
-Action.prototype.bind = function(){
-    ViewItem.prototype.bind.call(this);
-};
-Action.prototype.trigger = function(parent, scope, event){
-    this.parent = parent;
-
-    scope = scope || {};
-
-    var gaffa = this.gaffa = parent.gaffa;
-
-
-    for(var propertyKey in this.constructor.prototype){
-        var property = this[propertyKey];
-
-        if(property instanceof Property && property.binding){
-            property.gaffa = gaffa;
-            property.parent = this;
-            property.value = property.get(scope);
-        }
-    }
-
-    this.debind();
-};
-
-
-function Behaviour(behaviourDescription){}
-Behaviour = createSpec(Behaviour, ViewItem);
-Behaviour.prototype.toJSON = function(){
-    return jsonConverter(this);
-};
-
+var initialiseViewItem = require('./initialiseViewItem');
+var initialiseView = require('./initialiseView');
+var initialiseAction = require('./initialiseAction');
+var initialiseBehaviour = require('./initialiseBehaviour');
 
 function Gaffa(){
-
-
     var gedi,
-        gaffa = {};
-
+        gaffa = Object.create(EventEmitter.prototype);
 
     // internal varaibles
 
@@ -2136,9 +1290,6 @@ function Gaffa(){
         // Storage for application behaviours.
         internalBehaviours = [],
 
-        // Storage for application notifications.
-        internalNotifications = {},
-
         // Storage for interval based behaviours.
         internalIntervals = [];
 
@@ -2148,7 +1299,6 @@ function Gaffa(){
 
     // Add gedi instance to gaffa.
     gaffa.gedi = gedi;
-
 
     function addBehaviour(behaviour) {
         //if the views isnt an array, make it one.
@@ -2169,49 +1319,9 @@ function Gaffa(){
     }
 
 
-    function addNotification(kind, callback){
-        internalNotifications[kind] = internalNotifications[kind] || [];
-        internalNotifications[kind].push(callback);
-    }
-
-
-    function callbackNotification(notifications, data){
-        for(var i = 0; i < notifications.length; i++) {
-            notifications[i](data);
-        }
-    }
-
-    function notify(kind, data){
-        var subKinds = kind.split(".");
-
-        for(var i = 0; i < subKinds.length; i++) {
-            var notificationKind = subKinds.slice(0, i + 1).join(".");
-
-            if(internalNotifications[notificationKind]){
-                callbackNotification(internalNotifications[notificationKind]);
-            }
-        }
-    }
-
-
-    function queryStringToModel(){
-        var queryStringData = parseQueryString(window.location.search);
-
-        for(var key in queryStringData){
-            if(!queryStringData.hasOwnProperty(key)){
-                continue;
-            }
-
-            if(queryStringData[key]){
-                gaffa.model.set(key, queryStringData[key]);
-            }else{
-                gaffa.model.set(key, null);
-            }
-        }
-    }
-
-
     function load(app, target){
+
+        app = statham.revive(app);
 
         var targetView = gaffa.views;
 
@@ -2250,7 +1360,7 @@ function Gaffa(){
             gaffa.behaviours.add(app.behaviours);
         }
 
-        queryStringToModel();
+        gaffa.emit("load");
     }
 
 
@@ -2261,6 +1371,11 @@ function Gaffa(){
         // Data will be passed to the route as a querystring
         // but will not be displayed visually in the address bar.
         // This is to help resolve caching issues.
+
+        // default target
+        if(target === undefined){
+            target = gaffa.navigateTarget;
+        }
 
         function success (data) {
             var title;
@@ -2276,39 +1391,35 @@ function Gaffa(){
                 gaffa.pushState(data, title, url);
             }
 
-            pageCache[url] = JSON.stringify(data);
+            pageCache[url] = data;
 
             gaffa.load(data, target);
 
-            gaffa.notifications.notify("navigation.success");
+            gaffa.emit("navigate.success");
 
             window.scrollTo(0,0);
         }
 
         function error(error){
-            gaffa.notifications.notify("navigation.error", error);
+            gaffa.emit("navigate.error", error);
         }
 
         function complete(){
-            gaffa.notifications.notify("navigation.complete");
+            gaffa.emit("navigate.complete");
         }
 
-        gaffa.notifications.notify("navigation.begin");
+        gaffa.emit("navigate");
 
         if(gaffa.cacheNavigates !== false && pageCache[url]){
-            success(JSON.parse(pageCache[url]));
+            success(pageCache[url]);
             complete();
             return;
         }
 
         gaffa.ajax({
-            headers:{
-                'x-gaffa': 'navigate'
-            },
-            cache: navigator.appName !== 'Microsoft Internet Explorer',
-            url: url,
+            url: gaffa.createNavigateUrl(url),
             type: "get",
-            data: data, // This is to avoid the cached HTML version of a page if you are bootstrapping.
+            data: data,
             dataType: "json",
             success: success,
             error: error,
@@ -2316,6 +1427,9 @@ function Gaffa(){
         });
     }
 
+    gaffa.createNavigateUrl = function(url){
+        return url;
+    };
 
     gaffa.onpopstate = function(event){
         if(event.state){
@@ -2330,6 +1444,92 @@ function Gaffa(){
         scope.windowLocation = window.location.toString();
     }
 
+    function resolvePath(viewItem){
+        if(viewItem && viewItem.getPath){
+            return viewItem.getPath();
+        }
+    }
+
+    function modelGet(path, viewItem, scope, asTokens) {
+        if(!(viewItem instanceof ViewItem || viewItem instanceof Property)){
+            scope = viewItem;
+            viewItem = undefined;
+        }
+
+        scope = scope || {};
+
+        addDefaultsToScope(scope);
+        var parentPath = resolvePath(viewItem);
+
+        return gedi.get(path, parentPath, scope, asTokens);
+    }
+
+    function modelSet(path, value, viewItem, dirty, scope){
+        if(path == null){
+            return;
+        }
+
+        var parentPath = resolvePath(viewItem);
+
+        if(typeof path === 'object'){
+            value = path;
+            path = '[]';
+        }
+
+        gedi.set(path, value, parentPath, dirty, scope);
+    }
+
+    function modelRemove(path, viewItem, dirty) {
+        var parentPath;
+
+        if(path == null){
+            return;
+        }
+
+        var parentPath = resolvePath(viewItem);
+
+        gedi.remove(path, parentPath, dirty);
+    }
+
+    function modelBind(path, callback, viewItem) {
+        var parentPath = resolvePath(viewItem);
+
+        if(!viewItem.gediCallbacks){
+            viewItem.gediCallbacks = [];
+        }
+
+        // Add the callback to the list of handlers associated with the viewItem
+        viewItem.gediCallbacks.push([path, callback, parentPath]);
+
+        gedi.bind(path, callback, parentPath);
+    }
+
+    function modelDebind(viewItem) {
+        while(viewItem.gediCallbacks && viewItem.gediCallbacks.length){
+            gedi.debind.apply(gedi, viewItem.gediCallbacks.pop());
+        }
+    }
+
+    function modelIsDirty(path, viewItem) {
+        if(path == null){
+            return;
+        }
+
+        var parentPath = resolvePath(viewItem);
+
+        return gedi.isDirty(path, parentPath);
+    }
+
+    function modelSetDirtyState(path, value, viewItem) {
+        if(path == null){
+            return;
+        }
+
+        var parentPath = resolvePath(viewItem);
+
+        gedi.setDirtyState(path, value, parentPath);
+    }
+
 
 /**
     ## The gaffa instance
@@ -2340,24 +1540,6 @@ function Gaffa(){
 */
 
     var gaffaPublicObject = {
-
-        /**
-            ### .addDefaultStyle
-
-            used to add default syling for a view to the application, eg:
-
-                MyView.prototype.render = function(){
-                    //render code...
-
-                    gaffa.addDefaultStyle(css);
-
-                };
-
-            Gaffa encourages style-free Views, however sometimes views require minimal css to add functionality.
-
-            addDefaultStyle allows encaptulation of css within the View's .js file, and allows the style to be easily overriden.
-        */
-        addDefaultStyle: addDefaultStyle,
 
         /**
             ### .createSpec
@@ -2383,7 +1565,21 @@ function Gaffa(){
 
             Also recurses through the ViewItem's tree and inflates children.
         */
-        initialiseViewItem: initialiseViewItem,
+        initialiseViewItem: function(viewItem, specCollection, references){
+            return initialiseViewItem(viewItem, this, specCollection, references);
+        },
+
+        initialiseView: function(view, references){
+            return initialiseView(view, this, references);
+        },
+
+        initialiseAction: function(action, references){
+            return initialiseAction(action, this, references);
+        },
+
+        initialiseBehaviour: function(behaviour, references){
+            return initialiseBehaviour(behaviour, this, references);
+        },
 
         /**
             ### .initialiseViewItem
@@ -2407,7 +1603,9 @@ function Gaffa(){
                 // ToDo: Deprecate .type
                 gaffa[constructorType]._constructors[constructor.prototype._type || constructor.prototype.type] = constructor;
             }else{
-                throw "The provided constructor was not an instance of a View, Action, or Behaviour";
+                throw "The provided constructor was not an instance of a View, Action, or Behaviour" +
+                    "\n This is likely due to having two version of Gaffa installed" +
+                    "\n Run 'npm ls gaffa' to check, and 'npm dedupe to fix'";
             }
         },
 
@@ -2447,22 +1645,7 @@ function Gaffa(){
 
                     gaffa.model.get('[someProp]', parentViewItem);
             */
-            get:function(path, viewItem, scope, asTokens) {
-                if(!(viewItem instanceof ViewItem || viewItem instanceof Property)){
-                    scope = viewItem;
-                    viewItem = undefined;
-                }
-
-                var parentPath;
-                if(viewItem && viewItem.getPath){
-                    parentPath = viewItem.getPath();
-                }
-
-                scope = scope || {};
-
-                addDefaultsToScope(scope);
-                return gedi.get(path, parentPath, scope, asTokens);
-            },
+            get: modelGet,
 
             /**
                 ### .set(path, value, viewItem, dirty)
@@ -2472,19 +1655,7 @@ function Gaffa(){
 
                     gaffa.model.set('[someProp]', 'hello', parentViewItem);
             */
-            set:function(path, value, viewItem, dirty) {
-                var parentPath;
-
-                if(path == null){
-                    return;
-                }
-
-                if(viewItem && viewItem.getPath){
-                    parentPath = viewItem.getPath();
-                }
-
-                gedi.set(path, value, parentPath, dirty);
-            },
+            set: modelSet,
 
             /**
                 ### .remove(path, viewItem, dirty)
@@ -2494,19 +1665,7 @@ function Gaffa(){
 
                     gaffa.model.remove('[someProp]', parentViewItem);
             */
-            remove: function(path, viewItem, dirty) {
-                var parentPath;
-
-                if(path == null){
-                    return;
-                }
-
-                if(viewItem && viewItem.getPath){
-                    parentPath = viewItem.getPath();
-                }
-
-                gedi.remove(path, parentPath, dirty);
-            },
+            remove: modelRemove,
 
             /**
                 ### .bind(path, callback, viewItem)
@@ -2518,24 +1677,7 @@ function Gaffa(){
                         //do something when '[someProp]' changes.
                     }, viewItem);
             */
-            bind: function(path, callback, viewItem) {
-                var parentPath;
-
-                if(viewItem && viewItem.getPath){
-                    parentPath = viewItem.getPath();
-                }
-
-                if(!viewItem.gediCallbacks){
-                    viewItem.gediCallbacks = [];
-                }
-
-                // Add the callback to the list of handlers associated with the viewItem
-                viewItem.gediCallbacks.push(function(){
-                    gedi.debind(callback);
-                });
-
-                gedi.bind(path, callback, parentPath);
-            },
+            bind: modelBind,
 
             /**
                 ### .debind(viewItem)
@@ -2546,11 +1688,7 @@ function Gaffa(){
                         //do something when '[someProp]' changes.
                     });
             */
-            debind: function(viewItem) {
-                while(viewItem.gediCallbacks && viewItem.gediCallbacks.length){
-                    viewItem.gediCallbacks.pop()();
-                }
-            },
+            debind: modelDebind,
 
             /**
                 ### .isDirty(path, viewItem)
@@ -2560,19 +1698,7 @@ function Gaffa(){
 
                     gaffa.model.isDirty('[someProp]', viewItem); // true/false?
             */
-            isDirty: function(path, viewItem) {
-                var parentPath;
-
-                if(path == null){
-                    return;
-                }
-
-                if(viewItem && viewItem.getPath){
-                    parentPath = viewItem.getPath();
-                }
-
-                return gedi.isDirty(path, parentPath);
-            },
+            isDirty: modelIsDirty,
 
             /**
                 ### .setDirtyState(path, value, viewItem)
@@ -2582,19 +1708,7 @@ function Gaffa(){
 
                     gaffa.model.setDirtyState('[someProp]', true, viewItem);
             */
-            setDirtyState: function(path, value, viewItem) {
-                var parentPath;
-
-                if(path == null){
-                    return;
-                }
-
-                if(viewItem && viewItem.getPath){
-                    parentPath = viewItem.getPath();
-                }
-
-                gedi.setDirtyState(path, value, parentPath);
-            }
+            setDirtyState: modelSetDirtyState
         },
 
         /**
@@ -2732,7 +1846,7 @@ function Gaffa(){
         },
 
         utils: {
-            //See if a property exists on an object without doing if(obj && obj.prop && obj.prop.prop) etc...
+            // Get a deep property on an object without doing if(obj && obj.prop && obj.prop.prop) etc...
             getProp: function (object, propertiesString) {
                 var properties = propertiesString.split(Gaffa.pathSeparator).reverse();
                 while (properties.length) {
@@ -2745,7 +1859,7 @@ function Gaffa(){
                 }
                 return object;
             },
-            //See if a property exists on an object without doing if(obj && obj.prop && obj.prop.prop) etc...
+            // See if a property exists on an object without doing if(obj && obj.prop && obj.prop.prop) etc...
             propExists: function (object, propertiesString) {
                 var properties = propertiesString.split(".").reverse();
                 while (properties.length) {
@@ -2757,8 +1871,7 @@ function Gaffa(){
                     }
                 }
                 return true;
-            },
-            deDom: deDom
+            }
         },
 
         /**
@@ -2780,35 +1893,22 @@ function Gaffa(){
             myPageContainer would be a named ContainerView and content is the viewContainer on the view to target.
         */
         navigate: navigate,
-
-        notifications:{
-            add: addNotification,
-            notify: notify
-        },
-
         load: load,
-
-        //If you want to load the values in query strings into the pages model.
-        queryStringToModel: queryStringToModel,
-
-        //This is here so i can remove it later and replace with a better verson.
-        extend: extend,
-
+        extend: merge, // DEPRICATED
+        merge: merge,
         clone: clone,
         ajax: ajax,
         crel: crel,
         doc: doc,
-        fastEach: fastEach,
         getClosestItem: getClosestItem,
         pushState: function(state, title, location){
             window.history.pushState(state, title, location);
         }
     };
 
-    extend(gaffa, gaffaPublicObject);
+    merge(gaffa, gaffaPublicObject);
 
     return gaffa;
-
 }
 
 
@@ -2823,204 +1923,237 @@ Gaffa.ContainerView = ContainerView;
 Gaffa.Action = Action;
 Gaffa.createSpec = createSpec;
 Gaffa.Behaviour = Behaviour;
-Gaffa.addDefaultStyle = addDefaultStyle;
-
-Gaffa.propertyUpdaters = {
-    group: function (viewsName, insert, remove, empty) {
-        return function (viewModel, value) {
-            var property = this,
-                gaffa = property.gaffa,
-                childViews = viewModel.views[viewsName],
-                previousGroups = property.previousGroups,
-                newView,
-                isEmpty;
-
-            if (value && typeof value === "object"){
-
-                viewModel.distinctGroups = getDistinctGroups(gaffa, property.value, property.expression);
-
-                if(previousGroups){
-                    if(previousGroups.length === viewModel.distinctGroups.length){
-                        return;
-                    }
-                    var same = true;
-                    for(var i = 0; i < previousGroups.length; i++) {
-                        var group = previousGroups[i];
-                        if(group !== viewModel.distinctGroups[group]){
-                            same = false;
-                        }
-                    }
-                    if(same){
-                        return;
-                    }
-                }
-
-                property.previousGroups = viewModel.distinctGroups;
-
-
-                for(var i = 0; i < childViews.length; i++){
-                    var childView = childViews[i];
-                    if(viewModel.distinctGroups.indexOf(childView.group)<0){
-                        childViews.splice(i, 1);
-                        i--;
-                        remove(viewModel, value, childView);
-                    }
-                }
-                for(var i = 0; i < viewModel.distinctGroups.length; i++) {
-                    var group = viewModel.distinctGroups[i];
-                    var exists = false;
-                    for(var i = 0; i < childViews.length; i++) {
-                        if(child.group === childViews[i]){
-                            exists = true;
-                        }
-                    }
-
-                    if (!exists) {
-                        newView = {group: group};
-                        insert(viewModel, value, newView);
-                    }
-                }
-
-                isEmpty = !childViews.length;
-
-                empty(viewModel, isEmpty);
-            }else{
-                for(var i = 0; i < childViews.length; i++) {
-                    childViews.splice(index, 1);
-                    remove(viewModel, property.value, childViews[i]);
-                }
-            }
-        };
-    }
-};
 
 module.exports = Gaffa;
 
 ///[license.md]
 
-},{"./raf.js":28,"crel":9,"deep-equal":10,"doc-js":12,"events":36,"fasteach":16,"gedi":18,"spec-js":27}],9:[function(require,module,exports){
-//Copyright (C) 2012 Kory Nunn
+},{"./action":9,"./behaviour":10,"./containerView":12,"./getClosestItem":15,"./initialiseAction":16,"./initialiseBehaviour":17,"./initialiseView":18,"./initialiseViewItem":19,"./jsonConverter":20,"./property":51,"./raf.js":52,"./removeViews":53,"./view":54,"./viewContainer":55,"./viewItem":56,"crel":1,"doc-js":24,"events":74,"gedi":29,"merge":39,"spec-js":40,"statham":44}],15:[function(require,module,exports){
+function getClosestItem(target){
+    var viewModel = target.viewModel;
 
-//Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+    while(!viewModel && target){
+        target = target.parentNode;
 
-//The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-/*
-
-    This code is not formatted for readability, but rather run-speed and to assist compilers.
-    
-    However, the code's intention should be transparent.
-    
-    *** IE SUPPORT ***
-    
-    If you require this library to work in IE7, add the following after declaring crel.
-    
-    var testDiv = document.createElement('div'),
-        testLabel = document.createElement('label');
-
-    testDiv.setAttribute('class', 'a');    
-    testDiv['className'] !== 'a' ? crel.attrMap['class'] = 'className':undefined;
-    testDiv.setAttribute('name','a');
-    testDiv['name'] !== 'a' ? crel.attrMap['name'] = function(element, value){
-        element.id = value;
-    }:undefined;
-    
-
-    testLabel.setAttribute('for', 'a');
-    testLabel['htmlFor'] !== 'a' ? crel.attrMap['for'] = 'htmlFor':undefined;
-    
-    
-
-*/
-
-// if the module has no dependencies, the above pattern can be simplified to
-(function (root, factory) {
-    if (typeof exports === 'object') {
-        module.exports = factory();
-    } else if (typeof define === 'function' && define.amd) {
-        define(factory);
-    } else {
-        root.crel = factory();
-  }
-}(this, function () {
-    // based on http://stackoverflow.com/questions/384286/javascript-isdom-how-do-you-check-if-a-javascript-object-is-a-dom-object
-    var isNode = typeof Node === 'object'
-        ? function (object) { return object instanceof Node }
-        : function (object) {
-            return object
-                && typeof object === 'object'
-                && typeof object.nodeType === 'number'
-                && typeof object.nodeName === 'string';
-        };
-
-    function crel(){
-        var document = window.document,
-            args = arguments, //Note: assigned to a variable to assist compilers. Saves about 40 bytes in closure compiler. Has negligable effect on performance.
-            element = document.createElement(args[0]),
-            child,
-            settings = args[1],
-            childIndex = 2,
-            argumentsLength = args.length,
-            attributeMap = crel.attrMap;
-
-        // shortcut
-        if(argumentsLength === 1){
-            return element;
+        if(target){
+            viewModel = target.viewModel;
         }
-
-        if(typeof settings !== 'object' || isNode(settings)) {
-            --childIndex;
-            settings = null;
-        }
-
-        // shortcut if there is only one child that is a string    
-        if((argumentsLength - childIndex) === 1 && typeof args[childIndex] === 'string' && element.textContent !== undefined){
-            element.textContent = args[childIndex];
-        }else{    
-            for(; childIndex < argumentsLength; ++childIndex){
-                child = args[childIndex];
-                
-                if(child == null){
-                    continue;
-                }
-                
-                if(!isNode(child)){
-                    child = document.createTextNode(child);
-                }
-                
-                element.appendChild(child);
-            }
-        }
-        
-        for(var key in settings){
-            if(!attributeMap[key]){
-                element.setAttribute(key, settings[key]);
-            }else{
-                var attr = crel.attrMap[key];
-                if(typeof attr === 'function'){     
-                    attr(element, settings[key]);               
-                }else{            
-                    element.setAttribute(attr, settings[key]);
-                }
-            }
-        }
-        
-        return element;
     }
-    
-    // Used for mapping one kind of attribute to the supported version of that in bad browsers.
-    // String referenced so that compilers maintain the property name.
-    crel['attrMap'] = {};
-    
-    // String referenced so that compilers maintain the property name.
-    crel["isNode"] = isNode;
-    
-    return crel;
-}));
 
-},{}],10:[function(require,module,exports){
+    return viewModel;
+}
+
+module.exports = getClosestItem;
+},{}],16:[function(require,module,exports){
+var initialiseViewItem = require('./initialiseViewItem');
+
+function initialiseAction(viewItem, gaffa, references) {
+    return initialiseViewItem(viewItem, gaffa, gaffa.actions._constructors, references);
+}
+
+module.exports = initialiseAction;
+},{"./initialiseViewItem":19}],17:[function(require,module,exports){
+var initialiseViewItem = require('./initialiseViewItem');
+
+function initialiseBehaviour(viewItem, gaffa, references) {
+    return initialiseViewItem(viewItem, gaffa, gaffa.behaviours._constructors, references);
+}
+
+module.exports = initialiseBehaviour;
+},{"./initialiseViewItem":19}],18:[function(require,module,exports){
+var initialiseViewItem = require('./initialiseViewItem');
+
+function initialiseView(viewItem, gaffa, references) {
+    return initialiseViewItem(viewItem, gaffa, gaffa.views._constructors, references);
+}
+
+module.exports = initialiseView;
+},{"./initialiseViewItem":19}],19:[function(require,module,exports){
+function initialiseViewItem(viewItem, gaffa, specCollection, references) {
+    var ViewItem = require('./viewItem'),
+        ViewContainer = require('./viewContainer'),
+        initialiseView = require('./initialiseView'),
+        initialiseAction = require('./initialiseAction'),
+        initialiseBehaviour = require('./initialiseBehaviour');
+
+    references = references || {
+        objects: [],
+        viewItems: []
+    };
+
+    // ToDo: Deprecate .type
+    var viewItemType = viewItem._type || viewItem.type;
+
+    if(!(viewItem instanceof ViewItem)){
+        if (!specCollection[viewItemType]) {
+            throw "No constructor is loaded to handle view of type " + viewItemType;
+        }
+
+        var referenceIndex = references.objects.indexOf(viewItem);
+        if(referenceIndex >= 0){
+            return references.viewItems[referenceIndex];
+        }
+
+        references.objects.push(viewItem);
+        viewItem = new specCollection[viewItemType](viewItem);
+        references.viewItems.push(viewItem);
+    }
+
+    for(var key in viewItem.views){
+        if(!(viewItem.views[key] instanceof ViewContainer)){
+            viewItem.views[key] = new ViewContainer(viewItem.views[key]);
+        }
+        var views = viewItem.views[key];
+        for (var viewIndex = 0; viewIndex < views.length; viewIndex++) {
+            var view = initialiseView(views[viewIndex], gaffa, references);
+            views[viewIndex] = view;
+            view.parentContainer = views;
+        }
+    }
+
+    for(var key in viewItem.actions){
+        var actions = viewItem.actions[key];
+        for (var actionIndex = 0; actionIndex < actions.length; actionIndex++) {
+            var action = initialiseAction(actions[actionIndex], gaffa, references);
+            actions[actionIndex] = action;
+            action.parentContainer = actions;
+        }
+    }
+
+    if(viewItem.behaviours){
+        for (var behaviourIndex = 0; behaviourIndex < viewItem.behaviours.length; behaviourIndex++) {
+            var behaviour = initialiseBehaviour(viewItem.behaviours[behaviourIndex], gaffa, references);
+            viewItem.behaviours[behaviourIndex] = behaviour;
+            behaviour.parentContainer = viewItem.behaviours;
+        }
+    }
+
+    return viewItem;
+}
+
+module.exports = initialiseViewItem;
+},{"./initialiseAction":16,"./initialiseBehaviour":17,"./initialiseView":18,"./viewContainer":55,"./viewItem":56}],20:[function(require,module,exports){
+var deepEqual = require('deep-equal');
+
+function jsonConverter(object, exclude, include){
+    var plainInstance = new object.constructor(),
+        tempObject = Array.isArray(object) || object instanceof Array && [] || {},
+        excludeProps = ["_trackedListeners", "__iuid", "gaffa", "parent", "parentContainer", "renderedElement", "_removeHandlers", "gediCallbacks", "__super__", "_events"],
+        includeProps = ["type", "_type"];
+
+    //console.log(object.constructor.name);
+
+    if(exclude){
+        excludeProps = excludeProps.concat(exclude);
+    }
+
+    if(include){
+        includeProps = includeProps.concat(include);
+    }
+
+    for(var key in object){
+        if(typeof object[key] === 'function'){
+            continue;
+        }
+        if(
+            includeProps.indexOf(key)>=0 ||
+            object.hasOwnProperty(key) &&
+            excludeProps.indexOf(key)<0 &&
+            !deepEqual(plainInstance[key], object[key])
+        ){
+            tempObject[key] = object[key];
+        }
+    }
+
+    if(!Object.keys(tempObject).length){
+        return;
+    }
+
+    return tempObject;
+}
+
+module.exports = jsonConverter;
+},{"deep-equal":22}],21:[function(require,module,exports){
+function getListenerMethod(emitter, methodNames){
+    if(typeof methodNames === 'string'){
+        methodNames = methodNames.split(' ');
+    }
+    for(var i = 0; i < methodNames.length; i++){
+        if(methodNames[i] in emitter){
+            return methodNames[i];
+        }
+    }
+}
+
+function Consuela(){
+    this._trackedListeners = [];
+    if(getListenerMethod(this, this._onNames)){
+        this._watch(this);
+    }
+}
+Consuela.init = function(instance){
+    // If passed a constructor
+    if(typeof instance === 'function'){
+        var Constructor = new Function("instance", "Consuela", "return function " + instance.name + "(){Consuela.call(this);return instance.apply(this, arguments);}")(instance, Consuela);
+
+        Constructor.prototype = Object.create(instance.prototype);
+        Constructor.prototype.constructor = Constructor;
+        Constructor.name = instance.name;
+        console.log(Constructor.name);
+        for(var key in Consuela.prototype){
+            Constructor.prototype[key] = Consuela.prototype[key];
+        }
+        return Constructor;
+    }
+
+    // Otherwise, if passed an instance
+    for(var key in Consuela.prototype){
+        instance[key] = Consuela.prototype[key];
+    }
+    Consuela.call(instance);
+};
+Consuela.prototype._onNames = 'on addListener addEventListener';
+Consuela.prototype._offNames = 'off removeListener removeEventListener';
+Consuela.prototype._on = function(emitter, args, offName){
+    this._trackedListeners.push({
+        emitter: emitter,
+        args: Array.prototype.slice.call(args),
+        offName: offName
+    });
+};
+Consuela.prototype._cleanup = function(){
+    while(this._trackedListeners.length){
+        var info = this._trackedListeners.pop(),
+            emitter = info.emitter,
+            offNames = this._offNames;
+
+        if(info.offName){
+            offNames = [info.offName];
+        }
+
+        emitter[getListenerMethod(info.emitter, offNames)]
+            .apply(emitter, info.args);
+    }
+};
+Consuela.prototype._watch = function(emitter, onName, offName){
+    var consuela = this,
+        onNames = this._onNames;
+
+    if(onName){
+        onNames = [onName];
+    }
+
+    var method = getListenerMethod(emitter, onNames),
+        oldOn = emitter[method];
+
+    emitter[method] = function(){
+        consuela._on(emitter, arguments, offName);
+        oldOn.apply(emitter, arguments);
+    };
+};
+
+module.exports = Consuela;
+},{}],22:[function(require,module,exports){
 var pSlice = Array.prototype.slice;
 var Object_keys = typeof Object.keys === 'function'
     ? Object.keys
@@ -3106,24 +2239,17 @@ function objEquiv(a, b) {
   return true;
 }
 
-},{}],11:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 module.exports=require(2)
-},{"./getTarget":13,"./getTargets":14,"./isList":15}],12:[function(require,module,exports){
+},{"./getTarget":25,"./getTargets":26,"./isList":27}],24:[function(require,module,exports){
 arguments[4][3][0].apply(exports,arguments)
-},{"./doc":11,"./getTargets":14,"./isList":15}],13:[function(require,module,exports){
+},{"./doc":23,"./getTargets":26,"./isList":27}],25:[function(require,module,exports){
 module.exports=require(4)
-},{}],14:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 module.exports=require(5)
-},{}],15:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 module.exports=require(6)
-},{}],16:[function(require,module,exports){
-function fastEach(items, callback) {
-    for (var i = 0; i < items.length && !callback(items[i], i, items);i++) {}
-    return items;
-}
-
-module.exports = fastEach;
-},{}],17:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 var WM = typeof WM !== 'undefined' ? WeakMap : require('weak-map'),
     paths = require('gedi-paths'),
     pathConstants = paths.constants
@@ -3285,8 +2411,8 @@ module.exports = function(modelGet, gel, PathToken){
             var tokens = gel.tokenise(expression);
             for(var index = 0; index < tokens.length; index++){
             var token = tokens[index];
-                if(token instanceof PathToken){
-                    paths.push(token.original);
+                if(token.path != null){
+                    paths.push(token.path);
                 }
             }
         } else {
@@ -3317,7 +2443,7 @@ module.exports = function(modelGet, gel, PathToken){
             path = paths.create(parts.slice(0, parts.indexOf(pathConstants.wildcard)));
         }
 
-        var resolvedPath = paths.resolve(details.parentPath, path),
+        var resolvedPath = paths.resolve(paths.createRoot(), details.parentPath, path),
             reference = get(resolvedPath, modelBindings) || {},
             referenceDetails = modelBindingDetails.get(reference),
             callbackReferences = callbackReferenceDetails.get(details.callback);
@@ -3377,7 +2503,7 @@ module.exports = function(modelGet, gel, PathToken){
             getPathsInExpression(binding)[0] === binding
         ){
             //fully resolve the callback path
-            var wildcardParts = paths.toParts(paths.resolve('[/]', parentPath, binding)),
+            var wildcardParts = paths.toParts(paths.resolve(paths.createRoot(), parentPath, binding)),
                 targetParts = paths.toParts(target);
 
             for(var i = 0; i < wildcardParts.length; i++) {
@@ -3393,47 +2519,7 @@ module.exports = function(modelGet, gel, PathToken){
         }
     }
 
-    function debindExpression(binding, callback){
-        var expressionPaths = getPathsInExpression(binding);
-
-        for(var i = 0; i < expressionPaths.length; i++) {
-            var path = expressionPaths[i];
-                debind(path, callback);
-        }
-    }
-
-    function debind(path, callback){
-
-        // If you pass no path and no callback
-        // You are trying to debind the entire gedi instance.
-        if(!path && !callback){
-            resetEvents();
-            return;
-        }
-
-        if(typeof path === 'function'){
-            callback = path;
-            path = null;
-        }
-
-        //If the binding has opperators in it, break them apart and set them individually.
-        if (!paths.create(path)) {
-            return debindExpression(path, callback);
-        }
-
-        if(path == null){
-            var references = callback && callbackReferenceDetails.get(callback);
-            if(references){
-                while(references.length){
-                    debindExpression(references.pop(), callback);
-                }
-            }
-            return;
-        }
-
-        // resolve path to root
-        path = paths.resolve(paths.createRoot(), path);
-
+    function debindPath(path, callback){
         var targetReference = get(path, modelBindings),
             referenceDetails = modelBindingDetails.get(targetReference);
 
@@ -3446,6 +2532,56 @@ module.exports = function(modelGet, gel, PathToken){
                 }
             }
         }
+    }
+
+    function debindCallbackPaths(path, callback, parentPath){
+        if(callback){
+            var references = callback && callbackReferenceDetails.get(callback),
+                resolvedPath = paths.resolve(paths.createRoot(), parentPath, path);
+
+            if(references){
+                for(var i = 0; i < references.length; i++) {
+                    if(path != null && references[i] !== resolvedPath){
+                        continue;
+                    }
+                    debindPath(references.splice(i, 1)[0], callback);
+                    i--;
+                }
+            }
+            return;
+        }
+        debindPath(path);
+    }
+
+    function debindExpression(binding, callback, parentPath){
+        var expressionPaths = getPathsInExpression(binding);
+
+        for(var i = 0; i < expressionPaths.length; i++) {
+            var path = expressionPaths[i];
+                debindCallbackPaths(path, callback, parentPath);
+        }
+    }
+
+    function debind(expression, callback, parentPath){
+
+        // If you pass no path and no callback
+        // You are trying to debind the entire gedi instance.
+        if(!expression && !callback){
+            resetEvents();
+            return;
+        }
+
+        if(typeof expression === 'function'){
+            callback = expression;
+            expression = null;
+        }
+
+        //If the expression is a simple path, skip the expression debind step.
+        if (expression == null || paths.is(expression)) {
+            return debindCallbackPaths(expression, callback, parentPath);
+        }
+
+        debindExpression(expression, callback, parentPath);
     }
 
 
@@ -3525,7 +2661,7 @@ module.exports = function(modelGet, gel, PathToken){
         removeModelReference: removeModelReference
     };
 };
-},{"./modelOperations":19,"gedi-paths":21,"weak-map":25}],18:[function(require,module,exports){
+},{"./modelOperations":30,"gedi-paths":32,"weak-map":34}],29:[function(require,module,exports){
 //Copyright (C) 2012 Kory Nunn
 
 //Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
@@ -3639,23 +2775,39 @@ function newGedi(model) {
     gel.tokenConverters.push(PathToken);
 
     gel.scope.isDirty = function(scope, args){
-        var token = args.raw()[0];
+        var token = args.getRaw(0, true);
 
-        return isDirty(paths.resolve(scope.get('_gmc_'), (token instanceof PathToken) ? token.original : paths.create()));
+        if(!token){
+            return false;
+        }
+
+        var path = (token instanceof PathToken) ? token.original : token.sourcePathInfo && token.sourcePathInfo.path;
+
+        if(!path){
+            return false;
+        }
+
+        return isDirty(paths.resolve(scope.get('_gmc_'), path));
     };
 
     gel.scope.getAllDirty = function (scope, args) {
-        var token = args.raw()[0],
-            path = paths.resolve(scope.get('_gmc_'), (token instanceof PathToken) && token.original),
-            source = get(path, model),
-            result,
-            itemPath;
+        var token = args.getRaw(0, true),
+            source = token && token.result;
 
         if (source == null) {
             return null;
         }
 
-        result = source.constructor();
+        var result = source.constructor(),
+            path = (token instanceof PathToken) ? token.original : token.sourcePathInfo && token.sourcePathInfo.path;
+
+        if(!path){
+            return result;
+        }
+
+        var resolvedPath = paths.resolve(scope.get('_gmc_'), path),
+            result,
+            itemPath;
 
         for (var key in source) {
             if (source.hasOwnProperty(key)) {
@@ -3829,16 +2981,16 @@ function newGedi(model) {
         }
 
         if(expression && !arguments[3]){
-            parentPaths = {};
+            itemParentPaths = {};
             getSourcePathInfo(expression, parentPath, function(subPath){
                 modelSet(subPath, new DeletedItem(), parentPath, dirty, true);
-                parentPaths[paths.append(subPath, paths.create(pathConstants.upALevel))] = null;
+                itemParentPaths[paths.append(subPath, paths.create(pathConstants.upALevel))] = null;
             });
 
-            for(var key in parentPaths){
-                if(parentPaths.hasOwnProperty(key)){
-                    var parentPath = paths.resolve(parentPath || paths.createRoot(), key),
-                        parentObject = get(parentPath, model),
+            for(var key in itemParentPaths){
+                if(itemParentPaths.hasOwnProperty(key)){
+                    var itemParentPath = paths.resolve(parentPath || paths.createRoot(), key),
+                        parentObject = get(itemParentPath, model),
                         isArray = Array.isArray(parentObject);
 
                     if(isArray){
@@ -3851,14 +3003,14 @@ function newGedi(model) {
                             }
                         }
                         if(anyRemoved){
-                            events.trigger(parentPath);
+                            events.trigger(itemParentPath);
                         }
-                    }else{
-                        for(var key in parentObject){
-                            if(parentObject[key] instanceof DeletedItem){
-                                delete parentObject[key];
-                                events.trigger(paths.append(parentPath, key));
-                            }
+                    }
+                    // Always run keys version, because array's might have non-index keys
+                    for(var key in parentObject){
+                        if(parentObject[key] instanceof DeletedItem){
+                            delete parentObject[key];
+                            events.trigger(paths.append(itemParentPath, key));
                         }
                     }
                 }
@@ -4140,7 +3292,7 @@ function newGedi(model) {
 }
 
 module.exports = gediConstructor;
-},{"./events":17,"./modelOperations":19,"./pathToken":26,"gedi-paths":21,"gel-js":22,"spec-js":27}],19:[function(require,module,exports){
+},{"./events":28,"./modelOperations":30,"./pathToken":35,"gedi-paths":32,"gel-js":33,"spec-js":40}],30:[function(require,module,exports){
 var paths = require('gedi-paths'),
     memoiseCache = {};
 
@@ -4270,7 +3422,7 @@ module.exports = {
     get: get,
     set: set
 };
-},{"gedi-paths":21}],20:[function(require,module,exports){
+},{"gedi-paths":32}],31:[function(require,module,exports){
 module.exports = function detectPath(substring){
     if (substring.charAt(0) === '[') {
         var index = 1;
@@ -4289,7 +3441,7 @@ module.exports = function detectPath(substring){
         } while (index < substring.length);
     }
 };
-},{}],21:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 var detectPath = require('./detectPath');
 
 var pathSeparator = "/",
@@ -4450,15 +3602,16 @@ function pathToParts(path){
 
     path = path.slice(1,-1);
 
+    if(path === ""){
+        return [];
+    }
+
     var lastPartIndex = 0,
         parts,
         nextChar,
         currentChar;
 
     if(path.indexOf('\\') < 0){
-        if(path === ""){
-            return [];
-        }
         return path.split(pathSeparator);
     }
 
@@ -4559,9 +3712,10 @@ module.exports = {
         wildcard: pathWildcard
     }
 };
-},{"./detectPath":20}],22:[function(require,module,exports){
+},{"./detectPath":31}],33:[function(require,module,exports){
 var Lang = require('lang-js'),
     paths = require('gedi-paths'),
+    merge = require('merge'),
     createNestingParser = Lang.createNestingParser,
     detectString = Lang.detectString,
     Token = Lang.Token,
@@ -4745,11 +3899,20 @@ NumberToken.prototype.evaluate = function(scope){
     this.result = parseFloat(this.original);
 };
 
-function ValueToken(value, path, key){
+function ValueToken(value, sourcePathInfo, key){
+    this.original = 'Value';
+    this.length = this.original.length,
     this.result = value;
-    this.sourcePathInfo = new SourcePathInfo();
-    this.sourcePathInfo.path = path;
-    this.sourcePathInfo.drillTo(key);
+
+    if(sourcePathInfo){
+        this.sourcePathInfo = new SourcePathInfo();
+        this.sourcePathInfo.path = sourcePathInfo.path;
+        this.sourcePathInfo.subPaths = sourcePathInfo.subPaths && sourcePathInfo.subPaths.slice();
+    }
+
+    if(key != null){
+        this.sourcePathInfo.drillTo(key);
+    }
 }
 ValueToken = createSpec(ValueToken, Token);
 ValueToken.tokenPrecedence = 2;
@@ -4804,7 +3967,7 @@ DelimiterToken.prototype.parsePrecedence = 1;
 DelimiterToken.prototype.name = 'DelimiterToken';
 DelimiterToken.tokenise = function(substring) {
     var i = 0;
-    while(i < substring.length && substring.charAt(i).trim() === "" || substring.charAt(i) === ',') {
+    while(i < substring.length && substring.charAt(i).trim() === "") {
         i++;
     }
 
@@ -4876,11 +4039,59 @@ PeriodToken.prototype.evaluate = function(scope){
     }
 };
 
+function CommaToken(){}
+CommaToken = createSpec(CommaToken, Token);
+CommaToken.prototype.name = 'CommaToken';
+CommaToken.tokenPrecedence = 2;
+CommaToken.prototype.parsePrecedence = 6;
+CommaToken.tokenise = function(substring){
+    var characterConst = ",";
+    return (substring.charAt(0) === characterConst) ? new CommaToken(characterConst, 1) : undefined;
+};
+CommaToken.prototype.parse = function(tokens, position){
+    this.leftToken = tokens.splice(position-1,1)[0];
+    this.rightToken = tokens.splice(position,1)[0];
+    if(!this.leftToken){
+        throw "Invalid syntax, expected token before ,";
+    }
+    if(!this.rightToken){
+        throw "Invalid syntax, expected token after ,";
+    }
+};
+CommaToken.prototype.evaluate = function(scope){
+    this.leftToken.evaluate(scope);
+    this.rightToken.evaluate(scope);
+
+    var leftToken = this.leftToken,
+        rightToken = this.rightToken,
+        leftPath = leftToken.sourcePathInfo && leftToken.sourcePathInfo.path,
+        leftPaths = leftToken.sourcePathInfo && leftToken.sourcePathInfo.subPaths,
+        rightPath = rightToken.sourcePathInfo && rightToken.sourcePathInfo.path;
+
+    this.sourcePathInfo = {
+        subPaths: []
+    };
+
+    if(leftToken instanceof CommaToken){
+        // concat
+        this.result = leftToken.result.slice();
+        this.sourcePathInfo.subPaths = leftPaths;
+    }else{
+        this.result = [];
+
+        this.result.push(leftToken.result);
+        this.sourcePathInfo.subPaths.push(leftPath);
+    }
+
+    this.result.push(rightToken.result);
+    this.sourcePathInfo.subPaths.push(rightPath);
+};
+
 function PipeToken(){}
 PipeToken = createSpec(PipeToken, Token);
 PipeToken.prototype.name = 'PipeToken';
 PipeToken.tokenPrecedence = 1;
-PipeToken.prototype.parsePrecedence = 5;
+PipeToken.prototype.parsePrecedence = 6;
 PipeToken.tokenise = function(substring){
     var pipeConst = "|>";
     return (substring.slice(0,2) === pipeConst) ? new PipeToken(pipeConst, pipeConst.length) : undefined;
@@ -4909,7 +4120,7 @@ function PipeApplyToken(){}
 PipeApplyToken = createSpec(PipeApplyToken, Token);
 PipeApplyToken.prototype.name = 'PipeApplyToken';
 PipeApplyToken.tokenPrecedence = 1;
-PipeApplyToken.prototype.parsePrecedence = 5;
+PipeApplyToken.prototype.parsePrecedence = 6;
 PipeApplyToken.tokenise = function(substring){
     var pipeConst = "~>";
     return (substring.slice(0,2) === pipeConst) ? new PipeApplyToken(pipeConst, pipeConst.length) : undefined;
@@ -4939,20 +4150,40 @@ PipeApplyToken.prototype.evaluate = function(scope){
     this.result = scope.callWith(this.functionToken.result, this.argumentsToken.result, this);
 };
 
-function FunctionToken(){}
-FunctionToken = createSpec(FunctionToken, Token);
-FunctionToken.tokenPrecedence = 1;
-FunctionToken.prototype.parsePrecedence = 3;
-FunctionToken.prototype.name = 'FunctionToken';
-FunctionToken.tokenise = function(substring) {
+function BraceToken(){}
+BraceToken = createSpec(BraceToken, Token);
+BraceToken.tokenPrecedence = 1;
+BraceToken.prototype.parsePrecedence = 3;
+BraceToken.prototype.name = 'BraceToken';
+BraceToken.tokenise = function(substring) {
     if(substring.charAt(0) === '{'){
-        return new FunctionToken(substring.charAt(0), 1);
+        return new BraceToken(substring.charAt(0), 1);
     }
 };
-FunctionToken.prototype.parse = createNestingParser(FunctionEndToken);
-FunctionToken.prototype.evaluate = function(scope){
-    var parameterNames = this.childTokens.slice(),
-        fnBody = parameterNames.pop();
+BraceToken.prototype.parse = createNestingParser(BraceEndToken);
+BraceToken.prototype.evaluate = function(scope){
+    var parameterNames = this.childTokens.slice();
+
+    // Object literal
+    if(parameterNames.length === 0 || parameterNames[0] instanceof TupleToken){
+        this.result = {};
+        this.sourcePathInfo = new SourcePathInfo(null, {}, true);
+
+        for(var i = 0; i < parameterNames.length; i++){
+            var token = parameterNames[i];
+            token.evaluate(scope);
+            this.result[token.keyToken.result] = token.valueToken.result;
+
+            if(token.valueToken.sourcePathInfo){
+                this.sourcePathInfo.subPaths[key] = token.valueToken.sourcePathInfo.path;
+            }
+        };
+
+        return;
+    }
+
+    // Function expression
+    var fnBody = parameterNames.pop();
 
     this.result = function(scope, args){
         scope = new Scope(scope);
@@ -4972,15 +4203,39 @@ FunctionToken.prototype.evaluate = function(scope){
     };
 };
 
-function FunctionEndToken(){}
-FunctionEndToken = createSpec(FunctionEndToken, Token);
-FunctionEndToken.tokenPrecedence = 1;
-FunctionEndToken.prototype.parsePrecedence = 4;
-FunctionEndToken.prototype.name = 'FunctionEndToken';
-FunctionEndToken.tokenise = function(substring) {
+function BraceEndToken(){}
+BraceEndToken = createSpec(BraceEndToken, Token);
+BraceEndToken.tokenPrecedence = 1;
+BraceEndToken.prototype.parsePrecedence = 4;
+BraceEndToken.prototype.name = 'BraceEndToken';
+BraceEndToken.tokenise = function(substring) {
     if(substring.charAt(0) === '}'){
-        return new FunctionEndToken(substring.charAt(0), 1);
+        return new BraceEndToken(substring.charAt(0), 1);
     }
+};
+
+function Tuple(key, value){
+    this[key] = value;
+}
+
+function TupleToken(){}
+TupleToken = createSpec(TupleToken, Token);
+TupleToken.prototype.name = 'TupleToken';
+TupleToken.tokenPrecedence = 2;
+TupleToken.prototype.parsePrecedence = 6;
+TupleToken.tokenise = function(substring){
+    var tupleConst = ":";
+    return (substring.charAt(0) === tupleConst) ? new TupleToken(tupleConst, 1) : undefined;
+};
+TupleToken.prototype.parse = function(tokens, position){
+    this.keyToken = tokens.splice(position-1,1)[0];
+    this.valueToken = tokens.splice(position, 1)[0];
+};
+TupleToken.prototype.evaluate = function(scope){
+    this.keyToken.evaluate(scope);
+    this.valueToken.evaluate(scope);
+
+    this.result = new Tuple(this.keyToken.result, this.valueToken.result);
 };
 
 function SourcePathInfo(token, source, trackSubPaths){
@@ -5023,11 +4278,17 @@ SourcePathInfo.prototype.setSubPaths = function(paths){
     }
     this.subPaths = paths;
 };
+SourcePathInfo.prototype.mapSubPaths = function(object){
+    for(var key in object){
+        if(object.hasOwnProperty(key)){
+            this.setSubPath(key, key);
+        }
+    }
+};
 SourcePathInfo.prototype.drillTo = function(key){
     if(this.subPaths){
         this.path = this.subPaths[key];
-    }
-    if(this.path){
+    }else if(this.path){
         this.path = paths.append(this.path, paths.create(key));
     }
 };
@@ -5076,6 +4337,15 @@ function gelFilter(scope, args) {
     return filteredItems;
 }
 
+function gelMerge(scope, args){
+    var result = {};
+    while(args.hasNext()){
+        var nextObject = args.next();
+        result = merge(result, nextObject);
+    }
+    return result;
+}
+
 var tokenConverters = [
         StringToken,
         String2Token,
@@ -5088,13 +4358,31 @@ var tokenConverters = [
         FalseToken,
         DelimiterToken,
         IdentifierToken,
+        CommaToken,
         PeriodToken,
         PipeToken,
         PipeApplyToken,
-        FunctionToken,
-        FunctionEndToken
+        BraceToken,
+        BraceEndToken,
+        TupleToken
     ],
     scope = {
+        "parseInt":function(scope, args){
+            return parseInt(args.next());
+        },
+        "parseFloat":function(scope, args){
+            return parseFloat(args.next());
+        },
+        "toFixed": function(scope, args){
+            var num = args.next(),
+                decimals = args.get(1) || 2;
+
+            if(isNaN(num)){
+                return;
+            }
+
+            return num.toFixed(decimals);
+        },
         "toString":function(scope, args){
             return "" + args.next();
         },
@@ -5109,6 +4397,9 @@ var tokenConverters = [
         },
         "*":function(scope, args){
             return args.next() * args.next();
+        },
+        "%":function(scope, args){
+            return args.next() % args.next();
         },
         "isNaN":function(scope, args){
             return isNaN(args.get(0));
@@ -5215,27 +4506,6 @@ var tokenConverters = [
             args.callee.sourcePathInfo = rawResult && rawResult.sourcePathInfo;
             return nextArg;
         },
-        "object":function(scope, args){
-            var result = {},
-                callee = args.callee,
-                sourcePathInfo = new SourcePathInfo(null, {}, true);
-
-            for(var i = 0; i < args.length; i+=2){
-                var key = args.get(i),
-                    valueToken = args.getRaw(i+1),
-                    value = args.get(i+1);
-
-                result[key] = value;
-
-                if(valueToken.sourcePathInfo){
-                    sourcePathInfo.subPaths[key] = valueToken.sourcePathInfo.path;
-                }
-            }
-
-            callee.sourcePathInfo = sourcePathInfo;
-
-            return result;
-        },
         "keys":function(scope, args){
             var object = args.next();
             return typeof object === 'object' ? Object.keys(object) : undefined;
@@ -5264,49 +4534,44 @@ var tokenConverters = [
             }
             return result;
         },
-        "extend":function(scope, args){
-            var result = {};
-            while(args.hasNext()){
-                var nextObject = args.next();
-                for(var key in nextObject){
-                    result[key] = nextObject[key];
-                }
-            }
-            return result;
-        },
+        "extend": gelMerge,
+        "merge": gelMerge,
         "array":function(scope, args){
-            var result = [];
-            while(args.hasNext()){
-                result.push(args.next());
-            }
-            return result;
-        },
-        "map":function(scope, args){
-            var source = args.next(),
-                sourcePathInfo = new SourcePathInfo(args.getRaw(0), source, true),
-                isArray = Array.isArray(source),
-                result = isArray ? [] : {},
-                functionToken = args.next();
+            var argTokens = args.raw(),
+                argValues = args.all(),
+                result = [],
+                callee = args.callee,
+                sourcePathInfo = new SourcePathInfo(null, [], true);
 
-            if(isArray){
-                fastEach(source, function(item, index){
-                    var callee = {};
-                    result[index] = scope.callWith(functionToken, [new ValueToken(item, sourcePathInfo.path, index)], callee);
-                    if(callee.sourcePathInfo){
-                        sourcePathInfo.subPaths[index] = callee.sourcePathInfo.path;
-                    }
-                });
-            }else{
-                for(var key in source){
-                    var callee = {};
-                    result[key] = scope.callWith(functionToken, [new ValueToken(source[key], sourcePathInfo.path, key)], callee);
-                    if(callee.sourcePathInfo){
-                        sourcePathInfo.subPaths[key] = callee.sourcePathInfo.path;
-                    }
+            for(var i = 0; i < argValues.length; i++) {
+                result.push(argValues[i]);
+                if(argTokens[i] instanceof Token && argTokens[i].sourcePathInfo){
+                    sourcePathInfo.subPaths[i] = argTokens[i].sourcePathInfo.path;
                 }
             }
 
-            args.callee.sourcePathInfo = sourcePathInfo;
+            callee.sourcePathInfo = sourcePathInfo;
+
+            return result;
+        },
+        "object":function(scope, args){
+            var result = {},
+                callee = args.callee,
+                sourcePathInfo = new SourcePathInfo(null, {}, true);
+
+            for(var i = 0; i < args.length; i+=2){
+                var key = args.get(i),
+                    valueToken = args.getRaw(i+1),
+                    value = args.get(i+1);
+
+                result[key] = value;
+
+                if(valueToken instanceof Token && valueToken.sourcePathInfo){
+                    sourcePathInfo.subPaths[key] = valueToken.sourcePathInfo.path;
+                }
+            }
+
+            callee.sourcePathInfo = sourcePathInfo;
 
             return result;
         },
@@ -5409,37 +4674,42 @@ var tokenConverters = [
             }
         },
         "concat":function(scope, args){
-            var result = args.next(),
+            var result = [],
                 argCount = 0,
                 sourcePathInfo = new SourcePathInfo(),
-                sourcePaths = Array.isArray(result) && [];
+                sourcePaths = [];
 
-            var addPaths = function(){
-                if(sourcePaths){
-                    var argToken = args.getRaw(argCount++),
-                        argSourcePathInfo = argToken && argToken.sourcePathInfo;
+            var addPaths = function(argToken){
+                var argSourcePathInfo = argToken.sourcePathInfo;
 
-                    if(argSourcePathInfo){
-                        if(Array.isArray(argSourcePathInfo.subPaths)){
+                if(argSourcePathInfo){
+                    if(Array.isArray(argSourcePathInfo.subPaths)){
                         sourcePaths = sourcePaths.concat(argSourcePathInfo.subPaths);
-                        }else{
-                            for(var i = 0; i < argToken.result.length; i++){
-                                sourcePaths.push(paths.append(argSourcePathInfo.path, paths.create(i)));
-                            }
+                    }else if(argSourcePathInfo.path){
+                        for(var i = 0; i < argToken.result.length; i++){
+                            sourcePaths.push(paths.append(argSourcePathInfo.path, paths.create(i)));
                         }
                     }
+                }else{
+                    // Non-path-tracked array
+                    var nullPaths = [];
+                    for(var i = 0; i < argToken.result.length; i++) {
+                        nullPaths.push(null);
+                    };
+                    sourcePaths = sourcePaths.concat(nullPaths);
                 }
             };
 
-            addPaths();
-
-            while(args.hasNext()){
+            while(argCount < args.length){
                 if(result == null || !result.concat){
                     return undefined;
                 }
-                var next = args.next();
-                Array.isArray(next) && (result = result.concat(next));
-                addPaths();
+                var nextRaw = args.getRaw(argCount, true);
+                if(Array.isArray(nextRaw.result)){
+                    result = result.concat(nextRaw.result);
+                    addPaths(nextRaw);
+                }
+                argCount++;
             }
             sourcePathInfo.subPaths = sourcePaths;
             args.callee.sourcePathInfo = sourcePathInfo;
@@ -5472,14 +4742,24 @@ var tokenConverters = [
                 return;
             }
 
-            // clone source
-            source = source.slice();
+            if(typeof source !== 'string'){
 
-            sourcePathInfo = new SourcePathInfo(args.getRaw(sourceTokenIndex), source, true);
+                // clone source
+                source = source.slice();
+
+                sourcePathInfo = new SourcePathInfo(args.getRaw(sourceTokenIndex), source, true);
+
+                if(sourcePathInfo.path){
+                    if(sourcePathInfo.innerPathInfo && sourcePathInfo.innerPathInfo.subPaths){
+                        sourcePathInfo.setSubPaths(sourcePathInfo.innerPathInfo.subPaths.slice(start, end));
+                    }else{
+                        sourcePathInfo.mapSubPaths(source);
+                        sourcePathInfo.setSubPaths(sourcePathInfo.subPaths.slice(start, end));
+                    }
+                }
+            }
 
             var result = source.slice(start, end);
-
-            sourcePathInfo.setSubPaths(sourcePathInfo.innerPathInfo && sourcePathInfo.innerPathInfo.subPaths && sourcePathInfo.innerPathInfo.subPaths.slice(start, end));
 
             args.callee.sourcePathInfo = sourcePathInfo;
 
@@ -5491,16 +4771,20 @@ var tokenConverters = [
         },
         "last":function(scope, args){
             var source = args.next(),
-                sourcePathInfo = new SourcePathInfo(args.getRaw(0), source);
-
-            sourcePathInfo.drillTo(source.length - 1);
-
-            args.callee.sourcePathInfo = sourcePathInfo;
+                sourcePathInfo = new SourcePathInfo(args.getRaw(0), source),
+                lastIndex;
 
             if(!Array.isArray(source)){
                 return;
             }
-            return source[source.length - 1];
+
+            lastIndex = Math.max(0, source.length - 1);
+
+            sourcePathInfo.drillTo(lastIndex);
+
+            args.callee.sourcePathInfo = sourcePathInfo;
+
+            return source[lastIndex];
         },
         "first":function(scope, args){
             var source = args.next(),
@@ -5681,24 +4965,72 @@ var tokenConverters = [
         "fromJSON":function(scope, args){
             return JSON.parse(args.next());
         },
-        "fold": function(scope, args){
-            var args = args.all(),
-                fn = args.pop(),
-                seed = args.pop(),
-                array = args[0],
-                result = seed;
+        "map":function(scope, args){
+            var source = args.next(),
+                sourcePathInfo = new SourcePathInfo(args.getRaw(0), source, true),
+                isArray = Array.isArray(source),
+                result = isArray ? [] : {},
+                functionToken = args.next();
 
-            if(args.length > 1){
-                array = args;
+            if(isArray){
+                fastEach(source, function(item, index){
+                    var callee = {};
+                    result[index] = scope.callWith(functionToken, [
+                        new ValueToken(item, new SourcePathInfo(args.getRaw(0), source), index)
+                    ], callee);
+                    if(callee.sourcePathInfo){
+                        sourcePathInfo.subPaths[index] = callee.sourcePathInfo.path;
+                    }
+                });
+            }else{
+                for(var key in source){
+                    var callee = {};
+                    result[key] = scope.callWith(functionToken, [
+                        new ValueToken(source[key], new SourcePathInfo(args.getRaw(0), source), key)
+                    ], callee);
+                    if(callee.sourcePathInfo){
+                        sourcePathInfo.subPaths[key] = callee.sourcePathInfo.path;
+                    }
+                }
             }
 
-            if(!array || !array.length){
+            args.callee.sourcePathInfo = sourcePathInfo;
+
+            return result;
+        },
+        "fold": function(scope, args){
+            var fn = args.get(2),
+                seedToken = args.getRaw(1, true),
+                seed = seedToken.result,
+                sourceToken = args.getRaw(0, true),
+                source = sourceToken.result,
+                result = seed;
+
+            var sourcePathInfo = new SourcePathInfo(sourceToken, source, true);
+            sourcePathInfo.mapSubPaths(source);
+
+            if(!source || !source.length){
                 return result;
             }
 
-            for(var i = 0; i < array.length; i++){
-                result = scope.callWith(fn, [result, array[i]], this);
+            var resultPathInfo = seedToken.sourcePathInfo;
+
+            for(var i = 0; i < source.length; i++){
+                var callee = {};
+                result = scope.callWith(
+                    fn,
+                    [
+                        new ValueToken(result, resultPathInfo),
+                        new ValueToken(source[i], sourcePathInfo, i),
+                        i
+                    ],
+                    callee
+                );
+
+                resultPathInfo = callee.sourcePathInfo;
             }
+
+            args.callee.sourcePathInfo = resultPathInfo;
 
             return result;
         },
@@ -5766,8 +5098,52 @@ var tokenConverters = [
             }
 
             return result;
+        },
+        "keyFor": function(scope, args){
+            var value = args.next(),
+                target = args.next();
+
+            for(var key in target){
+                if(!target.hasOwnProperty(key)){
+                    continue;
+                }
+
+                if(target[key] === value){
+                    return key;
+                }
+            }
+        },
+        "regex": function(scope, args){
+            var all = args.all();
+
+            return new RegExp(all[0], all[1]);
+        },
+        "match": function(scope, args){
+            var string = args.next();
+
+            if(typeof string !== 'string'){
+                return false;
+            }
+
+            return string.match(args.next());
         }
     };
+
+function createMathFunction(key){
+    return function(scope, args){
+        var all = args.all();
+        return Math[key].apply(Math, all);
+    };
+}
+
+scope.math = {};
+
+var mathFunctionNames = ['abs','acos','asin','atan','atan2','ceil','cos','exp','floor','imul','log','max','min','pow','random','round','sin','sqrt','tan'];
+
+for(var i = 0; i < mathFunctionNames.length; i++){
+    var key = mathFunctionNames[i];
+    scope.math[key] = createMathFunction(key);
+}
 
 
 Gel = function(){
@@ -5779,400 +5155,26 @@ Gel = function(){
         return gel.lang.tokenise(expression, this.tokenConverters);
     };
     gel.evaluate = function(expression, injectedScope, returnAsTokens){
-        var scope = new Scope();
+        var scope = new Scope(this.scope);
 
-        scope.add(this.scope).add(injectedScope);
+        scope.add(injectedScope);
 
         return lang.evaluate(expression, scope, this.tokenConverters, returnAsTokens);
     };
     gel.tokenConverters = tokenConverters.slice();
-    gel.scope = Object.create(scope);
+    gel.scope = merge({}, scope);
 
     return gel;
+};
+
+for (var i = 0; i < tokenConverters.length; i++) {
+    Gel[tokenConverters[i].prototype.name] = tokenConverters[i];
 };
 
 Gel.Token = Token;
 Gel.Scope = Scope;
 module.exports = Gel;
-},{"gedi-paths":21,"lang-js":23,"spec-js":27}],23:[function(require,module,exports){
-(function (process){
-var Token = require('./token');
-
-function fastEach(items, callback) {
-    for (var i = 0; i < items.length; i++) {
-        if (callback(items[i], i, items)) break;
-    }
-    return items;
-}
-
-var now;
-
-if(typeof process !== 'undefined' && process.hrtime){
-    now = function(){
-        var time = process.hrtime();
-        return time[0] + time[1] / 1000000;
-    };
-}else if(typeof performance !== 'undefined' && performance.now){
-    now = function(){
-        return performance.now();
-    };
-}else if(Date.now){
-    now = function(){
-        return Date.now();
-    };
-}else{
-    now = function(){
-        return new Date().getTime();
-    };
-}
-
-function callWith(fn, fnArguments, calledToken){
-    if(fn instanceof Token){
-        fn.evaluate(scope);
-        fn = fn.result;
-    }
-    var argIndex = 0,
-        scope = this,
-        args = {
-            callee: calledToken,
-            length: fnArguments.length,
-            raw: function(evaluated){
-                var rawArgs = fnArguments.slice();
-                if(evaluated){
-                    fastEach(rawArgs, function(arg){
-                        if(arg instanceof Token){
-                            arg.evaluate(scope);
-                        }
-                    });
-                }
-                return rawArgs;
-            },
-            getRaw: function(index, evaluated){
-                var arg = fnArguments[index];
-
-                if(evaluated){
-                    if(arg instanceof Token){
-                        arg.evaluate(scope);
-                    }
-                }
-                return arg;
-            },
-            get: function(index){
-                var arg = fnArguments[index];
-
-                if(arg instanceof Token){
-                    arg.evaluate(scope);
-                    return arg.result;
-                }
-                return arg;
-            },
-            hasNext: function(){
-                return argIndex < fnArguments.length;
-            },
-            next: function(){
-                if(!this.hasNext()){
-                    throw "Incorrect number of arguments";
-                }
-                if(fnArguments[argIndex] instanceof Token){
-                    fnArguments[argIndex].evaluate(scope);
-                    return fnArguments[argIndex++].result;
-                }
-                return fnArguments[argIndex++];
-            },
-            all: function(){
-                var allArgs = [];
-                while(this.hasNext()){
-                    allArgs.push(this.next());
-                }
-                return allArgs;
-            }
-        };
-
-    return fn(scope, args);
-}
-
-function Scope(oldScope){
-    this.__scope__ = {};
-    this.__outerScope__ = oldScope;
-}
-Scope.prototype.get = function(key){
-    var scope = this;
-    while(scope && !scope.__scope__.hasOwnProperty(key)){
-        scope = scope.__outerScope__;
-    }
-    return scope && scope.__scope__[key];
-};
-Scope.prototype.set = function(key, value, bubble){
-    if(bubble){
-        var currentScope = this;
-        while(currentScope && !(key in currentScope.__scope__)){
-            currentScope = currentScope.__outerScope__;
-        }
-
-        if(currentScope){
-            currentScope.set(key, value);
-        }
-    }
-    this.__scope__[key] = value;
-    return this;
-};
-Scope.prototype.add = function(obj){
-    for(var key in obj){
-        this.__scope__[key] = obj[key];
-    }
-    return this;
-};
-Scope.prototype.isDefined = function(key){
-    if(key in this.__scope__){
-        return true;
-    }
-    return this.__outerScope__ && this.__outerScope__.isDefined(key) || false;
-};
-Scope.prototype.callWith = callWith;
-
-// Takes a start and end regex, returns an appropriate parse function
-function createNestingParser(closeConstructor){
-    return function(tokens, index, parse){
-        var openConstructor = this.constructor,
-            position = index,
-            opens = 1;
-
-        while(position++, position <= tokens.length && opens){
-            if(!tokens[position]){
-                throw "Invalid nesting. No closing token was found";
-            }
-            if(tokens[position] instanceof openConstructor){
-                opens++;
-            }
-            if(tokens[position] instanceof closeConstructor){
-                opens--;
-            }
-        }
-
-        // remove all wrapped tokens from the token array, including nest end token.
-        var childTokens = tokens.splice(index + 1, position - 1 - index);
-
-        // Remove the nest end token.
-        childTokens.pop();
-
-        // parse them, then add them as child tokens.
-        this.childTokens = parse(childTokens);
-    };
-}
-
-function scanForToken(tokenisers, expression){
-    for (var i = 0; i < tokenisers.length; i++) {
-        var token = tokenisers[i].tokenise(expression);
-        if (token) {
-            return token;
-        }
-    }
-}
-
-function sortByPrecedence(items, key){
-    return items.slice().sort(function(a,b){
-        var precedenceDifference = a[key] - b[key];
-        return precedenceDifference ? precedenceDifference : items.indexOf(a) - items.indexOf(b);
-    });
-}
-
-function tokenise(expression, tokenConverters, memoisedTokens) {
-    if(!expression){
-        return [];
-    }
-
-    if(memoisedTokens && memoisedTokens[expression]){
-        return memoisedTokens[expression].slice();
-    }
-
-    tokenConverters = sortByPrecedence(tokenConverters, 'tokenPrecedence');
-
-    var originalExpression = expression,
-        tokens = [],
-        totalCharsProcessed = 0,
-        previousLength,
-        reservedKeywordToken;
-
-    do {
-        previousLength = expression.length;
-
-        var token;
-
-        token = scanForToken(tokenConverters, expression);
-
-        if(token){
-            expression = expression.slice(token.length);
-            totalCharsProcessed += token.length;
-            tokens.push(token);
-            continue;
-        }
-
-        if(expression.length === previousLength){
-            throw "Unable to determine next token in expression: " + expression;
-        }
-
-    } while (expression);
-
-    memoisedTokens && (memoisedTokens[originalExpression] = tokens.slice());
-
-    return tokens;
-}
-
-function parse(tokens){
-    var parsedTokens = 0,
-        tokensByPrecedence = sortByPrecedence(tokens, 'parsePrecedence'),
-        currentToken = tokensByPrecedence[0],
-        tokenNumber = 0;
-
-    while(currentToken && currentToken.parsed == true){
-        currentToken = tokensByPrecedence[tokenNumber++];
-    }
-
-    if(!currentToken){
-        return tokens;
-    }
-
-    if(currentToken.parse){
-        currentToken.parse(tokens, tokens.indexOf(currentToken), parse);
-    }
-
-    // Even if the token has no parse method, it is still concidered 'parsed' at this point.
-    currentToken.parsed = true;
-
-    return parse(tokens);
-}
-
-function evaluate(tokens, scope){
-    scope = scope || new Scope();
-    for(var i = 0; i < tokens.length; i++){
-        var token = tokens[i];
-        token.evaluate(scope);
-    }
-
-    return tokens;
-}
-
-function printTopExpressions(stats){
-    var allStats = [];
-    for(var key in stats){
-        allStats.push({
-            expression: key,
-            time: stats[key].time,
-            calls: stats[key].calls,
-            averageTime: stats[key].averageTime
-        });
-    }
-
-    allStats.sort(function(stat1, stat2){
-        return stat2.time - stat1.time;
-    }).slice(0, 10).forEach(function(stat){
-        console.log([
-            "Expression: ",
-            stat.expression,
-            '\n',
-            'Average evaluation time: ',
-            stat.averageTime,
-            '\n',
-            'Total time: ',
-            stat.time,
-            '\n',
-            'Call count: ',
-            stat.calls
-        ].join(''));
-    });
-}
-
-function Lang(){
-    var lang = {},
-        memoisedTokens = {},
-        memoisedExpressions = {};
-
-
-    var stats = {};
-
-    lang.printTopExpressions = function(){
-        printTopExpressions(stats);
-    }
-
-    function addStat(stat){
-        var expStats = stats[stat.expression] = stats[stat.expression] || {time:0, calls:0};
-
-        expStats.time += stat.time;
-        expStats.calls++;
-        expStats.averageTime = expStats.time / expStats.calls;
-    }
-
-    lang.parse = parse;
-    lang.tokenise = function(expression, tokenConverters){
-        return tokenise(expression, tokenConverters, memoisedTokens);
-    };
-    lang.evaluate = function(expression, scope, tokenConverters, returnAsTokens){
-        var langInstance = this,
-            memoiseKey = expression,
-            expressionTree,
-            evaluatedTokens,
-            lastToken;
-
-        if(!(scope instanceof Scope)){
-            var injectedScope = scope;
-
-            scope = new Scope();
-
-            scope.add(injectedScope);
-        }
-
-        if(Array.isArray(expression)){
-            return evaluate(expression , scope).slice(-1).pop();
-        }
-
-        if(memoisedExpressions[memoiseKey]){
-            expressionTree = memoisedExpressions[memoiseKey].slice();
-        } else{
-            expressionTree = langInstance.parse(langInstance.tokenise(expression, tokenConverters, memoisedTokens));
-
-            memoisedExpressions[memoiseKey] = expressionTree;
-        }
-
-
-        var startTime = now();
-        evaluatedTokens = evaluate(expressionTree , scope);
-        addStat({
-            expression: expression,
-            time: now() - startTime
-        });
-
-        if(returnAsTokens){
-            return evaluatedTokens.slice();
-        }
-
-        lastToken = evaluatedTokens.slice(-1).pop();
-
-        return lastToken && lastToken.result;
-    };
-
-    lang.callWith = callWith;
-    return lang;
-};
-
-Lang.createNestingParser = createNestingParser;
-Lang.Scope = Scope;
-Lang.Token = Token;
-
-module.exports = Lang;
-}).call(this,require("/usr/lib/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"))
-},{"./token":24,"/usr/lib/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":37}],24:[function(require,module,exports){
-function Token(substring, length){
-    this.original = substring;
-    this.length = length;
-}
-Token.prototype.name = 'token';
-Token.prototype.precedence = 0;
-Token.prototype.valueOf = function(){
-    return this.result;
-}
-
-module.exports = Token;
-},{}],25:[function(require,module,exports){
+},{"gedi-paths":32,"lang-js":37,"merge":39,"spec-js":40}],34:[function(require,module,exports){
 // Copyright (C) 2011 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -6513,13 +5515,22 @@ module.exports = Token;
     // Object.prototype might not be frozen and
     // Object.create(null) might not be reliable.
 
-    defProp(key, HIDDEN_NAME, {
-      value: hiddenRecord,
-      writable: false,
-      enumerable: false,
-      configurable: false
-    });
-    return hiddenRecord;
+    try {
+      defProp(key, HIDDEN_NAME, {
+        value: hiddenRecord,
+        writable: false,
+        enumerable: false,
+        configurable: false
+      });
+      return hiddenRecord;
+    } catch (error) {
+      // Under some circumstances, isExtensible seems to misreport whether
+      // the HIDDEN_NAME can be defined.
+      // The circumstances have not been isolated, but at least affect
+      // Node.js v0.10.26 on TravisCI / Linux, but not the same version of
+      // Node.js on OS X.
+      return void 0;
+    }
   }
 
   /**
@@ -6850,7 +5861,7 @@ module.exports = Token;
   }
 })();
 
-},{}],26:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 var Lang = require('lang-js'),
     Token = Lang.Token,
     paths = require('gedi-paths'),
@@ -6859,7 +5870,9 @@ var Lang = require('lang-js'),
 
 module.exports = function(get, model){
 
-    function PathToken(){}
+    function PathToken(path){
+        this.path = path;
+    }
     PathToken = createSpec(PathToken, Token);
     PathToken.prototype.name = 'PathToken';
     PathToken.tokenPrecedence = 1;
@@ -6881,7 +5894,494 @@ module.exports = function(get, model){
 
     return PathToken;
 }
-},{"gedi-paths":21,"gedi-paths/detectPath":20,"lang-js":23,"spec-js":27}],27:[function(require,module,exports){
+},{"gedi-paths":32,"gedi-paths/detectPath":31,"lang-js":37,"spec-js":40}],36:[function(require,module,exports){
+function checkElement(element){
+    if(!element){
+        return false;
+    }
+    var parentNode = element.parentNode;
+    while(parentNode){
+        if(parentNode === element.ownerDocument){
+            return true;
+        }
+        parentNode = parentNode.parentNode;
+    }
+    return false;
+}
+
+module.exports = function laidout(element, callback){
+    if(checkElement(element)){
+        return callback();
+    }
+
+    var recheckElement = function(){
+            if(checkElement(element)){
+                document.removeEventListener('DOMNodeInserted', recheckElement);
+                callback();
+            }
+        };
+
+    document.addEventListener('DOMNodeInserted', recheckElement);
+};
+},{}],37:[function(require,module,exports){
+(function (process){
+var Token = require('./token');
+
+function fastEach(items, callback) {
+    for (var i = 0; i < items.length; i++) {
+        if (callback(items[i], i, items)) break;
+    }
+    return items;
+}
+
+var now;
+
+if(typeof process !== 'undefined' && process.hrtime){
+    now = function(){
+        var time = process.hrtime();
+        return time[0] + time[1] / 1000000;
+    };
+}else if(typeof performance !== 'undefined' && performance.now){
+    now = function(){
+        return performance.now();
+    };
+}else if(Date.now){
+    now = function(){
+        return Date.now();
+    };
+}else{
+    now = function(){
+        return new Date().getTime();
+    };
+}
+
+function callWith(fn, fnArguments, calledToken){
+    if(fn instanceof Token){
+        fn.evaluate(scope);
+        fn = fn.result;
+    }
+    var argIndex = 0,
+        scope = this,
+        args = {
+            callee: calledToken,
+            length: fnArguments.length,
+            raw: function(evaluated){
+                var rawArgs = fnArguments.slice();
+                if(evaluated){
+                    fastEach(rawArgs, function(arg){
+                        if(arg instanceof Token){
+                            arg.evaluate(scope);
+                        }
+                    });
+                }
+                return rawArgs;
+            },
+            getRaw: function(index, evaluated){
+                var arg = fnArguments[index];
+
+                if(evaluated){
+                    if(arg instanceof Token){
+                        arg.evaluate(scope);
+                    }
+                }
+                return arg;
+            },
+            get: function(index){
+                var arg = fnArguments[index];
+
+                if(arg instanceof Token){
+                    arg.evaluate(scope);
+                    return arg.result;
+                }
+                return arg;
+            },
+            hasNext: function(){
+                return argIndex < fnArguments.length;
+            },
+            next: function(){
+                if(!this.hasNext()){
+                    throw "Incorrect number of arguments";
+                }
+                if(fnArguments[argIndex] instanceof Token){
+                    fnArguments[argIndex].evaluate(scope);
+                    return fnArguments[argIndex++].result;
+                }
+                return fnArguments[argIndex++];
+            },
+            all: function(){
+                var allArgs = [];
+                while(this.hasNext()){
+                    allArgs.push(this.next());
+                }
+                return allArgs;
+            }
+        };
+
+    return fn(scope, args);
+}
+
+function Scope(oldScope){
+    this.__scope__ = {};
+    if(oldScope){
+        this.__outerScope__ = oldScope instanceof Scope ? oldScope : {__scope__:oldScope};
+    }
+}
+Scope.prototype.get = function(key){
+    var scope = this;
+    while(scope && !scope.__scope__.hasOwnProperty(key)){
+        scope = scope.__outerScope__;
+    }
+    return scope && scope.__scope__[key];
+};
+Scope.prototype.set = function(key, value, bubble){
+    if(bubble){
+        var currentScope = this;
+        while(currentScope && !(key in currentScope.__scope__)){
+            currentScope = currentScope.__outerScope__;
+        }
+
+        if(currentScope){
+            currentScope.set(key, value);
+        }
+    }
+    this.__scope__[key] = value;
+    return this;
+};
+Scope.prototype.add = function(obj){
+    for(var key in obj){
+        this.__scope__[key] = obj[key];
+    }
+    return this;
+};
+Scope.prototype.isDefined = function(key){
+    if(key in this.__scope__){
+        return true;
+    }
+    return this.__outerScope__ && this.__outerScope__.isDefined(key) || false;
+};
+Scope.prototype.callWith = callWith;
+
+// Takes a start and end regex, returns an appropriate parse function
+function createNestingParser(closeConstructor){
+    return function(tokens, index, parse){
+        var openConstructor = this.constructor,
+            position = index,
+            opens = 1;
+
+        while(position++, position <= tokens.length && opens){
+            if(!tokens[position]){
+                throw "Invalid nesting. No closing token was found";
+            }
+            if(tokens[position] instanceof openConstructor){
+                opens++;
+            }
+            if(tokens[position] instanceof closeConstructor){
+                opens--;
+            }
+        }
+
+        // remove all wrapped tokens from the token array, including nest end token.
+        var childTokens = tokens.splice(index + 1, position - 1 - index);
+
+        // Remove the nest end token.
+        childTokens.pop();
+
+        // parse them, then add them as child tokens.
+        this.childTokens = parse(childTokens);
+    };
+}
+
+function scanForToken(tokenisers, expression){
+    for (var i = 0; i < tokenisers.length; i++) {
+        var token = tokenisers[i].tokenise(expression);
+        if (token) {
+            return token;
+        }
+    }
+}
+
+function sortByPrecedence(items, key){
+    return items.slice().sort(function(a,b){
+        var precedenceDifference = a[key] - b[key];
+        return precedenceDifference ? precedenceDifference : items.indexOf(a) - items.indexOf(b);
+    });
+}
+
+function tokenise(expression, tokenConverters, memoisedTokens) {
+    if(!expression){
+        return [];
+    }
+
+    if(memoisedTokens && memoisedTokens[expression]){
+        return memoisedTokens[expression].slice();
+    }
+
+    tokenConverters = sortByPrecedence(tokenConverters, 'tokenPrecedence');
+
+    var originalExpression = expression,
+        tokens = [],
+        totalCharsProcessed = 0,
+        previousLength,
+        reservedKeywordToken;
+
+    do {
+        previousLength = expression.length;
+
+        var token;
+
+        token = scanForToken(tokenConverters, expression);
+
+        if(token){
+            expression = expression.slice(token.length);
+            totalCharsProcessed += token.length;
+            tokens.push(token);
+            continue;
+        }
+
+        if(expression.length === previousLength){
+            throw "Unable to determine next token in expression: " + expression;
+        }
+
+    } while (expression);
+
+    memoisedTokens && (memoisedTokens[originalExpression] = tokens.slice());
+
+    return tokens;
+}
+
+function parse(tokens){
+    var parsedTokens = 0,
+        tokensByPrecedence = sortByPrecedence(tokens, 'parsePrecedence'),
+        currentToken = tokensByPrecedence[0],
+        tokenNumber = 0;
+
+    while(currentToken && currentToken.parsed == true){
+        currentToken = tokensByPrecedence[tokenNumber++];
+    }
+
+    if(!currentToken){
+        return tokens;
+    }
+
+    if(currentToken.parse){
+        currentToken.parse(tokens, tokens.indexOf(currentToken), parse);
+    }
+
+    // Even if the token has no parse method, it is still concidered 'parsed' at this point.
+    currentToken.parsed = true;
+
+    return parse(tokens);
+}
+
+function evaluate(tokens, scope){
+    scope = scope || new Scope();
+    for(var i = 0; i < tokens.length; i++){
+        var token = tokens[i];
+        token.evaluate(scope);
+    }
+
+    return tokens;
+}
+
+function printTopExpressions(stats){
+    var allStats = [];
+    for(var key in stats){
+        allStats.push({
+            expression: key,
+            time: stats[key].time,
+            calls: stats[key].calls,
+            averageTime: stats[key].averageTime
+        });
+    }
+
+    allStats.sort(function(stat1, stat2){
+        return stat2.time - stat1.time;
+    }).slice(0, 10).forEach(function(stat){
+        console.log([
+            "Expression: ",
+            stat.expression,
+            '\n',
+            'Average evaluation time: ',
+            stat.averageTime,
+            '\n',
+            'Total time: ',
+            stat.time,
+            '\n',
+            'Call count: ',
+            stat.calls
+        ].join(''));
+    });
+}
+
+function Lang(){
+    var lang = {},
+        memoisedTokens = {},
+        memoisedExpressions = {};
+
+
+    var stats = {};
+
+    lang.printTopExpressions = function(){
+        printTopExpressions(stats);
+    }
+
+    function addStat(stat){
+        var expStats = stats[stat.expression] = stats[stat.expression] || {time:0, calls:0};
+
+        expStats.time += stat.time;
+        expStats.calls++;
+        expStats.averageTime = expStats.time / expStats.calls;
+    }
+
+    lang.parse = parse;
+    lang.tokenise = function(expression, tokenConverters){
+        return tokenise(expression, tokenConverters, memoisedTokens);
+    };
+    lang.evaluate = function(expression, scope, tokenConverters, returnAsTokens){
+        var langInstance = this,
+            memoiseKey = expression,
+            expressionTree,
+            evaluatedTokens,
+            lastToken;
+
+        if(!(scope instanceof Scope)){
+            scope = new Scope(scope);
+        }
+
+        if(Array.isArray(expression)){
+            return evaluate(expression , scope).slice(-1).pop();
+        }
+
+        if(memoisedExpressions[memoiseKey]){
+            expressionTree = memoisedExpressions[memoiseKey].slice();
+        } else{
+            expressionTree = langInstance.parse(langInstance.tokenise(expression, tokenConverters, memoisedTokens));
+
+            memoisedExpressions[memoiseKey] = expressionTree;
+        }
+
+
+        var startTime = now();
+        evaluatedTokens = evaluate(expressionTree , scope);
+        addStat({
+            expression: expression,
+            time: now() - startTime
+        });
+
+        if(returnAsTokens){
+            return evaluatedTokens.slice();
+        }
+
+        lastToken = evaluatedTokens.slice(-1).pop();
+
+        return lastToken && lastToken.result;
+    };
+
+    lang.callWith = callWith;
+    return lang;
+};
+
+Lang.createNestingParser = createNestingParser;
+Lang.Scope = Scope;
+Lang.Token = Token;
+
+module.exports = Lang;
+}).call(this,require("/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"))
+},{"./token":38,"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":75}],38:[function(require,module,exports){
+function Token(substring, length){
+    this.original = substring;
+    this.length = length;
+}
+Token.prototype.name = 'token';
+Token.prototype.precedence = 0;
+Token.prototype.valueOf = function(){
+    return this.result;
+}
+
+module.exports = Token;
+},{}],39:[function(require,module,exports){
+/*!
+ * @name JavaScript/NodeJS Merge v1.1.3
+ * @author yeikos
+ * @repository https://github.com/yeikos/js.merge
+
+ * Copyright 2014 yeikos - MIT license
+ * https://raw.github.com/yeikos/js.merge/master/LICENSE
+ */
+
+;(function(isNode) {
+
+	function merge() {
+
+		var items = Array.prototype.slice.call(arguments),
+			result = items.shift(),
+			deep = (result === true),
+			size = items.length,
+			item, index, key;
+
+		if (deep || typeOf(result) !== 'object')
+
+			result = {};
+
+		for (index=0;index<size;++index)
+
+			if (typeOf(item = items[index]) === 'object')
+
+				for (key in item)
+
+					result[key] = deep ? clone(item[key]) : item[key];
+
+		return result;
+
+	}
+
+	function clone(input) {
+
+		var output = input,
+			type = typeOf(input),
+			index, size;
+
+		if (type === 'array') {
+
+			output = [];
+			size = input.length;
+
+			for (index=0;index<size;++index)
+
+				output[index] = clone(input[index]);
+
+		} else if (type === 'object') {
+
+			output = {};
+
+			for (index in input)
+
+				output[index] = clone(input[index]);
+
+		}
+
+		return output;
+
+	}
+
+	function typeOf(input) {
+
+		return ({}).toString.call(input).match(/\s([\w]+)/)[1].toLowerCase();
+
+	}
+
+	if (isNode) {
+
+		module.exports = merge;
+
+	} else {
+
+		window.merge = merge;
+
+	}
+
+})(typeof module === 'object' && module && typeof module.exports === 'object' && module.exports);
+},{}],40:[function(require,module,exports){
 Object.create = Object.create || function (o) {
     if (arguments.length > 1) {
         throw new Error('Object.create implementation only accepts the first parameter.');
@@ -6919,60 +6419,7 @@ function createSpec(child, parent){
 }
 
 module.exports = createSpec;
-},{}],28:[function(require,module,exports){
-/*
- * raf.js
- * https://github.com/ngryman/raf.js
- *
- * original requestAnimationFrame polyfill by Erik Möller
- * inspired from paul_irish gist and post
- *
- * Copyright (c) 2013 ngryman
- * Licensed under the MIT license.
- */
-
-var global = typeof window !== 'undefined' ? window : this;
-
-var lastTime = 0,
-    vendors = ['webkit', 'moz'],
-    requestAnimationFrame = global.requestAnimationFrame,
-    cancelAnimationFrame = global.cancelAnimationFrame,
-    i = vendors.length;
-
-// try to un-prefix existing raf
-while (--i >= 0 && !requestAnimationFrame) {
-    requestAnimationFrame = global[vendors[i] + 'RequestAnimationFrame'];
-    cancelAnimationFrame = global[vendors[i] + 'CancelAnimationFrame'];
-}
-
-// polyfill with setTimeout fallback
-// heavily inspired from @darius gist mod: https://gist.github.com/paulirish/1579671#comment-837945
-if (!requestAnimationFrame || !cancelAnimationFrame) {
-    requestAnimationFrame = function(callback) {
-        var now = +Date.now(),
-            nextTime = Math.max(lastTime + 16, now);
-        return setTimeout(function() {
-            callback(lastTime = nextTime);
-        }, nextTime - now);
-    };
-
-    cancelAnimationFrame = clearTimeout;
-}
-
-if (!cancelAnimationFrame){
-    global.cancelAnimationFrame = function(id) {
-        clearTimeout(id);
-    };
-}
-
-global.requestAnimationFrame = requestAnimationFrame;
-global.cancelAnimationFrame = cancelAnimationFrame;
-
-module.exports = {
-    requestAnimationFrame: requestAnimationFrame,
-    cancelAnimationFrame: cancelAnimationFrame
-};
-},{}],29:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 function escapeHex(hex){
     return String.fromCharCode(hex);
 }
@@ -6985,7 +6432,7 @@ function createKey(number){
 }
 
 module.exports = createKey;
-},{}],30:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 var revive = require('./revive');
 
 function parse(json, reviver){
@@ -6993,13 +6440,14 @@ function parse(json, reviver){
 }
 
 module.exports = parse;
-},{"./revive":31}],31:[function(require,module,exports){
+},{"./revive":43}],43:[function(require,module,exports){
 var createKey = require('./createKey'),
     keyKey = createKey(-1);
 
 function revive(input){
     var objects = {},
-        scannedObjects = [];
+        scannedInputObjects = [];
+        scannedOutputObjects = [];
 
     function scan(input){
         var output = input;
@@ -7008,7 +6456,12 @@ function revive(input){
             return output;
         }
 
-        output = input instanceof Array ? [] : {};
+        if(scannedOutputObjects.indexOf(input) < 0){
+            output = input instanceof Array ? [] : {};
+            scannedOutputObjects.push(output);
+            scannedInputObjects.push(input);
+        }
+
 
         if(input[keyKey]){
             objects[input[keyKey]] = output;
@@ -7022,11 +6475,18 @@ function revive(input){
             }
 
             if(value != null && typeof value === 'object'){
-                if(scannedObjects.indexOf(value)<0){
-                    scannedObjects.push(value);
+                var objectIndex = scannedInputObjects.indexOf(value);
+                if(objectIndex<0){
                     output[key] = scan(value);
+                }else{
+                    output[key] = scannedOutputObjects[objectIndex];
                 }
-            }else if(typeof value === 'string' && value.length === 1 && value.charCodeAt(0) > keyKey.charCodeAt(0)){
+            }else if(
+                typeof value === 'string' &&
+                value.length === 1 &&
+                value.charCodeAt(0) > keyKey.charCodeAt(0) &&
+                value in objects
+            ){
                 output[key] = objects[value];
             }else{
                 output[key] = input[key];
@@ -7039,13 +6499,13 @@ function revive(input){
 }
 
 module.exports = revive;
-},{"./createKey":29}],32:[function(require,module,exports){
+},{"./createKey":41}],44:[function(require,module,exports){
 module.exports = {
     stringify: require('./stringify'),
     parse: require('./parse'),
     revive: require('./revive')
 };
-},{"./parse":30,"./revive":31,"./stringify":33}],33:[function(require,module,exports){
+},{"./parse":42,"./revive":43,"./stringify":45}],45:[function(require,module,exports){
 var createKey = require('./createKey'),
     keyKey = createKey(-1);
 
@@ -7101,18 +6561,1149 @@ function stringify(input, replacer, spacer){
 }
 
 module.exports = stringify;
-},{"./createKey":29}],34:[function(require,module,exports){
+},{"./createKey":41}],46:[function(require,module,exports){
+var clone = require('clone'),
+    deepEqual = require('deep-equal');
+
+function keysAreDifferent(keys1, keys2){
+    if(keys1 === keys2){
+        return;
+    }
+    if(!keys1 || !keys2 || keys1.length !== keys2.length){
+        return true;
+    }
+    for(var i = 0; i < keys1.length; i++){
+        if(!~keys2.indexOf(keys1[i])){
+            return true;
+        }
+    }
+}
+
+function getKeys(value){
+    if(!value || typeof value !== 'object'){
+        return;
+    }
+
+    return Object.keys(value);
+}
+
+function WhatChanged(value){
+    this.update(value);
+}
+WhatChanged.prototype.update = function(value){
+    var result = {},
+        newKeys = getKeys(value);
+
+    if(value+'' !== this._lastReference+''){
+        result.value = true;
+    }
+    if(typeof value !== typeof this._lastValue){
+        result.type = true;
+    }
+    if(keysAreDifferent(this._lastKeys, getKeys(value))){
+        result.keys = true;
+    }
+
+    if(value !== null && typeof value === 'object'){
+        if(!deepEqual(value, this._lastValue)){
+            result.structure = true;
+        }
+        if(value !== this._lastReference){
+            result.reference = true;
+        }
+    }
+
+    this._lastValue = clone(value);
+    this._lastReference = value;
+    this._lastKeys = newKeys;
+
+    return result;
+};
+
+module.exports = WhatChanged;
+},{"clone":47,"deep-equal":48}],47:[function(require,module,exports){
+(function (Buffer){
+'use strict';
+
+function objectToString(o) {
+  return Object.prototype.toString.call(o);
+}
+
+// shim for Node's 'util' package
+// DO NOT REMOVE THIS! It is required for compatibility with EnderJS (http://enderjs.com/).
+var util = {
+  isArray: function (ar) {
+    return Array.isArray(ar) || (typeof ar === 'object' && objectToString(ar) === '[object Array]');
+  },
+  isDate: function (d) {
+    return typeof d === 'object' && objectToString(d) === '[object Date]';
+  },
+  isRegExp: function (re) {
+    return typeof re === 'object' && objectToString(re) === '[object RegExp]';
+  },
+  getRegExpFlags: function (re) {
+    var flags = '';
+    re.global && (flags += 'g');
+    re.ignoreCase && (flags += 'i');
+    re.multiline && (flags += 'm');
+    return flags;
+  }
+};
+
+
+if (typeof module === 'object')
+  module.exports = clone;
+
+/**
+ * Clones (copies) an Object using deep copying.
+ *
+ * This function supports circular references by default, but if you are certain
+ * there are no circular references in your object, you can save some CPU time
+ * by calling clone(obj, false).
+ *
+ * Caution: if `circular` is false and `parent` contains circular references,
+ * your program may enter an infinite loop and crash.
+ *
+ * @param `parent` - the object to be cloned
+ * @param `circular` - set to true if the object to be cloned may contain
+ *    circular references. (optional - true by default)
+ * @param `depth` - set to a number if the object is only to be cloned to
+ *    a particular depth. (optional - defaults to Infinity)
+ * @param `prototype` - sets the prototype to be used when cloning an object.
+ *    (optional - defaults to parent prototype).
+*/
+
+function clone(parent, circular, depth, prototype) {
+  // maintain two arrays for circular references, where corresponding parents
+  // and children have the same index
+  var allParents = [];
+  var allChildren = [];
+
+  var useBuffer = typeof Buffer != 'undefined';
+
+  if (typeof circular == 'undefined')
+    circular = true;
+
+  if (typeof depth == 'undefined')
+    depth = Infinity;
+
+  // recurse this function so we don't reset allParents and allChildren
+  function _clone(parent, depth) {
+    // cloning null always returns null
+    if (parent === null)
+      return null;
+
+    if (depth == 0)
+      return parent;
+
+    var child;
+    if (typeof parent != 'object') {
+      return parent;
+    }
+
+    if (util.isArray(parent)) {
+      child = [];
+    } else if (util.isRegExp(parent)) {
+      child = new RegExp(parent.source, util.getRegExpFlags(parent));
+      if (parent.lastIndex) child.lastIndex = parent.lastIndex;
+    } else if (util.isDate(parent)) {
+      child = new Date(parent.getTime());
+    } else if (useBuffer && Buffer.isBuffer(parent)) {
+      child = new Buffer(parent.length);
+      parent.copy(child);
+      return child;
+    } else {
+      if (typeof prototype == 'undefined') child = Object.create(Object.getPrototypeOf(parent));
+      else child = Object.create(prototype);
+    }
+
+    if (circular) {
+      var index = allParents.indexOf(parent);
+
+      if (index != -1) {
+        return allChildren[index];
+      }
+      allParents.push(parent);
+      allChildren.push(child);
+    }
+
+    for (var i in parent) {
+      child[i] = _clone(parent[i], depth - 1);
+    }
+
+    return child;
+  }
+
+  return _clone(parent, depth);
+}
+
+/**
+ * Simple flat clone using prototype, accepts only objects, usefull for property
+ * override on FLAT configuration object (no nested props).
+ *
+ * USE WITH CAUTION! This may not behave as you wish if you do not know how this
+ * works.
+ */
+clone.clonePrototype = function(parent) {
+  if (parent === null)
+    return null;
+
+  var c = function () {};
+  c.prototype = parent;
+  return new c();
+};
+
+}).call(this,require("buffer").Buffer)
+},{"buffer":71}],48:[function(require,module,exports){
+var pSlice = Array.prototype.slice;
+var objectKeys = require('./lib/keys.js');
+var isArguments = require('./lib/is_arguments.js');
+
+var deepEqual = module.exports = function (actual, expected, opts) {
+  if (!opts) opts = {};
+  // 7.1. All identical values are equivalent, as determined by ===.
+  if (actual === expected) {
+    return true;
+
+  } else if (actual instanceof Date && expected instanceof Date) {
+    return actual.getTime() === expected.getTime();
+
+  // 7.3. Other pairs that do not both pass typeof value == 'object',
+  // equivalence is determined by ==.
+  } else if (typeof actual != 'object' && typeof expected != 'object') {
+    return opts.strict ? actual === expected : actual == expected;
+
+  // 7.4. For all other Object pairs, including Array objects, equivalence is
+  // determined by having the same number of owned properties (as verified
+  // with Object.prototype.hasOwnProperty.call), the same set of keys
+  // (although not necessarily the same order), equivalent values for every
+  // corresponding key, and an identical 'prototype' property. Note: this
+  // accounts for both named and indexed properties on Arrays.
+  } else {
+    return objEquiv(actual, expected, opts);
+  }
+}
+
+function isUndefinedOrNull(value) {
+  return value === null || value === undefined;
+}
+
+function isBuffer (x) {
+  if (!x || typeof x !== 'object' || typeof x.length !== 'number') return false;
+  if (typeof x.copy !== 'function' || typeof x.slice !== 'function') {
+    return false;
+  }
+  if (x.length > 0 && typeof x[0] !== 'number') return false;
+  return true;
+}
+
+function objEquiv(a, b, opts) {
+  var i, key;
+  if (isUndefinedOrNull(a) || isUndefinedOrNull(b))
+    return false;
+  // an identical 'prototype' property.
+  if (a.prototype !== b.prototype) return false;
+  //~~~I've managed to break Object.keys through screwy arguments passing.
+  //   Converting to array solves the problem.
+  if (isArguments(a)) {
+    if (!isArguments(b)) {
+      return false;
+    }
+    a = pSlice.call(a);
+    b = pSlice.call(b);
+    return deepEqual(a, b, opts);
+  }
+  if (isBuffer(a)) {
+    if (!isBuffer(b)) {
+      return false;
+    }
+    if (a.length !== b.length) return false;
+    for (i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
+  }
+  try {
+    var ka = objectKeys(a),
+        kb = objectKeys(b);
+  } catch (e) {//happens when one is a string literal and the other isn't
+    return false;
+  }
+  // having the same number of owned properties (keys incorporates
+  // hasOwnProperty)
+  if (ka.length != kb.length)
+    return false;
+  //the same set of keys (although not necessarily the same order),
+  ka.sort();
+  kb.sort();
+  //~~~cheap key test
+  for (i = ka.length - 1; i >= 0; i--) {
+    if (ka[i] != kb[i])
+      return false;
+  }
+  //equivalent values for every corresponding key, and
+  //~~~possibly expensive deep test
+  for (i = ka.length - 1; i >= 0; i--) {
+    key = ka[i];
+    if (!deepEqual(a[key], b[key], opts)) return false;
+  }
+  return true;
+}
+
+},{"./lib/is_arguments.js":49,"./lib/keys.js":50}],49:[function(require,module,exports){
+var supportsArgumentsClass = (function(){
+  return Object.prototype.toString.call(arguments)
+})() == '[object Arguments]';
+
+exports = module.exports = supportsArgumentsClass ? supported : unsupported;
+
+exports.supported = supported;
+function supported(object) {
+  return Object.prototype.toString.call(object) == '[object Arguments]';
+};
+
+exports.unsupported = unsupported;
+function unsupported(object){
+  return object &&
+    typeof object == 'object' &&
+    typeof object.length == 'number' &&
+    Object.prototype.hasOwnProperty.call(object, 'callee') &&
+    !Object.prototype.propertyIsEnumerable.call(object, 'callee') ||
+    false;
+};
+
+},{}],50:[function(require,module,exports){
+exports = module.exports = typeof Object.keys === 'function'
+  ? Object.keys : shim;
+
+exports.shim = shim;
+function shim (obj) {
+  var keys = [];
+  for (var key in obj) keys.push(key);
+  return keys;
+}
+
+},{}],51:[function(require,module,exports){
+var createSpec = require('spec-js'),
+    Bindable = require('./bindable'),
+    IdentifierToken = require('gel-js').IdentifierToken,
+    jsonConverter = require('./jsonConverter'),
+    createModelScope = require('./createModelScope'),
+    Consuela = require('consuela'),
+    WhatChanged = require('what-changed');
+
+function getItemPath(item){
+    var gedi = item.gaffa.gedi,
+        paths = [],
+        referencePath,
+        referenceItem = item;
+
+    while(referenceItem){
+
+        // item.path should be a child ref after item.sourcePath
+        if(referenceItem.path != null){
+            paths.push(referenceItem.path);
+        }
+
+        // item.sourcePath is most root level path
+        if(referenceItem.sourcePath != null){
+            paths.push(gedi.paths.create(referenceItem.sourcePath));
+        }
+
+        referenceItem = referenceItem.parent;
+    }
+
+    return gedi.paths.resolve.apply(this, paths.reverse());
+}
+
+function updateProperty(property, firstUpdate){
+    // Update immediately, reduces reflows,
+    // as things like classes are added before
+    //  the element is inserted into the DOM
+    if(firstUpdate){
+        property.update(property.parent, property.value);
+    }
+
+    if(!property._bound){
+        return;
+    }
+
+    // Still run the _lastValue.update(),
+    // because it sets up the state of the last value,
+    // and it will be false anyway.
+
+    if(property.hasChanged() && !property.nextUpdate){
+        if(property.gaffa.debug){
+            property.update(property.parent, property.value);
+            return;
+        }
+        property.nextUpdate = requestAnimationFrame(function(){
+            if(property.parent._bound){
+                property.update(property.parent, property.value);
+            }
+            property.nextUpdate = null;
+        });
+    }
+}
+
+function createPropertyCallback(property){
+    return function (event) {
+
+        var value,
+            scope,
+            valueTokens;
+
+        if(event){
+
+            scope = createModelScope(property.parent, event);
+
+            if(event === true){ // Initial update.
+
+                valueTokens = property.get(scope, true);
+
+            }else if(event.captureType === 'bubble' && property.ignoreBubbledEvents){
+
+                return;
+
+            }else if(property.binding){ // Model change update.
+
+                if(property.ignoreTargets && event.target.match(property.ignoreTargets)){
+                    return;
+                }
+
+                valueTokens = property.get(scope, true);
+            }
+
+            if(valueTokens){
+                var valueToken = valueTokens[valueTokens.length - 1];
+                value = valueToken.result;
+                property._sourcePathInfo = valueToken.sourcePathInfo;
+            }
+
+            property.value = value;
+        }
+
+        // Call the properties update function, if it has one.
+        // Only call if the changed value is an object, or if it actually changed.
+        if(!property.update){
+            return;
+        }
+
+        updateProperty(property, event === true);
+    }
+}
+
+
+function bindProperty(parent) {
+    this._lastValue = new WhatChanged();
+    this.parent = parent;
+    this.gaffa = parent.gaffa;
+
+    parent.on('destroy', this.destroy.bind(this));
+    parent.on('debind', this.debind.bind(this));
+
+    // Shortcut for properties that have no binding.
+    // This has a significant impact on performance.
+    if(this.binding == null){
+        if(this.update){
+            this.update(parent, this.value);
+        }
+        return;
+    }
+
+    var propertyCallback = createPropertyCallback(this);
+
+    this.gaffa.model.bind(this.binding, propertyCallback, this);
+    propertyCallback(true);
+    Bindable.prototype.bind.call(this);
+}
+
+
+function Property(propertyDescription){
+    if(typeof propertyDescription === 'function'){
+        this.update = propertyDescription;
+    }else{
+        for(var key in propertyDescription){
+            this[key] = propertyDescription[key];
+        }
+    }
+}
+Property = createSpec(Property, Bindable);
+Property.prototype.watchChanges = 'value keys structure reference type';
+Property.prototype.hasChanged = function(){
+    var changes = this._lastValue.update(this.value),
+        watched = this.watchChanges.split(' ');
+
+    for(var i = 0; i < watched.length; i++){
+        if(changes[watched[i]]){
+            return true;
+        }
+    }
+};
+Property.prototype.set = function(value, isDirty){
+    var gaffa = this.gaffa;
+
+    if(this.binding){
+        var setValue = this.setTransform ? gaffa.model.get(this.setTransform, this, {value: value}) : value;
+        gaffa.model.set(
+            this.binding,
+            setValue,
+            this,
+            isDirty
+        );
+    }else{
+        this.value = value;
+        if(this.update && this.parent._bound){
+            this.update(this.parent, value);
+        }
+    }
+
+};
+Property.prototype.get = function(scope, asTokens){
+    if(this.binding){
+        var value = this.gaffa.model.get(this.binding, this, scope, asTokens);
+        if(this.getTransform){
+            scope.value = asTokens ? value[value.length-1].result : value;
+            return this.gaffa.model.get(this.getTransform, this, scope, asTokens);
+        }
+        return value;
+    }else{
+        return this.value;
+    }
+};
+Property.prototype.bind = bindProperty;
+Property.prototype.debind = function(){
+    cancelAnimationFrame(this.nextUpdate);
+    this.gaffa.model.debind(this);
+    Bindable.prototype.debind.call(this);
+    delete this._lastValue;
+};
+Property.prototype.destroy = function(){
+    delete this.gaffa;
+    delete this.parent;
+};
+Property.prototype.__serialiseExclude__ = ['_lastValue'];
+
+module.exports = Property;
+},{"./bindable":11,"./createModelScope":13,"./jsonConverter":20,"consuela":21,"gel-js":57,"spec-js":40,"what-changed":46}],52:[function(require,module,exports){
+/*
+ * raf.js
+ * https://github.com/ngryman/raf.js
+ *
+ * original requestAnimationFrame polyfill by Erik Möller
+ * inspired from paul_irish gist and post
+ *
+ * Copyright (c) 2013 ngryman
+ * Licensed under the MIT license.
+ */
+
+var global = typeof window !== 'undefined' ? window : this;
+
+var lastTime = 0,
+    vendors = ['webkit', 'moz'],
+    requestAnimationFrame = global.requestAnimationFrame,
+    cancelAnimationFrame = global.cancelAnimationFrame,
+    i = vendors.length;
+
+// try to un-prefix existing raf
+while (--i >= 0 && !requestAnimationFrame) {
+    requestAnimationFrame = global[vendors[i] + 'RequestAnimationFrame'];
+    cancelAnimationFrame = global[vendors[i] + 'CancelAnimationFrame'];
+}
+
+// polyfill with setTimeout fallback
+// heavily inspired from @darius gist mod: https://gist.github.com/paulirish/1579671#comment-837945
+if (!requestAnimationFrame || !cancelAnimationFrame) {
+    requestAnimationFrame = function(callback) {
+        var now = +Date.now(),
+            nextTime = Math.max(lastTime + 16, now);
+        return setTimeout(function() {
+            callback(lastTime = nextTime);
+        }, nextTime - now);
+    };
+
+    cancelAnimationFrame = clearTimeout;
+}
+
+if (!cancelAnimationFrame){
+    global.cancelAnimationFrame = function(id) {
+        clearTimeout(id);
+    };
+}
+
+global.requestAnimationFrame = requestAnimationFrame;
+global.cancelAnimationFrame = cancelAnimationFrame;
+
+module.exports = {
+    requestAnimationFrame: requestAnimationFrame,
+    cancelAnimationFrame: cancelAnimationFrame
+};
+},{}],53:[function(require,module,exports){
+function removeViews(views){
+    if(!views){
+        return;
+    }
+
+    views = views.slice ? views.slice() : [views];
+
+    for(var i = 0; i < views.length; i++) {
+        views[i].remove();
+    }
+}
+
+module.exports = removeViews;
+},{}],54:[function(require,module,exports){
+/**
+    ## View
+
+    A base constructor for gaffa Views that have content view.
+
+    All Views that inherit from ContainerView will have:
+
+        someView.views.content
+*/
+
+var createSpec = require('spec-js'),
+    doc = require('doc-js'),
+    crel = require('crel'),
+    laidout = require('laidout'),
+    ViewItem = require('./viewItem'),
+    Property = require('./property'),
+    createModelScope = require('./createModelScope'),
+    getClosestItem = require('./getClosestItem'),
+    Behaviour = require('./behaviour');
+
+function insertFunction(selector, renderedElement, insertIndex){
+    var target = ((typeof selector === "string") ? document.querySelectorAll(selector)[0] : selector),
+        referenceSibling;
+
+    if(target && target.childNodes){
+        referenceSibling = target.childNodes[insertIndex];
+    }
+    if (referenceSibling){
+        target.insertBefore(renderedElement, referenceSibling);
+    }  else {
+        target.appendChild(renderedElement);
+    }
+}
+
+function langify(fn, context){
+    return function(scope, args){
+        var args = args.all();
+
+        return fn.apply(context, args);
+    }
+}
+
+function createEventedActionScope(view, event){
+    var scope = createModelScope(view);
+
+    scope.event = {
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+        which: event.which,
+        target: event.target,
+        targetViewItem: getClosestItem(event.target),
+        preventDefault: langify(event.preventDefault, event),
+        stopPropagation: langify(event.stopPropagation, event)
+    };
+
+    return scope;
+}
+
+function bindViewEvent(view, eventName){
+    return view.gaffa.events.on(eventName, view.renderedElement, function (event) {
+        view.triggerActions(eventName, createEventedActionScope(view, event), event);
+    });
+}
+
+function View(viewDescription){
+    var view = this;
+
+    view.behaviours = view.behaviours || [];
+}
+View = createSpec(View, ViewItem);
+
+View.prototype.bind = function(parent){
+    ViewItem.prototype.bind.apply(this, arguments);
+
+    for(var key in this){
+        if(crel.isNode(this[key])){
+            this._watch(this[key]);
+        }
+    }
+
+    for(var key in this.actions){
+        var actions = this.actions[key],
+            off;
+
+        if(actions.__bound){
+            continue;
+        }
+
+        actions.__bound = true;
+
+        bindViewEvent(this, key);
+    }
+
+    this.triggerActions('load');
+
+    for(var i = 0; i < this.behaviours.length; i++){
+        Behaviour.prototype.bind.call(this.behaviours[i], this);
+        this.behaviours[i].bind(this);
+    }
+};
+
+View.prototype.detach = function(){
+    this.renderedElement && this.renderedElement.parentNode && this.renderedElement.parentNode.removeChild(this.renderedElement);
+};
+
+View.prototype.remove = function(){
+    this.detach();
+    ViewItem.prototype.remove.call(this);
+}
+
+View.prototype.debind = function () {
+    for(var i = 0; i < this.behaviours.length; i++){
+        this.behaviours[i].debind();
+    }
+
+    this.triggerActions('unload');
+
+    for(var key in this.actions){
+        this.actions[key].__bound = false;
+    }
+    delete this.renderedElement.viewModel;
+    for(var key in this){
+        if(crel.isNode(this[key])){
+            delete this[key];
+        }
+    }
+    View.__super__.prototype.debind.call(this);
+};
+
+View.prototype.render = function(){};
+
+function insert(view, viewContainer, insertIndex){
+    var gaffa = view.gaffa,
+        renderTarget = view.insertSelector || view.renderTarget || viewContainer && viewContainer.element || gaffa.views.renderTarget;
+
+    if(view.afterInsert){
+        laidout(view.renderedElement, function(){
+            view.afterInsert();
+        });
+    }
+
+    if(viewContainer.indexOf(view) !== insertIndex){
+        viewContainer.splice(insertIndex, 1, view);
+    }
+
+    view.insertFunction(view.insertSelector || renderTarget, view.renderedElement, insertIndex);
+}
+
+View.prototype.insert = function(viewContainer, insertIndex){
+    insert(this, viewContainer, insertIndex);
+};
+
+function Classes(){};
+Classes = createSpec(Classes, Property);
+Classes.prototype.update = function(view, value){
+    doc.removeClass(view.renderedElement, this._previousClasses);
+    this._previousClasses = value;
+    doc.addClass(view.renderedElement, value);
+};
+View.prototype.classes = new Classes();
+
+function Visible(){};
+Visible = createSpec(Visible, Property);
+Visible.prototype.value = true;
+Visible.prototype.update = function(view, value) {
+    view.renderedElement.style.display = value ? '' : 'none';
+};
+View.prototype.visible = new Visible();
+
+function Enabled(){};
+Enabled = createSpec(Enabled, Property);
+Enabled.prototype.value = true;
+Enabled.prototype.update = function(view, value) {
+    if(!value === !!view.renderedElement.getAttribute('disabled')){
+        return;
+    }
+    view.renderedElement[!value ? 'setAttribute' : 'removeAttribute']('disabled','disabled');
+};
+View.prototype.enabled = new Enabled();
+
+function Title(){};
+Title = createSpec(Title, Property);
+Title.prototype.update = function(view, value) {
+    view.renderedElement[value ? 'setAttribute' : 'removeAttribute']('title',value);
+};
+View.prototype.title = new Title();
+
+View.prototype.insertFunction = insertFunction;
+
+module.exports = View;
+},{"./behaviour":10,"./createModelScope":13,"./getClosestItem":15,"./property":51,"./viewItem":56,"crel":1,"doc-js":24,"laidout":36,"spec-js":40}],55:[function(require,module,exports){
+var createSpec = require('spec-js'),
+    Bindable = require('./bindable'),
+    View = require('./view'),
+    initialiseViewItem = require('./initialiseViewItem'),
+    Consuela = require('consuela'),
+    removeViews = require('./removeViews'),
+    arrayProto = Array.prototype;
+
+function ViewContainer(viewContainerDescription){
+    Bindable.call(this);
+    var viewContainer = this;
+
+    this._deferredViews = [];
+
+    if(viewContainerDescription instanceof Array){
+        viewContainer.add(viewContainerDescription);
+    }
+}
+ViewContainer = createSpec(ViewContainer, Array);
+for(var key in Bindable.prototype){
+    ViewContainer.prototype[key] = Bindable.prototype[key];
+}
+ViewContainer.prototype.bind = function(parent){
+    this.parent = parent;
+    this.gaffa = parent.gaffa;
+
+    parent.on('debind', this.debind.bind(this));
+    parent.on('remove', this.empty.bind(this));
+
+    if(this._bound){
+        return;
+    }
+
+    this._bound = true;
+
+    for(var i = 0; i < this.length; i++){
+        this.add(this[i], i);
+    }
+
+    return this;
+};
+ViewContainer.prototype.debind = function(){
+    if(!this._bound){
+        return;
+    }
+
+    this._bound = false;
+
+    for (var i = 0; i < this.length; i++) {
+        this[i].detach();
+        this[i].debind();
+    }
+    Bindable.prototype.debind.call(this);
+};
+ViewContainer.prototype.getPath = function(){
+    return getItemPath(this);
+};
+
+/*
+    ViewContainers handle their own array state.
+    A View that is added to a ViewContainer will
+    be automatically removed from its current
+    container, if it has one.
+*/
+ViewContainer.prototype.add = function(view, insertIndex){
+    // If passed an array
+    if(Array.isArray(view)){
+        // Clone the array so splicing can't cause issues
+        var views = view.slice();
+        for(var i = 0; i < view.length; i++){
+            this.add(view[i]);
+        }
+        return this;
+    }
+
+    // Is already in the tree somewhere? remove it.
+    if(view.parentContainer instanceof ViewContainer){
+        view.parentContainer.splice(view.parentContainer.indexOf(view),1);
+    }
+
+    this.splice(insertIndex >= 0 ? insertIndex : this.length,0,view);
+
+    view.parentContainer = this;
+
+    if(this._bound){
+        if(!(view instanceof View)){
+            view = this[this.indexOf(view)] = initialiseViewItem(view, this.gaffa, this.gaffa.views._constructors);
+        }
+        view.gaffa = this.gaffa;
+
+        this.gaffa.namedViews[view.name] = view;
+
+        if(!view.renderedElement){
+            view.render();
+            view.renderedElement.viewModel = view;
+        }
+        view.bind(this.parent);
+        view.insert(this, insertIndex);
+    }
+
+    return view;
+};
+
+/*
+    adds 5 (5 is arbitrary) views at a time to the target viewContainer,
+    then queues up another add.
+*/
+function executeDeferredAdd(viewContainer){
+    var currentOpperation = viewContainer._deferredViews.splice(0,5);
+
+    if(!currentOpperation.length){
+        return;
+    }
+
+    for (var i = 0; i < currentOpperation.length; i++) {
+        viewContainer.add(currentOpperation[i][0], currentOpperation[i][1]);
+    };
+    requestAnimationFrame(function(time){
+        executeDeferredAdd(viewContainer);
+    });
+}
+
+/*
+    Adds children to the view container over time, via RAF.
+    Will only begin the render cycle if there are no _deferredViews,
+    because if _deferredViews.length is > 0, the render loop will
+    already be going.
+*/
+ViewContainer.prototype.deferredAdd = function(view, insertIndex){
+    var viewContainer = this,
+        shouldStart = !this._deferredViews.length;
+
+    this._deferredViews.push([view, insertIndex]);
+
+    if(shouldStart){
+        requestAnimationFrame(function(){
+            executeDeferredAdd(viewContainer);
+        });
+    }
+};
+
+ViewContainer.prototype.abortDeferredAdd = function(){
+    this._deferredViews = [];
+};
+ViewContainer.prototype.remove = function(view){
+    view.remove();
+};
+ViewContainer.prototype.empty = function(){
+    removeViews(this);
+};
+ViewContainer.prototype.__serialiseExclude__ = ['element'];
+
+module.exports = ViewContainer;
+},{"./bindable":11,"./initialiseViewItem":19,"./removeViews":53,"./view":54,"consuela":21,"spec-js":40}],56:[function(require,module,exports){
+var createSpec = require('spec-js'),
+    Bindable = require('./bindable'),
+    jsonConverter = require('./jsonConverter'),
+    Property = require('./property');
+
+function copyProperties(source, target){
+    if(
+        !source || typeof source !== 'object' ||
+        !target || typeof target !== 'object'
+    ){
+        return;
+    }
+
+    for(var key in source){
+        if(source.hasOwnProperty(key)){
+            target[key] = source[key];
+        }
+    }
+}
+
+function debindViewItem(viewItem){
+    viewItem.emit('debind');
+    viewItem._bound = false;
+}
+
+
+function removeViewItem(viewItem){
+    delete viewItem.gaffa;
+    delete viewItem.parent;
+
+    if(viewItem.parentContainer){
+        var index = viewItem.parentContainer.indexOf(viewItem);
+        if(index >= 0){
+            viewItem.parentContainer.splice(index, 1);
+        }
+        delete viewItem.parentContainer;
+    }
+
+    viewItem.emit('remove');
+
+    viewItem.debind();
+
+    viewItem.destroy();
+}
+
+function inflateViewItem(viewItem, description){
+    var ViewContainer = require('./viewContainer');
+
+    for(var key in viewItem){
+        if(viewItem[key] instanceof Property){
+            viewItem[key] = new viewItem[key].constructor(viewItem[key]);
+        }
+    }
+
+    /**
+        ## .actions
+
+        All ViewItems have an actions object which can be overriden.
+
+        The actions object looks like this:
+
+            viewItem.actions = {
+                click: [action1, action2],
+                hover: [action3, action4]
+            }
+
+        eg:
+
+            // Some ViewItems
+            var someButton = new views.button(),
+                removeItem = new actions.remove();
+
+            // Set removeItem as a child of someButton.
+            someButton.actions.click = [removeItem];
+
+        If a Views action.[name] matches a DOM event name, it will be automatically _bound.
+
+            myView.actions.click = [
+                // actions to trigger when a 'click' event is raised by the views renderedElement
+            ];
+    */
+    viewItem.actions = viewItem.actions ? clone(viewItem.actions) : {};
+
+    for(var key in description){
+        var prop = viewItem[key];
+        if(prop instanceof Property || prop instanceof ViewContainer){
+            copyProperties(description[key], prop);
+        }else{
+            viewItem[key] = description[key];
+        }
+    }
+}
+
+/**
+    ## ViewItem
+
+    The base constructor for all gaffa ViewItems.
+
+    Views, Behaviours, and Actions inherrit from ViewItem.
+*/
+function ViewItem(viewItemDescription){
+    inflateViewItem(this, viewItemDescription);
+}
+ViewItem = createSpec(ViewItem, Bindable);
+
+    /**
+        ## .path
+
+        the base path for a viewItem.
+
+        Any bindings on a ViewItem will recursivly resolve through the ViewItems parent's paths.
+
+        Eg:
+
+            // Some ViewItems
+            var viewItem1 = new views.button(),
+                viewItem2 = new actions.set();
+
+            // Give viewItem1 a path.
+            viewItem1.path = '[things]';
+            // Set viewItem2 as a child of viewItem1.
+            viewItem1.actions.click = [viewItem2];
+
+            // Give viewItem2 a path.
+            viewItem2.path = '[stuff]';
+            // Set viewItem2s target binding.
+            viewItem2.target.binding = '[majigger]';
+
+        viewItem2.target.binding will resolve to:
+
+            '[/things/stuff/majigger]'
+    */
+ViewItem.prototype.path = '[]';
+ViewItem.prototype.bind = function(parent){
+    var viewItem = this,
+        property;
+
+    this.parent = parent;
+    this.gaffa = parent && parent.gaffa || this.gaffa;
+
+    Bindable.prototype.bind.call(this);
+
+    // Only set up properties that were on the prototype.
+    // Faster and 'safer'
+    for(var propertyKey in this.constructor.prototype){
+        property = this[propertyKey];
+        if(property instanceof Property){
+            property.bind(this);
+        }
+    }
+
+    // Create item scope
+};
+ViewItem.prototype.debind = function(){
+    debindViewItem(this);
+    Bindable.prototype.debind.call(this);
+};
+ViewItem.prototype.remove = function(){
+    removeViewItem(this);
+};
+ViewItem.prototype.destroy = function(){
+    this.emit('destroy');
+};
+ViewItem.prototype.triggerActions = function(actionName, scope, event){
+    if(!this.gaffa){
+        return;
+    }
+    this.gaffa.actions.trigger(this.actions[actionName], this, scope, event);
+};
+
+module.exports = ViewItem;
+},{"./bindable":11,"./jsonConverter":20,"./property":51,"./viewContainer":55,"spec-js":40}],57:[function(require,module,exports){
+arguments[4][33][0].apply(exports,arguments)
+},{"gedi-paths":59,"lang-js":60,"merge":62,"spec-js":63}],58:[function(require,module,exports){
+module.exports=require(31)
+},{}],59:[function(require,module,exports){
+module.exports=require(32)
+},{"./detectPath":58}],60:[function(require,module,exports){
+module.exports=require(37)
+},{"./token":61,"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":75}],61:[function(require,module,exports){
+module.exports=require(38)
+},{}],62:[function(require,module,exports){
+module.exports=require(39)
+},{}],63:[function(require,module,exports){
+module.exports=require(40)
+},{}],64:[function(require,module,exports){
+module.exports=require(41)
+},{}],65:[function(require,module,exports){
+arguments[4][42][0].apply(exports,arguments)
+},{"./revive":66}],66:[function(require,module,exports){
+module.exports=require(43)
+},{"./createKey":64}],67:[function(require,module,exports){
+arguments[4][44][0].apply(exports,arguments)
+},{"./parse":65,"./revive":66,"./stringify":68}],68:[function(require,module,exports){
+module.exports=require(45)
+},{"./createKey":64}],69:[function(require,module,exports){
 var Gaffa = require('gaffa'),
+    FormElement = require('gaffa-formelement'),
     crel = require('crel'),
     doc = require('doc-js'),
     statham = require('statham'),
-    viewType = "select",
     cachedElement;
 
 function Select(){}
-Select = Gaffa.createSpec(Select, Gaffa.View);
-Select.prototype.type = viewType;
-
+Select = Gaffa.createSpec(Select, FormElement);
+Select.prototype._type = 'select';
 Select.prototype.render = function(){
     var view = this,
         select,
@@ -7138,14 +7729,15 @@ Select.prototype.render = function(){
     });
 
     this.renderedElement = renderedElement;
-    this.selectElement = select;
+    this.formElement = select;
 };
 
 Select.prototype.options = new Gaffa.Property({
     elements: [],
     update: function(view, value) {
         var property = this,
-            element = view.selectElement;
+            gaffa = this.gaffa,
+            element = view.formElement;
 
         if(!element){
             return;
@@ -7168,7 +7760,8 @@ Select.prototype.options = new Gaffa.Property({
             if(optionData !== undefined){
                 var option = document.createElement('option');
 
-                option.value = option.data = property.valueBinding ? gaffa.gedi.get(property.valueBinding, property.getPath(), {option: optionData}) : optionData;
+                option.value = key;
+                option.data = property.valueBinding ? gaffa.gedi.get(property.valueBinding, property.getPath(), {option: optionData}) : optionData;
                 option.textContent = property.textBinding ? gaffa.gedi.get(property.textBinding, property.getPath(), {option: optionData}) : optionData;
 
                 element.appendChild(option);
@@ -7176,50 +7769,42 @@ Select.prototype.options = new Gaffa.Property({
             }
         }
 
-        element.value = null;
-        view.value.update(view, view.value.value);
+        if(view.value._bound){
+            view.value.update(view, view.value.value);
+        }
     }
 });
 
 Select.prototype.value = new Gaffa.Property({
     update: function(view, value) {
-        view.selectElement.value = value;
+
+        view.formElement.value = value;
+
+        // WOO BROWSER COMPATIBILITY BEST FUN EVER!
+        view.formElement.selectedIndex = -1;
+
         for(var i = 0; i < view.options.elements.length; i++){
             if(view.options.elements[i].data === value){
                 view.options.elements[i].selected = true;
                 break;
             }
         }
-    },
-    sameAsPrevious: function(){
-        var oldHash = this.getPreviousHash(),
-            newHash = statham.stringify(this.value);
 
-        this.setPreviousHash(newHash);
-
-        return oldHash === newHash;
+        view.valid.set(view.formElement.validity.valid);
     }
 });
+
+Select.prototype.afterInsert = function(){
+    // because all the browsers do something different,
+    // sync them all up after insersion.
+    this.value.update(this, this.value.value);
+}
 
 Select.prototype.showBlank = new Gaffa.Property();
 
-Select.prototype.required = new Gaffa.Property(function(view, value){
-    if (value){
-        view.renderedElement.setAttribute('required', 'required');
-    }else{
-        view.renderedElement.removeAttribute('required');
-    }
-});
-
-Select.prototype.enabled = new Gaffa.Property({
-    update: function(view, value){
-        view.selectElement[value ? 'removeAttribute' : 'setAttribute']('disabled','disabled');
-    },
-    value: true
-});
-
 module.exports = Select;
-},{"crel":1,"doc-js":3,"gaffa":8,"statham":32}],35:[function(require,module,exports){
+
+},{"crel":1,"doc-js":3,"gaffa":14,"gaffa-formelement":7,"statham":67}],70:[function(require,module,exports){
 var Gaffa = require('gaffa'),
     Select = require('../'),
     Text = require('gaffa-text'),
@@ -7244,24 +7829,47 @@ select2.enabled.value = false;
 
 var select3 = new Select();
 select3.value.binding = '[value]';
-select3.options.value = ['hello', 'world'];
+select3.options.binding = '[options]';
 select3.showBlank.value = true;
 
 var select4 = new Select();
 select4.value.binding = '[value]';
-select4.options.value = ['hello', 'world'];
+select4.options.binding = '[options]';
 select4.options.textBinding = '(join " " "value:" option)';
 
 var select5 = new Select();
 select5.value.binding = '[value]';
-select5.options.value = ['hello', 'world'];
+select5.options.binding = '[options]';
 select5.options.textBinding = '(join " " "value:" option)';
 select5.options.valueBinding = '(? (== option "hello") "world" "hello")';
 
+var select6 = new Select();
+select6.value.binding = '[value]';
+select6.options.binding = '[options]';
+select6.required.value = true;
+
+var select7 = new Select();
+select7.value.binding = '[value]';
+select7.options.binding = '[options]';
+select7.validity.binding = '(? [value] null "custom required")';
+
 // An example model
 gaffa.model.set({
-    value:''
-})
+    value:'',
+    options:[
+        'hello',
+        'world'
+    ]
+});
+
+setTimeout(function(){
+    gaffa.model.set('[options/3]', 'another option');
+    gaffa.model.set('[value]', '');
+}, 2000);
+
+setTimeout(function(){
+    gaffa.model.set('[value]', 'hello');
+}, 4000);
 
 // Add the view on load.
 window.onload = function(){
@@ -7271,13 +7879,1336 @@ window.onload = function(){
         select2,
         select3,
         select4,
-        select5
+        select5,
+        select6,
+        select7
     ]);
 };
 
 // Globalise gaffa for easy debugging.
 window.gaffa = gaffa;
-},{"../":34,"gaffa":8,"gaffa-text":7}],36:[function(require,module,exports){
+},{"../":69,"gaffa":14,"gaffa-text":8}],71:[function(require,module,exports){
+/**
+ * The buffer module from node.js, for the browser.
+ *
+ * Author:   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
+ * License:  MIT
+ *
+ * `npm install buffer`
+ */
+
+var base64 = require('base64-js')
+var ieee754 = require('ieee754')
+
+exports.Buffer = Buffer
+exports.SlowBuffer = Buffer
+exports.INSPECT_MAX_BYTES = 50
+Buffer.poolSize = 8192
+
+/**
+ * If `Buffer._useTypedArrays`:
+ *   === true    Use Uint8Array implementation (fastest)
+ *   === false   Use Object implementation (compatible down to IE6)
+ */
+Buffer._useTypedArrays = (function () {
+   // Detect if browser supports Typed Arrays. Supported browsers are IE 10+,
+   // Firefox 4+, Chrome 7+, Safari 5.1+, Opera 11.6+, iOS 4.2+.
+  if (typeof Uint8Array !== 'function' || typeof ArrayBuffer !== 'function')
+    return false
+
+  // Does the browser support adding properties to `Uint8Array` instances? If
+  // not, then that's the same as no `Uint8Array` support. We need to be able to
+  // add all the node Buffer API methods.
+  // Bug in Firefox 4-29, now fixed: https://bugzilla.mozilla.org/show_bug.cgi?id=695438
+  try {
+    var arr = new Uint8Array(0)
+    arr.foo = function () { return 42 }
+    return 42 === arr.foo() &&
+        typeof arr.subarray === 'function' // Chrome 9-10 lack `subarray`
+  } catch (e) {
+    return false
+  }
+})()
+
+/**
+ * Class: Buffer
+ * =============
+ *
+ * The Buffer constructor returns instances of `Uint8Array` that are augmented
+ * with function properties for all the node `Buffer` API functions. We use
+ * `Uint8Array` so that square bracket notation works as expected -- it returns
+ * a single octet.
+ *
+ * By augmenting the instances, we can avoid modifying the `Uint8Array`
+ * prototype.
+ */
+function Buffer (subject, encoding, noZero) {
+  if (!(this instanceof Buffer))
+    return new Buffer(subject, encoding, noZero)
+
+  var type = typeof subject
+
+  // Workaround: node's base64 implementation allows for non-padded strings
+  // while base64-js does not.
+  if (encoding === 'base64' && type === 'string') {
+    subject = stringtrim(subject)
+    while (subject.length % 4 !== 0) {
+      subject = subject + '='
+    }
+  }
+
+  // Find the length
+  var length
+  if (type === 'number')
+    length = coerce(subject)
+  else if (type === 'string')
+    length = Buffer.byteLength(subject, encoding)
+  else if (type === 'object')
+    length = coerce(subject.length) // Assume object is an array
+  else
+    throw new Error('First argument needs to be a number, array or string.')
+
+  var buf
+  if (Buffer._useTypedArrays) {
+    // Preferred: Return an augmented `Uint8Array` instance for best performance
+    buf = augment(new Uint8Array(length))
+  } else {
+    // Fallback: Return THIS instance of Buffer (created by `new`)
+    buf = this
+    buf.length = length
+    buf._isBuffer = true
+  }
+
+  var i
+  if (Buffer._useTypedArrays && typeof Uint8Array === 'function' &&
+      subject instanceof Uint8Array) {
+    // Speed optimization -- use set if we're copying from a Uint8Array
+    buf._set(subject)
+  } else if (isArrayish(subject)) {
+    // Treat array-ish objects as a byte array
+    for (i = 0; i < length; i++) {
+      if (Buffer.isBuffer(subject))
+        buf[i] = subject.readUInt8(i)
+      else
+        buf[i] = subject[i]
+    }
+  } else if (type === 'string') {
+    buf.write(subject, 0, encoding)
+  } else if (type === 'number' && !Buffer._useTypedArrays && !noZero) {
+    for (i = 0; i < length; i++) {
+      buf[i] = 0
+    }
+  }
+
+  return buf
+}
+
+// STATIC METHODS
+// ==============
+
+Buffer.isEncoding = function (encoding) {
+  switch (String(encoding).toLowerCase()) {
+    case 'hex':
+    case 'utf8':
+    case 'utf-8':
+    case 'ascii':
+    case 'binary':
+    case 'base64':
+    case 'raw':
+    case 'ucs2':
+    case 'ucs-2':
+    case 'utf16le':
+    case 'utf-16le':
+      return true
+    default:
+      return false
+  }
+}
+
+Buffer.isBuffer = function (b) {
+  return !!(b !== null && b !== undefined && b._isBuffer)
+}
+
+Buffer.byteLength = function (str, encoding) {
+  var ret
+  str = str + ''
+  switch (encoding || 'utf8') {
+    case 'hex':
+      ret = str.length / 2
+      break
+    case 'utf8':
+    case 'utf-8':
+      ret = utf8ToBytes(str).length
+      break
+    case 'ascii':
+    case 'binary':
+    case 'raw':
+      ret = str.length
+      break
+    case 'base64':
+      ret = base64ToBytes(str).length
+      break
+    case 'ucs2':
+    case 'ucs-2':
+    case 'utf16le':
+    case 'utf-16le':
+      ret = str.length * 2
+      break
+    default:
+      throw new Error('Unknown encoding')
+  }
+  return ret
+}
+
+Buffer.concat = function (list, totalLength) {
+  assert(isArray(list), 'Usage: Buffer.concat(list, [totalLength])\n' +
+      'list should be an Array.')
+
+  if (list.length === 0) {
+    return new Buffer(0)
+  } else if (list.length === 1) {
+    return list[0]
+  }
+
+  var i
+  if (typeof totalLength !== 'number') {
+    totalLength = 0
+    for (i = 0; i < list.length; i++) {
+      totalLength += list[i].length
+    }
+  }
+
+  var buf = new Buffer(totalLength)
+  var pos = 0
+  for (i = 0; i < list.length; i++) {
+    var item = list[i]
+    item.copy(buf, pos)
+    pos += item.length
+  }
+  return buf
+}
+
+// BUFFER INSTANCE METHODS
+// =======================
+
+function _hexWrite (buf, string, offset, length) {
+  offset = Number(offset) || 0
+  var remaining = buf.length - offset
+  if (!length) {
+    length = remaining
+  } else {
+    length = Number(length)
+    if (length > remaining) {
+      length = remaining
+    }
+  }
+
+  // must be an even number of digits
+  var strLen = string.length
+  assert(strLen % 2 === 0, 'Invalid hex string')
+
+  if (length > strLen / 2) {
+    length = strLen / 2
+  }
+  for (var i = 0; i < length; i++) {
+    var byte = parseInt(string.substr(i * 2, 2), 16)
+    assert(!isNaN(byte), 'Invalid hex string')
+    buf[offset + i] = byte
+  }
+  Buffer._charsWritten = i * 2
+  return i
+}
+
+function _utf8Write (buf, string, offset, length) {
+  var charsWritten = Buffer._charsWritten =
+    blitBuffer(utf8ToBytes(string), buf, offset, length)
+  return charsWritten
+}
+
+function _asciiWrite (buf, string, offset, length) {
+  var charsWritten = Buffer._charsWritten =
+    blitBuffer(asciiToBytes(string), buf, offset, length)
+  return charsWritten
+}
+
+function _binaryWrite (buf, string, offset, length) {
+  return _asciiWrite(buf, string, offset, length)
+}
+
+function _base64Write (buf, string, offset, length) {
+  var charsWritten = Buffer._charsWritten =
+    blitBuffer(base64ToBytes(string), buf, offset, length)
+  return charsWritten
+}
+
+function _utf16leWrite (buf, string, offset, length) {
+  var charsWritten = Buffer._charsWritten =
+    blitBuffer(utf16leToBytes(string), buf, offset, length)
+  return charsWritten
+}
+
+Buffer.prototype.write = function (string, offset, length, encoding) {
+  // Support both (string, offset, length, encoding)
+  // and the legacy (string, encoding, offset, length)
+  if (isFinite(offset)) {
+    if (!isFinite(length)) {
+      encoding = length
+      length = undefined
+    }
+  } else {  // legacy
+    var swap = encoding
+    encoding = offset
+    offset = length
+    length = swap
+  }
+
+  offset = Number(offset) || 0
+  var remaining = this.length - offset
+  if (!length) {
+    length = remaining
+  } else {
+    length = Number(length)
+    if (length > remaining) {
+      length = remaining
+    }
+  }
+  encoding = String(encoding || 'utf8').toLowerCase()
+
+  var ret
+  switch (encoding) {
+    case 'hex':
+      ret = _hexWrite(this, string, offset, length)
+      break
+    case 'utf8':
+    case 'utf-8':
+      ret = _utf8Write(this, string, offset, length)
+      break
+    case 'ascii':
+      ret = _asciiWrite(this, string, offset, length)
+      break
+    case 'binary':
+      ret = _binaryWrite(this, string, offset, length)
+      break
+    case 'base64':
+      ret = _base64Write(this, string, offset, length)
+      break
+    case 'ucs2':
+    case 'ucs-2':
+    case 'utf16le':
+    case 'utf-16le':
+      ret = _utf16leWrite(this, string, offset, length)
+      break
+    default:
+      throw new Error('Unknown encoding')
+  }
+  return ret
+}
+
+Buffer.prototype.toString = function (encoding, start, end) {
+  var self = this
+
+  encoding = String(encoding || 'utf8').toLowerCase()
+  start = Number(start) || 0
+  end = (end !== undefined)
+    ? Number(end)
+    : end = self.length
+
+  // Fastpath empty strings
+  if (end === start)
+    return ''
+
+  var ret
+  switch (encoding) {
+    case 'hex':
+      ret = _hexSlice(self, start, end)
+      break
+    case 'utf8':
+    case 'utf-8':
+      ret = _utf8Slice(self, start, end)
+      break
+    case 'ascii':
+      ret = _asciiSlice(self, start, end)
+      break
+    case 'binary':
+      ret = _binarySlice(self, start, end)
+      break
+    case 'base64':
+      ret = _base64Slice(self, start, end)
+      break
+    case 'ucs2':
+    case 'ucs-2':
+    case 'utf16le':
+    case 'utf-16le':
+      ret = _utf16leSlice(self, start, end)
+      break
+    default:
+      throw new Error('Unknown encoding')
+  }
+  return ret
+}
+
+Buffer.prototype.toJSON = function () {
+  return {
+    type: 'Buffer',
+    data: Array.prototype.slice.call(this._arr || this, 0)
+  }
+}
+
+// copy(targetBuffer, targetStart=0, sourceStart=0, sourceEnd=buffer.length)
+Buffer.prototype.copy = function (target, target_start, start, end) {
+  var source = this
+
+  if (!start) start = 0
+  if (!end && end !== 0) end = this.length
+  if (!target_start) target_start = 0
+
+  // Copy 0 bytes; we're done
+  if (end === start) return
+  if (target.length === 0 || source.length === 0) return
+
+  // Fatal error conditions
+  assert(end >= start, 'sourceEnd < sourceStart')
+  assert(target_start >= 0 && target_start < target.length,
+      'targetStart out of bounds')
+  assert(start >= 0 && start < source.length, 'sourceStart out of bounds')
+  assert(end >= 0 && end <= source.length, 'sourceEnd out of bounds')
+
+  // Are we oob?
+  if (end > this.length)
+    end = this.length
+  if (target.length - target_start < end - start)
+    end = target.length - target_start + start
+
+  // copy!
+  for (var i = 0; i < end - start; i++)
+    target[i + target_start] = this[i + start]
+}
+
+function _base64Slice (buf, start, end) {
+  if (start === 0 && end === buf.length) {
+    return base64.fromByteArray(buf)
+  } else {
+    return base64.fromByteArray(buf.slice(start, end))
+  }
+}
+
+function _utf8Slice (buf, start, end) {
+  var res = ''
+  var tmp = ''
+  end = Math.min(buf.length, end)
+
+  for (var i = start; i < end; i++) {
+    if (buf[i] <= 0x7F) {
+      res += decodeUtf8Char(tmp) + String.fromCharCode(buf[i])
+      tmp = ''
+    } else {
+      tmp += '%' + buf[i].toString(16)
+    }
+  }
+
+  return res + decodeUtf8Char(tmp)
+}
+
+function _asciiSlice (buf, start, end) {
+  var ret = ''
+  end = Math.min(buf.length, end)
+
+  for (var i = start; i < end; i++)
+    ret += String.fromCharCode(buf[i])
+  return ret
+}
+
+function _binarySlice (buf, start, end) {
+  return _asciiSlice(buf, start, end)
+}
+
+function _hexSlice (buf, start, end) {
+  var len = buf.length
+
+  if (!start || start < 0) start = 0
+  if (!end || end < 0 || end > len) end = len
+
+  var out = ''
+  for (var i = start; i < end; i++) {
+    out += toHex(buf[i])
+  }
+  return out
+}
+
+function _utf16leSlice (buf, start, end) {
+  var bytes = buf.slice(start, end)
+  var res = ''
+  for (var i = 0; i < bytes.length; i += 2) {
+    res += String.fromCharCode(bytes[i] + bytes[i+1] * 256)
+  }
+  return res
+}
+
+Buffer.prototype.slice = function (start, end) {
+  var len = this.length
+  start = clamp(start, len, 0)
+  end = clamp(end, len, len)
+
+  if (Buffer._useTypedArrays) {
+    return augment(this.subarray(start, end))
+  } else {
+    var sliceLen = end - start
+    var newBuf = new Buffer(sliceLen, undefined, true)
+    for (var i = 0; i < sliceLen; i++) {
+      newBuf[i] = this[i + start]
+    }
+    return newBuf
+  }
+}
+
+// `get` will be removed in Node 0.13+
+Buffer.prototype.get = function (offset) {
+  console.log('.get() is deprecated. Access using array indexes instead.')
+  return this.readUInt8(offset)
+}
+
+// `set` will be removed in Node 0.13+
+Buffer.prototype.set = function (v, offset) {
+  console.log('.set() is deprecated. Access using array indexes instead.')
+  return this.writeUInt8(v, offset)
+}
+
+Buffer.prototype.readUInt8 = function (offset, noAssert) {
+  if (!noAssert) {
+    assert(offset !== undefined && offset !== null, 'missing offset')
+    assert(offset < this.length, 'Trying to read beyond buffer length')
+  }
+
+  if (offset >= this.length)
+    return
+
+  return this[offset]
+}
+
+function _readUInt16 (buf, offset, littleEndian, noAssert) {
+  if (!noAssert) {
+    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
+    assert(offset !== undefined && offset !== null, 'missing offset')
+    assert(offset + 1 < buf.length, 'Trying to read beyond buffer length')
+  }
+
+  var len = buf.length
+  if (offset >= len)
+    return
+
+  var val
+  if (littleEndian) {
+    val = buf[offset]
+    if (offset + 1 < len)
+      val |= buf[offset + 1] << 8
+  } else {
+    val = buf[offset] << 8
+    if (offset + 1 < len)
+      val |= buf[offset + 1]
+  }
+  return val
+}
+
+Buffer.prototype.readUInt16LE = function (offset, noAssert) {
+  return _readUInt16(this, offset, true, noAssert)
+}
+
+Buffer.prototype.readUInt16BE = function (offset, noAssert) {
+  return _readUInt16(this, offset, false, noAssert)
+}
+
+function _readUInt32 (buf, offset, littleEndian, noAssert) {
+  if (!noAssert) {
+    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
+    assert(offset !== undefined && offset !== null, 'missing offset')
+    assert(offset + 3 < buf.length, 'Trying to read beyond buffer length')
+  }
+
+  var len = buf.length
+  if (offset >= len)
+    return
+
+  var val
+  if (littleEndian) {
+    if (offset + 2 < len)
+      val = buf[offset + 2] << 16
+    if (offset + 1 < len)
+      val |= buf[offset + 1] << 8
+    val |= buf[offset]
+    if (offset + 3 < len)
+      val = val + (buf[offset + 3] << 24 >>> 0)
+  } else {
+    if (offset + 1 < len)
+      val = buf[offset + 1] << 16
+    if (offset + 2 < len)
+      val |= buf[offset + 2] << 8
+    if (offset + 3 < len)
+      val |= buf[offset + 3]
+    val = val + (buf[offset] << 24 >>> 0)
+  }
+  return val
+}
+
+Buffer.prototype.readUInt32LE = function (offset, noAssert) {
+  return _readUInt32(this, offset, true, noAssert)
+}
+
+Buffer.prototype.readUInt32BE = function (offset, noAssert) {
+  return _readUInt32(this, offset, false, noAssert)
+}
+
+Buffer.prototype.readInt8 = function (offset, noAssert) {
+  if (!noAssert) {
+    assert(offset !== undefined && offset !== null,
+        'missing offset')
+    assert(offset < this.length, 'Trying to read beyond buffer length')
+  }
+
+  if (offset >= this.length)
+    return
+
+  var neg = this[offset] & 0x80
+  if (neg)
+    return (0xff - this[offset] + 1) * -1
+  else
+    return this[offset]
+}
+
+function _readInt16 (buf, offset, littleEndian, noAssert) {
+  if (!noAssert) {
+    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
+    assert(offset !== undefined && offset !== null, 'missing offset')
+    assert(offset + 1 < buf.length, 'Trying to read beyond buffer length')
+  }
+
+  var len = buf.length
+  if (offset >= len)
+    return
+
+  var val = _readUInt16(buf, offset, littleEndian, true)
+  var neg = val & 0x8000
+  if (neg)
+    return (0xffff - val + 1) * -1
+  else
+    return val
+}
+
+Buffer.prototype.readInt16LE = function (offset, noAssert) {
+  return _readInt16(this, offset, true, noAssert)
+}
+
+Buffer.prototype.readInt16BE = function (offset, noAssert) {
+  return _readInt16(this, offset, false, noAssert)
+}
+
+function _readInt32 (buf, offset, littleEndian, noAssert) {
+  if (!noAssert) {
+    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
+    assert(offset !== undefined && offset !== null, 'missing offset')
+    assert(offset + 3 < buf.length, 'Trying to read beyond buffer length')
+  }
+
+  var len = buf.length
+  if (offset >= len)
+    return
+
+  var val = _readUInt32(buf, offset, littleEndian, true)
+  var neg = val & 0x80000000
+  if (neg)
+    return (0xffffffff - val + 1) * -1
+  else
+    return val
+}
+
+Buffer.prototype.readInt32LE = function (offset, noAssert) {
+  return _readInt32(this, offset, true, noAssert)
+}
+
+Buffer.prototype.readInt32BE = function (offset, noAssert) {
+  return _readInt32(this, offset, false, noAssert)
+}
+
+function _readFloat (buf, offset, littleEndian, noAssert) {
+  if (!noAssert) {
+    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
+    assert(offset + 3 < buf.length, 'Trying to read beyond buffer length')
+  }
+
+  return ieee754.read(buf, offset, littleEndian, 23, 4)
+}
+
+Buffer.prototype.readFloatLE = function (offset, noAssert) {
+  return _readFloat(this, offset, true, noAssert)
+}
+
+Buffer.prototype.readFloatBE = function (offset, noAssert) {
+  return _readFloat(this, offset, false, noAssert)
+}
+
+function _readDouble (buf, offset, littleEndian, noAssert) {
+  if (!noAssert) {
+    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
+    assert(offset + 7 < buf.length, 'Trying to read beyond buffer length')
+  }
+
+  return ieee754.read(buf, offset, littleEndian, 52, 8)
+}
+
+Buffer.prototype.readDoubleLE = function (offset, noAssert) {
+  return _readDouble(this, offset, true, noAssert)
+}
+
+Buffer.prototype.readDoubleBE = function (offset, noAssert) {
+  return _readDouble(this, offset, false, noAssert)
+}
+
+Buffer.prototype.writeUInt8 = function (value, offset, noAssert) {
+  if (!noAssert) {
+    assert(value !== undefined && value !== null, 'missing value')
+    assert(offset !== undefined && offset !== null, 'missing offset')
+    assert(offset < this.length, 'trying to write beyond buffer length')
+    verifuint(value, 0xff)
+  }
+
+  if (offset >= this.length) return
+
+  this[offset] = value
+}
+
+function _writeUInt16 (buf, value, offset, littleEndian, noAssert) {
+  if (!noAssert) {
+    assert(value !== undefined && value !== null, 'missing value')
+    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
+    assert(offset !== undefined && offset !== null, 'missing offset')
+    assert(offset + 1 < buf.length, 'trying to write beyond buffer length')
+    verifuint(value, 0xffff)
+  }
+
+  var len = buf.length
+  if (offset >= len)
+    return
+
+  for (var i = 0, j = Math.min(len - offset, 2); i < j; i++) {
+    buf[offset + i] =
+        (value & (0xff << (8 * (littleEndian ? i : 1 - i)))) >>>
+            (littleEndian ? i : 1 - i) * 8
+  }
+}
+
+Buffer.prototype.writeUInt16LE = function (value, offset, noAssert) {
+  _writeUInt16(this, value, offset, true, noAssert)
+}
+
+Buffer.prototype.writeUInt16BE = function (value, offset, noAssert) {
+  _writeUInt16(this, value, offset, false, noAssert)
+}
+
+function _writeUInt32 (buf, value, offset, littleEndian, noAssert) {
+  if (!noAssert) {
+    assert(value !== undefined && value !== null, 'missing value')
+    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
+    assert(offset !== undefined && offset !== null, 'missing offset')
+    assert(offset + 3 < buf.length, 'trying to write beyond buffer length')
+    verifuint(value, 0xffffffff)
+  }
+
+  var len = buf.length
+  if (offset >= len)
+    return
+
+  for (var i = 0, j = Math.min(len - offset, 4); i < j; i++) {
+    buf[offset + i] =
+        (value >>> (littleEndian ? i : 3 - i) * 8) & 0xff
+  }
+}
+
+Buffer.prototype.writeUInt32LE = function (value, offset, noAssert) {
+  _writeUInt32(this, value, offset, true, noAssert)
+}
+
+Buffer.prototype.writeUInt32BE = function (value, offset, noAssert) {
+  _writeUInt32(this, value, offset, false, noAssert)
+}
+
+Buffer.prototype.writeInt8 = function (value, offset, noAssert) {
+  if (!noAssert) {
+    assert(value !== undefined && value !== null, 'missing value')
+    assert(offset !== undefined && offset !== null, 'missing offset')
+    assert(offset < this.length, 'Trying to write beyond buffer length')
+    verifsint(value, 0x7f, -0x80)
+  }
+
+  if (offset >= this.length)
+    return
+
+  if (value >= 0)
+    this.writeUInt8(value, offset, noAssert)
+  else
+    this.writeUInt8(0xff + value + 1, offset, noAssert)
+}
+
+function _writeInt16 (buf, value, offset, littleEndian, noAssert) {
+  if (!noAssert) {
+    assert(value !== undefined && value !== null, 'missing value')
+    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
+    assert(offset !== undefined && offset !== null, 'missing offset')
+    assert(offset + 1 < buf.length, 'Trying to write beyond buffer length')
+    verifsint(value, 0x7fff, -0x8000)
+  }
+
+  var len = buf.length
+  if (offset >= len)
+    return
+
+  if (value >= 0)
+    _writeUInt16(buf, value, offset, littleEndian, noAssert)
+  else
+    _writeUInt16(buf, 0xffff + value + 1, offset, littleEndian, noAssert)
+}
+
+Buffer.prototype.writeInt16LE = function (value, offset, noAssert) {
+  _writeInt16(this, value, offset, true, noAssert)
+}
+
+Buffer.prototype.writeInt16BE = function (value, offset, noAssert) {
+  _writeInt16(this, value, offset, false, noAssert)
+}
+
+function _writeInt32 (buf, value, offset, littleEndian, noAssert) {
+  if (!noAssert) {
+    assert(value !== undefined && value !== null, 'missing value')
+    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
+    assert(offset !== undefined && offset !== null, 'missing offset')
+    assert(offset + 3 < buf.length, 'Trying to write beyond buffer length')
+    verifsint(value, 0x7fffffff, -0x80000000)
+  }
+
+  var len = buf.length
+  if (offset >= len)
+    return
+
+  if (value >= 0)
+    _writeUInt32(buf, value, offset, littleEndian, noAssert)
+  else
+    _writeUInt32(buf, 0xffffffff + value + 1, offset, littleEndian, noAssert)
+}
+
+Buffer.prototype.writeInt32LE = function (value, offset, noAssert) {
+  _writeInt32(this, value, offset, true, noAssert)
+}
+
+Buffer.prototype.writeInt32BE = function (value, offset, noAssert) {
+  _writeInt32(this, value, offset, false, noAssert)
+}
+
+function _writeFloat (buf, value, offset, littleEndian, noAssert) {
+  if (!noAssert) {
+    assert(value !== undefined && value !== null, 'missing value')
+    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
+    assert(offset !== undefined && offset !== null, 'missing offset')
+    assert(offset + 3 < buf.length, 'Trying to write beyond buffer length')
+    verifIEEE754(value, 3.4028234663852886e+38, -3.4028234663852886e+38)
+  }
+
+  var len = buf.length
+  if (offset >= len)
+    return
+
+  ieee754.write(buf, value, offset, littleEndian, 23, 4)
+}
+
+Buffer.prototype.writeFloatLE = function (value, offset, noAssert) {
+  _writeFloat(this, value, offset, true, noAssert)
+}
+
+Buffer.prototype.writeFloatBE = function (value, offset, noAssert) {
+  _writeFloat(this, value, offset, false, noAssert)
+}
+
+function _writeDouble (buf, value, offset, littleEndian, noAssert) {
+  if (!noAssert) {
+    assert(value !== undefined && value !== null, 'missing value')
+    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
+    assert(offset !== undefined && offset !== null, 'missing offset')
+    assert(offset + 7 < buf.length,
+        'Trying to write beyond buffer length')
+    verifIEEE754(value, 1.7976931348623157E+308, -1.7976931348623157E+308)
+  }
+
+  var len = buf.length
+  if (offset >= len)
+    return
+
+  ieee754.write(buf, value, offset, littleEndian, 52, 8)
+}
+
+Buffer.prototype.writeDoubleLE = function (value, offset, noAssert) {
+  _writeDouble(this, value, offset, true, noAssert)
+}
+
+Buffer.prototype.writeDoubleBE = function (value, offset, noAssert) {
+  _writeDouble(this, value, offset, false, noAssert)
+}
+
+// fill(value, start=0, end=buffer.length)
+Buffer.prototype.fill = function (value, start, end) {
+  if (!value) value = 0
+  if (!start) start = 0
+  if (!end) end = this.length
+
+  if (typeof value === 'string') {
+    value = value.charCodeAt(0)
+  }
+
+  assert(typeof value === 'number' && !isNaN(value), 'value is not a number')
+  assert(end >= start, 'end < start')
+
+  // Fill 0 bytes; we're done
+  if (end === start) return
+  if (this.length === 0) return
+
+  assert(start >= 0 && start < this.length, 'start out of bounds')
+  assert(end >= 0 && end <= this.length, 'end out of bounds')
+
+  for (var i = start; i < end; i++) {
+    this[i] = value
+  }
+}
+
+Buffer.prototype.inspect = function () {
+  var out = []
+  var len = this.length
+  for (var i = 0; i < len; i++) {
+    out[i] = toHex(this[i])
+    if (i === exports.INSPECT_MAX_BYTES) {
+      out[i + 1] = '...'
+      break
+    }
+  }
+  return '<Buffer ' + out.join(' ') + '>'
+}
+
+/**
+ * Creates a new `ArrayBuffer` with the *copied* memory of the buffer instance.
+ * Added in Node 0.12. Only available in browsers that support ArrayBuffer.
+ */
+Buffer.prototype.toArrayBuffer = function () {
+  if (typeof Uint8Array === 'function') {
+    if (Buffer._useTypedArrays) {
+      return (new Buffer(this)).buffer
+    } else {
+      var buf = new Uint8Array(this.length)
+      for (var i = 0, len = buf.length; i < len; i += 1)
+        buf[i] = this[i]
+      return buf.buffer
+    }
+  } else {
+    throw new Error('Buffer.toArrayBuffer not supported in this browser')
+  }
+}
+
+// HELPER FUNCTIONS
+// ================
+
+function stringtrim (str) {
+  if (str.trim) return str.trim()
+  return str.replace(/^\s+|\s+$/g, '')
+}
+
+var BP = Buffer.prototype
+
+/**
+ * Augment the Uint8Array *instance* (not the class!) with Buffer methods
+ */
+function augment (arr) {
+  arr._isBuffer = true
+
+  // save reference to original Uint8Array get/set methods before overwriting
+  arr._get = arr.get
+  arr._set = arr.set
+
+  // deprecated, will be removed in node 0.13+
+  arr.get = BP.get
+  arr.set = BP.set
+
+  arr.write = BP.write
+  arr.toString = BP.toString
+  arr.toLocaleString = BP.toString
+  arr.toJSON = BP.toJSON
+  arr.copy = BP.copy
+  arr.slice = BP.slice
+  arr.readUInt8 = BP.readUInt8
+  arr.readUInt16LE = BP.readUInt16LE
+  arr.readUInt16BE = BP.readUInt16BE
+  arr.readUInt32LE = BP.readUInt32LE
+  arr.readUInt32BE = BP.readUInt32BE
+  arr.readInt8 = BP.readInt8
+  arr.readInt16LE = BP.readInt16LE
+  arr.readInt16BE = BP.readInt16BE
+  arr.readInt32LE = BP.readInt32LE
+  arr.readInt32BE = BP.readInt32BE
+  arr.readFloatLE = BP.readFloatLE
+  arr.readFloatBE = BP.readFloatBE
+  arr.readDoubleLE = BP.readDoubleLE
+  arr.readDoubleBE = BP.readDoubleBE
+  arr.writeUInt8 = BP.writeUInt8
+  arr.writeUInt16LE = BP.writeUInt16LE
+  arr.writeUInt16BE = BP.writeUInt16BE
+  arr.writeUInt32LE = BP.writeUInt32LE
+  arr.writeUInt32BE = BP.writeUInt32BE
+  arr.writeInt8 = BP.writeInt8
+  arr.writeInt16LE = BP.writeInt16LE
+  arr.writeInt16BE = BP.writeInt16BE
+  arr.writeInt32LE = BP.writeInt32LE
+  arr.writeInt32BE = BP.writeInt32BE
+  arr.writeFloatLE = BP.writeFloatLE
+  arr.writeFloatBE = BP.writeFloatBE
+  arr.writeDoubleLE = BP.writeDoubleLE
+  arr.writeDoubleBE = BP.writeDoubleBE
+  arr.fill = BP.fill
+  arr.inspect = BP.inspect
+  arr.toArrayBuffer = BP.toArrayBuffer
+
+  return arr
+}
+
+// slice(start, end)
+function clamp (index, len, defaultValue) {
+  if (typeof index !== 'number') return defaultValue
+  index = ~~index;  // Coerce to integer.
+  if (index >= len) return len
+  if (index >= 0) return index
+  index += len
+  if (index >= 0) return index
+  return 0
+}
+
+function coerce (length) {
+  // Coerce length to a number (possibly NaN), round up
+  // in case it's fractional (e.g. 123.456) then do a
+  // double negate to coerce a NaN to 0. Easy, right?
+  length = ~~Math.ceil(+length)
+  return length < 0 ? 0 : length
+}
+
+function isArray (subject) {
+  return (Array.isArray || function (subject) {
+    return Object.prototype.toString.call(subject) === '[object Array]'
+  })(subject)
+}
+
+function isArrayish (subject) {
+  return isArray(subject) || Buffer.isBuffer(subject) ||
+      subject && typeof subject === 'object' &&
+      typeof subject.length === 'number'
+}
+
+function toHex (n) {
+  if (n < 16) return '0' + n.toString(16)
+  return n.toString(16)
+}
+
+function utf8ToBytes (str) {
+  var byteArray = []
+  for (var i = 0; i < str.length; i++) {
+    var b = str.charCodeAt(i)
+    if (b <= 0x7F)
+      byteArray.push(str.charCodeAt(i))
+    else {
+      var start = i
+      if (b >= 0xD800 && b <= 0xDFFF) i++
+      var h = encodeURIComponent(str.slice(start, i+1)).substr(1).split('%')
+      for (var j = 0; j < h.length; j++)
+        byteArray.push(parseInt(h[j], 16))
+    }
+  }
+  return byteArray
+}
+
+function asciiToBytes (str) {
+  var byteArray = []
+  for (var i = 0; i < str.length; i++) {
+    // Node's code seems to be doing this and not & 0x7F..
+    byteArray.push(str.charCodeAt(i) & 0xFF)
+  }
+  return byteArray
+}
+
+function utf16leToBytes (str) {
+  var c, hi, lo
+  var byteArray = []
+  for (var i = 0; i < str.length; i++) {
+    c = str.charCodeAt(i)
+    hi = c >> 8
+    lo = c % 256
+    byteArray.push(lo)
+    byteArray.push(hi)
+  }
+
+  return byteArray
+}
+
+function base64ToBytes (str) {
+  return base64.toByteArray(str)
+}
+
+function blitBuffer (src, dst, offset, length) {
+  var pos
+  for (var i = 0; i < length; i++) {
+    if ((i + offset >= dst.length) || (i >= src.length))
+      break
+    dst[i + offset] = src[i]
+  }
+  return i
+}
+
+function decodeUtf8Char (str) {
+  try {
+    return decodeURIComponent(str)
+  } catch (err) {
+    return String.fromCharCode(0xFFFD) // UTF 8 invalid char
+  }
+}
+
+/*
+ * We have to make sure that the value is a valid integer. This means that it
+ * is non-negative. It has no fractional component and that it does not
+ * exceed the maximum allowed value.
+ */
+function verifuint (value, max) {
+  assert(typeof value === 'number', 'cannot write a non-number as a number')
+  assert(value >= 0, 'specified a negative value for writing an unsigned value')
+  assert(value <= max, 'value is larger than maximum value for type')
+  assert(Math.floor(value) === value, 'value has a fractional component')
+}
+
+function verifsint (value, max, min) {
+  assert(typeof value === 'number', 'cannot write a non-number as a number')
+  assert(value <= max, 'value larger than maximum allowed value')
+  assert(value >= min, 'value smaller than minimum allowed value')
+  assert(Math.floor(value) === value, 'value has a fractional component')
+}
+
+function verifIEEE754 (value, max, min) {
+  assert(typeof value === 'number', 'cannot write a non-number as a number')
+  assert(value <= max, 'value larger than maximum allowed value')
+  assert(value >= min, 'value smaller than minimum allowed value')
+}
+
+function assert (test, message) {
+  if (!test) throw new Error(message || 'Failed assertion')
+}
+
+},{"base64-js":72,"ieee754":73}],72:[function(require,module,exports){
+var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+;(function (exports) {
+	'use strict';
+
+  var Arr = (typeof Uint8Array !== 'undefined')
+    ? Uint8Array
+    : Array
+
+	var ZERO   = '0'.charCodeAt(0)
+	var PLUS   = '+'.charCodeAt(0)
+	var SLASH  = '/'.charCodeAt(0)
+	var NUMBER = '0'.charCodeAt(0)
+	var LOWER  = 'a'.charCodeAt(0)
+	var UPPER  = 'A'.charCodeAt(0)
+
+	function decode (elt) {
+		var code = elt.charCodeAt(0)
+		if (code === PLUS)
+			return 62 // '+'
+		if (code === SLASH)
+			return 63 // '/'
+		if (code < NUMBER)
+			return -1 //no match
+		if (code < NUMBER + 10)
+			return code - NUMBER + 26 + 26
+		if (code < UPPER + 26)
+			return code - UPPER
+		if (code < LOWER + 26)
+			return code - LOWER + 26
+	}
+
+	function b64ToByteArray (b64) {
+		var i, j, l, tmp, placeHolders, arr
+
+		if (b64.length % 4 > 0) {
+			throw new Error('Invalid string. Length must be a multiple of 4')
+		}
+
+		// the number of equal signs (place holders)
+		// if there are two placeholders, than the two characters before it
+		// represent one byte
+		// if there is only one, then the three characters before it represent 2 bytes
+		// this is just a cheap hack to not do indexOf twice
+		var len = b64.length
+		placeHolders = '=' === b64.charAt(len - 2) ? 2 : '=' === b64.charAt(len - 1) ? 1 : 0
+
+		// base64 is 4/3 + up to two characters of the original data
+		arr = new Arr(b64.length * 3 / 4 - placeHolders)
+
+		// if there are placeholders, only get up to the last complete 4 chars
+		l = placeHolders > 0 ? b64.length - 4 : b64.length
+
+		var L = 0
+
+		function push (v) {
+			arr[L++] = v
+		}
+
+		for (i = 0, j = 0; i < l; i += 4, j += 3) {
+			tmp = (decode(b64.charAt(i)) << 18) | (decode(b64.charAt(i + 1)) << 12) | (decode(b64.charAt(i + 2)) << 6) | decode(b64.charAt(i + 3))
+			push((tmp & 0xFF0000) >> 16)
+			push((tmp & 0xFF00) >> 8)
+			push(tmp & 0xFF)
+		}
+
+		if (placeHolders === 2) {
+			tmp = (decode(b64.charAt(i)) << 2) | (decode(b64.charAt(i + 1)) >> 4)
+			push(tmp & 0xFF)
+		} else if (placeHolders === 1) {
+			tmp = (decode(b64.charAt(i)) << 10) | (decode(b64.charAt(i + 1)) << 4) | (decode(b64.charAt(i + 2)) >> 2)
+			push((tmp >> 8) & 0xFF)
+			push(tmp & 0xFF)
+		}
+
+		return arr
+	}
+
+	function uint8ToBase64 (uint8) {
+		var i,
+			extraBytes = uint8.length % 3, // if we have 1 byte left, pad 2 bytes
+			output = "",
+			temp, length
+
+		function encode (num) {
+			return lookup.charAt(num)
+		}
+
+		function tripletToBase64 (num) {
+			return encode(num >> 18 & 0x3F) + encode(num >> 12 & 0x3F) + encode(num >> 6 & 0x3F) + encode(num & 0x3F)
+		}
+
+		// go through the array every three bytes, we'll deal with trailing stuff later
+		for (i = 0, length = uint8.length - extraBytes; i < length; i += 3) {
+			temp = (uint8[i] << 16) + (uint8[i + 1] << 8) + (uint8[i + 2])
+			output += tripletToBase64(temp)
+		}
+
+		// pad the end with zeros, but make sure to not forget the extra bytes
+		switch (extraBytes) {
+			case 1:
+				temp = uint8[uint8.length - 1]
+				output += encode(temp >> 2)
+				output += encode((temp << 4) & 0x3F)
+				output += '=='
+				break
+			case 2:
+				temp = (uint8[uint8.length - 2] << 8) + (uint8[uint8.length - 1])
+				output += encode(temp >> 10)
+				output += encode((temp >> 4) & 0x3F)
+				output += encode((temp << 2) & 0x3F)
+				output += '='
+				break
+		}
+
+		return output
+	}
+
+	module.exports.toByteArray = b64ToByteArray
+	module.exports.fromByteArray = uint8ToBase64
+}())
+
+},{}],73:[function(require,module,exports){
+exports.read = function(buffer, offset, isLE, mLen, nBytes) {
+  var e, m,
+      eLen = nBytes * 8 - mLen - 1,
+      eMax = (1 << eLen) - 1,
+      eBias = eMax >> 1,
+      nBits = -7,
+      i = isLE ? (nBytes - 1) : 0,
+      d = isLE ? -1 : 1,
+      s = buffer[offset + i];
+
+  i += d;
+
+  e = s & ((1 << (-nBits)) - 1);
+  s >>= (-nBits);
+  nBits += eLen;
+  for (; nBits > 0; e = e * 256 + buffer[offset + i], i += d, nBits -= 8);
+
+  m = e & ((1 << (-nBits)) - 1);
+  e >>= (-nBits);
+  nBits += mLen;
+  for (; nBits > 0; m = m * 256 + buffer[offset + i], i += d, nBits -= 8);
+
+  if (e === 0) {
+    e = 1 - eBias;
+  } else if (e === eMax) {
+    return m ? NaN : ((s ? -1 : 1) * Infinity);
+  } else {
+    m = m + Math.pow(2, mLen);
+    e = e - eBias;
+  }
+  return (s ? -1 : 1) * m * Math.pow(2, e - mLen);
+};
+
+exports.write = function(buffer, value, offset, isLE, mLen, nBytes) {
+  var e, m, c,
+      eLen = nBytes * 8 - mLen - 1,
+      eMax = (1 << eLen) - 1,
+      eBias = eMax >> 1,
+      rt = (mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0),
+      i = isLE ? 0 : (nBytes - 1),
+      d = isLE ? 1 : -1,
+      s = value < 0 || (value === 0 && 1 / value < 0) ? 1 : 0;
+
+  value = Math.abs(value);
+
+  if (isNaN(value) || value === Infinity) {
+    m = isNaN(value) ? 1 : 0;
+    e = eMax;
+  } else {
+    e = Math.floor(Math.log(value) / Math.LN2);
+    if (value * (c = Math.pow(2, -e)) < 1) {
+      e--;
+      c *= 2;
+    }
+    if (e + eBias >= 1) {
+      value += rt / c;
+    } else {
+      value += rt * Math.pow(2, 1 - eBias);
+    }
+    if (value * c >= 2) {
+      e++;
+      c /= 2;
+    }
+
+    if (e + eBias >= eMax) {
+      m = 0;
+      e = eMax;
+    } else if (e + eBias >= 1) {
+      m = (value * c - 1) * Math.pow(2, mLen);
+      e = e + eBias;
+    } else {
+      m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen);
+      e = 0;
+    }
+  }
+
+  for (; mLen >= 8; buffer[offset + i] = m & 0xff, i += d, m /= 256, mLen -= 8);
+
+  e = (e << mLen) | m;
+  eLen += mLen;
+  for (; eLen > 0; buffer[offset + i] = e & 0xff, i += d, e /= 256, eLen -= 8);
+
+  buffer[offset + i - d] |= s * 128;
+};
+
+},{}],74:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -7579,7 +9510,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],37:[function(require,module,exports){
+},{}],75:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -7634,4 +9565,4 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}]},{},[35])
+},{}]},{},[70])

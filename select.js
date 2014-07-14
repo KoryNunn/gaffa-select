@@ -1,13 +1,13 @@
 var Gaffa = require('gaffa'),
+    FormElement = require('gaffa-formelement'),
     crel = require('crel'),
     doc = require('doc-js'),
     statham = require('statham'),
     cachedElement;
 
 function Select(){}
-Select = Gaffa.createSpec(Select, Gaffa.View);
+Select = Gaffa.createSpec(Select, FormElement);
 Select.prototype._type = 'select';
-
 Select.prototype.render = function(){
     var view = this,
         select,
@@ -33,7 +33,7 @@ Select.prototype.render = function(){
     });
 
     this.renderedElement = renderedElement;
-    this.selectElement = select;
+    this.formElement = select;
 };
 
 Select.prototype.options = new Gaffa.Property({
@@ -41,7 +41,7 @@ Select.prototype.options = new Gaffa.Property({
     update: function(view, value) {
         var property = this,
             gaffa = this.gaffa,
-            element = view.selectElement;
+            element = view.formElement;
 
         if(!element){
             return;
@@ -73,38 +73,37 @@ Select.prototype.options = new Gaffa.Property({
             }
         }
 
-        element.value = null;
-        view.value.update(view, view.value.value);
+        if(view.value._bound){
+            view.value.update(view, view.value.value);
+        }
     }
 });
 
 Select.prototype.value = new Gaffa.Property({
     update: function(view, value) {
-        view.selectElement.value = value;
+
+        view.formElement.value = value;
+
+        // WOO BROWSER COMPATIBILITY BEST FUN EVER!
+        view.formElement.selectedIndex = -1;
+
         for(var i = 0; i < view.options.elements.length; i++){
             if(view.options.elements[i].data === value){
                 view.options.elements[i].selected = true;
                 break;
             }
         }
+
+        view.valid.set(view.formElement.validity.valid);
     }
 });
+
+Select.prototype.afterInsert = function(){
+    // because all the browsers do something different,
+    // sync them all up after insersion.
+    this.value.update(this, this.value.value);
+}
 
 Select.prototype.showBlank = new Gaffa.Property();
-
-Select.prototype.required = new Gaffa.Property(function(view, value){
-    if (value){
-        view.renderedElement.setAttribute('required', 'required');
-    }else{
-        view.renderedElement.removeAttribute('required');
-    }
-});
-
-Select.prototype.enabled = new Gaffa.Property({
-    update: function(view, value){
-        view.selectElement[value ? 'removeAttribute' : 'setAttribute']('disabled','disabled');
-    },
-    value: true
-});
 
 module.exports = Select;
