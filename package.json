@@ -1,7 +1,7 @@
 {
   "name": "gaffa-select",
   "author": "Kory Nunn <knunn187@gmail.com>",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "main": "select.js",
   "repository": {
     "type": "git",
@@ -25,8 +25,8 @@
     "gaffa": "^1.10.0"
   },
   "license": "MIT",
-  "scripts":{
-    "watch":"watchify ./test/index.js -o ./test/index.browser.js"
+  "scripts": {
+    "watch": "watchify ./test/index.js -o ./test/index.browser.js"
   },
   "devDependencies": {
     "crel": "^1.1.2",
