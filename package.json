@@ -25,6 +25,9 @@
     "gaffa": "^1.10.0"
   },
   "license": "MIT",
+  "scripts":{
+    "watch":"watchify ./test/index.js -o ./test/index.browser.js"
+  },
   "devDependencies": {
     "crel": "^1.1.2",
     "gaffa": "^1.6.0",
