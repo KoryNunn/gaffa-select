@@ -105,5 +105,9 @@ Select.prototype.afterInsert = function(){
 }
 
 Select.prototype.showBlank = new Gaffa.Property();
+Select.prototype.enabled.update = function(view){
+    FormElement.prototype.enabled.update.apply(this, arguments);
+    view.renderedElement[value ? 'removeAttribute' : 'setAttribute']('disabled','disabled');
+}
 
 module.exports = Select;

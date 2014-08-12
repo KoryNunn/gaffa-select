@@ -1,4 +1,4 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"/home/kory/dev/gaffa-select/node_modules/crel/crel.js":[function(require,module,exports){
 //Copyright (C) 2012 Kory Nunn
 
 //Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
@@ -130,7 +130,7 @@
     return crel;
 }));
 
-},{}],2:[function(require,module,exports){
+},{}],"/home/kory/dev/gaffa-select/node_modules/doc-js/doc.js":[function(require,module,exports){
 var doc = {
     document: typeof document !== 'undefined' ? document : null,
     setDocument: function(d){
@@ -662,7 +662,7 @@ doc.isVisible = isVisible;
 doc.ready = ready;
 
 module.exports = doc;
-},{"./getTarget":4,"./getTargets":5,"./isList":6}],3:[function(require,module,exports){
+},{"./getTarget":"/home/kory/dev/gaffa-select/node_modules/doc-js/getTarget.js","./getTargets":"/home/kory/dev/gaffa-select/node_modules/doc-js/getTargets.js","./isList":"/home/kory/dev/gaffa-select/node_modules/doc-js/isList.js"}],"/home/kory/dev/gaffa-select/node_modules/doc-js/fluent.js":[function(require,module,exports){
 var doc = require('./doc'),
     isList = require('./isList'),
     getTargets = require('./getTargets')(doc.document),
@@ -742,7 +742,7 @@ flocProto.removeClass = function(className){
 };
 
 module.exports = floc;
-},{"./doc":2,"./getTargets":5,"./isList":6}],4:[function(require,module,exports){
+},{"./doc":"/home/kory/dev/gaffa-select/node_modules/doc-js/doc.js","./getTargets":"/home/kory/dev/gaffa-select/node_modules/doc-js/getTargets.js","./isList":"/home/kory/dev/gaffa-select/node_modules/doc-js/isList.js"}],"/home/kory/dev/gaffa-select/node_modules/doc-js/getTarget.js":[function(require,module,exports){
 var singleId = /^#\w+$/;
 
 module.exports = function(document){
@@ -757,7 +757,7 @@ module.exports = function(document){
         return target;
     };
 };
-},{}],5:[function(require,module,exports){
+},{}],"/home/kory/dev/gaffa-select/node_modules/doc-js/getTargets.js":[function(require,module,exports){
 
 var singleClass = /^\.\w+$/,
     singleId = /^#\w+$/,
@@ -783,7 +783,7 @@ module.exports = function(document){
         return target;
     };
 };
-},{}],6:[function(require,module,exports){
+},{}],"/home/kory/dev/gaffa-select/node_modules/doc-js/isList.js":[function(require,module,exports){
 module.exports = function isList(object){
     return object !== window && (
         object instanceof Array ||
@@ -793,7 +793,7 @@ module.exports = function isList(object){
     );
 }
 
-},{}],7:[function(require,module,exports){
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa-formelement/formelement.js":[function(require,module,exports){
 var Gaffa = require('gaffa'),
     crel = require('crel'),
     doc = require('doc-js');
@@ -887,7 +887,7 @@ FormElement.prototype.enabled = new Gaffa.Property({
 });
 
 module.exports = FormElement;
-},{"crel":1,"doc-js":3,"gaffa":14}],8:[function(require,module,exports){
+},{"crel":"/home/kory/dev/gaffa-select/node_modules/crel/crel.js","doc-js":"/home/kory/dev/gaffa-select/node_modules/doc-js/fluent.js","gaffa":"/home/kory/dev/gaffa-select/node_modules/gaffa/gaffa.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa-text/text.js":[function(require,module,exports){
 var Gaffa = require('gaffa'),
     crel = require('crel'),
     viewType = "text";
@@ -914,7 +914,7 @@ Text.prototype.enabled = undefined;
 Text.prototype.classes = undefined;
 
 module.exports = Text;
-},{"crel":1,"gaffa":14}],9:[function(require,module,exports){
+},{"crel":"/home/kory/dev/gaffa-select/node_modules/crel/crel.js","gaffa":"/home/kory/dev/gaffa-select/node_modules/gaffa/gaffa.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/action.js":[function(require,module,exports){
 var createSpec = require('spec-js'),
     Property = require('./property'),
     ViewItem = require('./viewItem');
@@ -922,44 +922,37 @@ var createSpec = require('spec-js'),
 function Action(actionDescription){
 }
 Action = createSpec(Action, ViewItem);
-Action.prototype.bind = function(parent){
-    ViewItem.prototype.bind.call(this, parent);
+Action.prototype.bind = function(parent, scope){
+    ViewItem.prototype.bind.call(this, parent, scope);
 };
-Action.prototype.trigger = function(parent, scope, event){
-    this.bind(parent);
-
-    scope = scope || {};
-
-    var gaffa = this.gaffa = parent.gaffa;
-
-
-    for(var propertyKey in this.constructor.prototype){
-        var property = this[propertyKey];
-
-        if(property instanceof Property && property.binding){
-            property.gaffa = gaffa;
-            property.parent = this;
-            property.value = property.get(scope);
-        }
-    }
-
+Action.prototype.trigger = function(){
+    throw 'Nothing is implemented for this action (' + this.constructor.name + ')';
+};
+Action.prototype.condition = new Property({
+    value: true
+});
+Action.prototype.complete = function(){
     this.debind();
 };
 
 module.exports = Action;
-},{"./property":51,"./viewItem":56,"spec-js":40}],10:[function(require,module,exports){
+},{"./property":"/home/kory/dev/gaffa-select/node_modules/gaffa/property.js","./viewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewItem.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/behaviour.js":[function(require,module,exports){
 var createSpec = require('spec-js'),
     ViewItem = require('./viewItem');
 
 function Behaviour(behaviourDescription){}
 Behaviour = createSpec(Behaviour, ViewItem);
+Behaviour.prototype.bind = function(parent){
+    ViewItem.prototype.bind.apply(this, arguments);
+}
 
 module.exports = Behaviour;
-},{"./viewItem":56,"spec-js":40}],11:[function(require,module,exports){
+},{"./viewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewItem.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/bindable.js":[function(require,module,exports){
 var createSpec = require('spec-js'),
     EventEmitter = require('events').EventEmitter,
     Consuela = require('consuela'),
-    jsonConverter = require('./jsonConverter');
+    jsonConverter = require('./jsonConverter'),
+    nextTick = require('next-tick');
 
 function getItemPath(item){
     var gedi = item.gaffa.gedi,
@@ -989,9 +982,7 @@ var iuid = 0;
 function Bindable(){
     this.setMaxListeners(1000);
     var consuela = new Consuela();
-    this._watch = consuela._watch.bind(consuela);
-    this._cleanup = consuela._cleanup.bind(consuela);
-    this._on = consuela._on.bind(consuela);
+    this.consuela = consuela;
 
     // instance unique ID
     this.__iuid = iuid++;
@@ -1012,15 +1003,36 @@ Bindable.prototype.toJSON = function(){
     return tempObject;
 };
 Bindable.prototype.bind = function(){
+    if(this._bound){
+        this.debind();
+    }
     this._bound = true;
+    this.emit('bind');
+    this.removeAllListeners('bind');
 };
 Bindable.prototype.debind = function(){
+    if(!this._bound){
+        return;
+    }
     this._bound = false;
-    this._cleanup();
+
+    this.emit('debind');
+    this.consuela.cleanup();
+    this.removeAllListeners('debind');
+};
+Bindable.prototype.destroy = function(){
+    var bindable = this;
+
+    this.emit('destroy');
+    // Let any children bound to 'destroy' do their thing before actually destroying this.
+    nextTick(function(){
+        bindable.consuela.cleanup();
+        bindable.removeAllListeners('destroy');
+    });
 };
 
 module.exports = Bindable;
-},{"./jsonConverter":20,"consuela":21,"events":74,"spec-js":40}],12:[function(require,module,exports){
+},{"./jsonConverter":"/home/kory/dev/gaffa-select/node_modules/gaffa/jsonConverter.js","consuela":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/consuela/index.js","events":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/events/events.js","next-tick":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/next-tick/index.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/containerView.js":[function(require,module,exports){
 /**
     ## ContainerView
 
@@ -1050,12 +1062,9 @@ ContainerView.prototype.bind = function(parent){
         }
     }
 };
-ContainerView.prototype.debind = function(){
-    View.prototype.debind.apply(this, arguments);
-};
 
 module.exports = ContainerView;
-},{"./view":54,"./viewContainer":55,"spec-js":40}],13:[function(require,module,exports){
+},{"./view":"/home/kory/dev/gaffa-select/node_modules/gaffa/view.js","./viewContainer":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewContainer.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/createModelScope.js":[function(require,module,exports){
 function createModelScope(parent, gediEvent){
     var possibleGroup = parent,
         groupKey,
@@ -1073,7 +1082,7 @@ function createModelScope(parent, gediEvent){
     return scope;
 }
 module.exports = createModelScope;
-},{}],14:[function(require,module,exports){
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/gaffa.js":[function(require,module,exports){
 //Copyright (C) 2012 Kory Nunn, Matt Ginty & Maurice Butler
 
 //Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
@@ -1095,7 +1104,8 @@ var Gedi = require('gedi'),
     merge = require('merge'),
     statham = require('statham'),
     requestAnimationFrame = animationFrame.requestAnimationFrame,
-    cancelAnimationFrame = animationFrame.cancelAnimationFrame;
+    cancelAnimationFrame = animationFrame.cancelAnimationFrame,
+    resolvePath = require('./resolvePath');
 
 // Storage for applications default styles.
 var defaultViewStyles;
@@ -1255,8 +1265,18 @@ function ajax(settings){
 }
 
 function triggerAction(action, parent, scope, event) {
-    Action.prototype.trigger.call(action, parent, scope, event);
-    action.trigger(parent, scope, event);
+
+    action.bind(parent, scope);
+
+    scope || (scope = {});
+
+    if(action.condition.value){
+        action.trigger(parent, scope, event);
+    }
+
+    if(!action._async){
+        action.complete();
+    }
 }
 
 function triggerActions(actions, parent, scope, event) {
@@ -1444,12 +1464,6 @@ function Gaffa(){
         scope.windowLocation = window.location.toString();
     }
 
-    function resolvePath(viewItem){
-        if(viewItem && viewItem.getPath){
-            return viewItem.getPath();
-        }
-    }
-
     function modelGet(path, viewItem, scope, asTokens) {
         if(!(viewItem instanceof ViewItem || viewItem instanceof Property)){
             scope = viewItem;
@@ -1464,50 +1478,31 @@ function Gaffa(){
         return gedi.get(path, parentPath, scope, asTokens);
     }
 
-    function modelSet(path, value, viewItem, dirty, scope){
-        if(path == null){
+    function modelSet(expression, value, viewItem, dirty, scope){
+        if(expression == null){
             return;
         }
 
         var parentPath = resolvePath(viewItem);
 
-        if(typeof path === 'object'){
-            value = path;
-            path = '[]';
+        if(typeof expression === 'object'){
+            value = expression;
+            expression = '[]';
         }
 
-        gedi.set(path, value, parentPath, dirty, scope);
+        gedi.set(expression, value, parentPath, dirty, scope);
     }
 
-    function modelRemove(path, viewItem, dirty) {
+    function modelRemove(expression, viewItem, dirty, scope) {
         var parentPath;
 
-        if(path == null){
+        if(expression == null){
             return;
         }
 
         var parentPath = resolvePath(viewItem);
 
-        gedi.remove(path, parentPath, dirty);
-    }
-
-    function modelBind(path, callback, viewItem) {
-        var parentPath = resolvePath(viewItem);
-
-        if(!viewItem.gediCallbacks){
-            viewItem.gediCallbacks = [];
-        }
-
-        // Add the callback to the list of handlers associated with the viewItem
-        viewItem.gediCallbacks.push([path, callback, parentPath]);
-
-        gedi.bind(path, callback, parentPath);
-    }
-
-    function modelDebind(viewItem) {
-        while(viewItem.gediCallbacks && viewItem.gediCallbacks.length){
-            gedi.debind.apply(gedi, viewItem.gediCallbacks.pop());
-        }
+        gedi.remove(expression, parentPath, dirty, scope);
     }
 
     function modelIsDirty(path, viewItem) {
@@ -1520,14 +1515,14 @@ function Gaffa(){
         return gedi.isDirty(path, parentPath);
     }
 
-    function modelSetDirtyState(path, value, viewItem) {
-        if(path == null){
+    function modelSetDirtyState(expression, value, viewItem, scope) {
+        if(expression == null){
             return;
         }
 
         var parentPath = resolvePath(viewItem);
 
-        gedi.setDirtyState(path, value, parentPath);
+        gedi.setDirtyState(expression, value, parentPath, scope);
     }
 
 
@@ -1666,29 +1661,6 @@ function Gaffa(){
                     gaffa.model.remove('[someProp]', parentViewItem);
             */
             remove: modelRemove,
-
-            /**
-                ### .bind(path, callback, viewItem)
-
-                used to bind callbacks to changes in the model.
-                path is relative to the viewItems path.
-
-                    gaffa.model.bind('[someProp]', function(){
-                        //do something when '[someProp]' changes.
-                    }, viewItem);
-            */
-            bind: modelBind,
-
-            /**
-                ### .debind(viewItem)
-
-                remove all callbacks assigned to a viewItem.
-
-                    gaffa.model.debind('[someProp]', function(){
-                        //do something when '[someProp]' changes.
-                    });
-            */
-            debind: modelDebind,
 
             /**
                 ### .isDirty(path, viewItem)
@@ -1928,7 +1900,7 @@ module.exports = Gaffa;
 
 ///[license.md]
 
-},{"./action":9,"./behaviour":10,"./containerView":12,"./getClosestItem":15,"./initialiseAction":16,"./initialiseBehaviour":17,"./initialiseView":18,"./initialiseViewItem":19,"./jsonConverter":20,"./property":51,"./raf.js":52,"./removeViews":53,"./view":54,"./viewContainer":55,"./viewItem":56,"crel":1,"doc-js":24,"events":74,"gedi":29,"merge":39,"spec-js":40,"statham":44}],15:[function(require,module,exports){
+},{"./action":"/home/kory/dev/gaffa-select/node_modules/gaffa/action.js","./behaviour":"/home/kory/dev/gaffa-select/node_modules/gaffa/behaviour.js","./containerView":"/home/kory/dev/gaffa-select/node_modules/gaffa/containerView.js","./getClosestItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/getClosestItem.js","./initialiseAction":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseAction.js","./initialiseBehaviour":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseBehaviour.js","./initialiseView":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseView.js","./initialiseViewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseViewItem.js","./jsonConverter":"/home/kory/dev/gaffa-select/node_modules/gaffa/jsonConverter.js","./property":"/home/kory/dev/gaffa-select/node_modules/gaffa/property.js","./raf.js":"/home/kory/dev/gaffa-select/node_modules/gaffa/raf.js","./removeViews":"/home/kory/dev/gaffa-select/node_modules/gaffa/removeViews.js","./resolvePath":"/home/kory/dev/gaffa-select/node_modules/gaffa/resolvePath.js","./view":"/home/kory/dev/gaffa-select/node_modules/gaffa/view.js","./viewContainer":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewContainer.js","./viewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewItem.js","crel":"/home/kory/dev/gaffa-select/node_modules/crel/crel.js","doc-js":"/home/kory/dev/gaffa-select/node_modules/doc-js/fluent.js","events":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/events/events.js","gedi":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/gedi.js","merge":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/merge/merge.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js","statham":"/home/kory/dev/gaffa-select/node_modules/statham/statham.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/getClosestItem.js":[function(require,module,exports){
 function getClosestItem(target){
     var viewModel = target.viewModel;
 
@@ -1944,7 +1916,7 @@ function getClosestItem(target){
 }
 
 module.exports = getClosestItem;
-},{}],16:[function(require,module,exports){
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseAction.js":[function(require,module,exports){
 var initialiseViewItem = require('./initialiseViewItem');
 
 function initialiseAction(viewItem, gaffa, references) {
@@ -1952,7 +1924,7 @@ function initialiseAction(viewItem, gaffa, references) {
 }
 
 module.exports = initialiseAction;
-},{"./initialiseViewItem":19}],17:[function(require,module,exports){
+},{"./initialiseViewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseViewItem.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseBehaviour.js":[function(require,module,exports){
 var initialiseViewItem = require('./initialiseViewItem');
 
 function initialiseBehaviour(viewItem, gaffa, references) {
@@ -1960,7 +1932,7 @@ function initialiseBehaviour(viewItem, gaffa, references) {
 }
 
 module.exports = initialiseBehaviour;
-},{"./initialiseViewItem":19}],18:[function(require,module,exports){
+},{"./initialiseViewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseViewItem.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseView.js":[function(require,module,exports){
 var initialiseViewItem = require('./initialiseViewItem');
 
 function initialiseView(viewItem, gaffa, references) {
@@ -1968,7 +1940,7 @@ function initialiseView(viewItem, gaffa, references) {
 }
 
 module.exports = initialiseView;
-},{"./initialiseViewItem":19}],19:[function(require,module,exports){
+},{"./initialiseViewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseViewItem.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseViewItem.js":[function(require,module,exports){
 function initialiseViewItem(viewItem, gaffa, specCollection, references) {
     var ViewItem = require('./viewItem'),
         ViewContainer = require('./viewContainer'),
@@ -2032,7 +2004,7 @@ function initialiseViewItem(viewItem, gaffa, specCollection, references) {
 }
 
 module.exports = initialiseViewItem;
-},{"./initialiseAction":16,"./initialiseBehaviour":17,"./initialiseView":18,"./viewContainer":55,"./viewItem":56}],20:[function(require,module,exports){
+},{"./initialiseAction":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseAction.js","./initialiseBehaviour":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseBehaviour.js","./initialiseView":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseView.js","./viewContainer":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewContainer.js","./viewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewItem.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/jsonConverter.js":[function(require,module,exports){
 var deepEqual = require('deep-equal');
 
 function jsonConverter(object, exclude, include){
@@ -2073,7 +2045,7 @@ function jsonConverter(object, exclude, include){
 }
 
 module.exports = jsonConverter;
-},{"deep-equal":22}],21:[function(require,module,exports){
+},{"deep-equal":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/deep-equal/index.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/consuela/index.js":[function(require,module,exports){
 function getListenerMethod(emitter, methodNames){
     if(typeof methodNames === 'string'){
         methodNames = methodNames.split(' ');
@@ -2087,33 +2059,9 @@ function getListenerMethod(emitter, methodNames){
 
 function Consuela(){
     this._trackedListeners = [];
-    if(getListenerMethod(this, this._onNames)){
-        this._watch(this);
-    }
 }
-Consuela.init = function(instance){
-    // If passed a constructor
-    if(typeof instance === 'function'){
-        var Constructor = new Function("instance", "Consuela", "return function " + instance.name + "(){Consuela.call(this);return instance.apply(this, arguments);}")(instance, Consuela);
-
-        Constructor.prototype = Object.create(instance.prototype);
-        Constructor.prototype.constructor = Constructor;
-        Constructor.name = instance.name;
-        console.log(Constructor.name);
-        for(var key in Consuela.prototype){
-            Constructor.prototype[key] = Consuela.prototype[key];
-        }
-        return Constructor;
-    }
-
-    // Otherwise, if passed an instance
-    for(var key in Consuela.prototype){
-        instance[key] = Consuela.prototype[key];
-    }
-    Consuela.call(instance);
-};
-Consuela.prototype._onNames = 'on addListener addEventListener';
-Consuela.prototype._offNames = 'off removeListener removeEventListener';
+Consuela.prototype.onNames = 'on addListener addEventListener';
+Consuela.prototype.offNames = 'off removeListener removeEventListener';
 Consuela.prototype._on = function(emitter, args, offName){
     this._trackedListeners.push({
         emitter: emitter,
@@ -2121,11 +2069,41 @@ Consuela.prototype._on = function(emitter, args, offName){
         offName: offName
     });
 };
-Consuela.prototype._cleanup = function(){
+function compareArgs(args1, args2){
+    if(args1.length !== args2.length){
+        return;
+    }
+    for (var i = 0; i < args1.length; i++) {
+        if(args1[i] !== args2[i]){
+            return;
+        }
+    };
+    return true;
+}
+Consuela.prototype._off = function(emitter, args, offName){
+    for (var i = 0; i < this._trackedListeners.length; i++) {
+        var info = this._trackedListeners[i];
+
+        if(emitter !== info.emitter || !compareArgs(info.args, args)){
+            continue;
+        }
+
+        this._trackedListeners.splice(i, 1);
+        i--;
+    };
+};
+Consuela.prototype.on = function(emitter, args, offName){
+    var method = getListenerMethod(emitter, this.onNames),
+        oldOn = emitter[method];
+
+    this._on(emitter, args, offName);
+    oldOn.apply(emitter, args);
+};
+Consuela.prototype.cleanup = function(){
     while(this._trackedListeners.length){
         var info = this._trackedListeners.pop(),
             emitter = info.emitter,
-            offNames = this._offNames;
+            offNames = this.offNames;
 
         if(info.offName){
             offNames = [info.offName];
@@ -2135,25 +2113,49 @@ Consuela.prototype._cleanup = function(){
             .apply(emitter, info.args);
     }
 };
-Consuela.prototype._watch = function(emitter, onName, offName){
+Consuela.prototype.watch = function(emitter, onName, offName){
     var consuela = this,
-        onNames = this._onNames;
+        onNames = this.onNames,
+        offNames = this.offNames;
 
     if(onName){
         onNames = [onName];
     }
 
-    var method = getListenerMethod(emitter, onNames),
-        oldOn = emitter[method];
+    var onMethod = getListenerMethod(emitter, onNames),
+        oldOn = emitter[onMethod];
 
-    emitter[method] = function(){
+    if(emitter[onMethod].__isConsuelaOverride){
+        return;
+    }
+
+    emitter[onMethod] = function(){
         consuela._on(emitter, arguments, offName);
         oldOn.apply(emitter, arguments);
     };
+    emitter[onMethod].__isConsuelaOverride = true;
+
+
+    if(offName){
+        offNames = [offName];
+    }
+
+    var offMethod = getListenerMethod(emitter, offNames),
+        oldOff = emitter[offMethod];
+
+    if(emitter[offMethod].__isConsuelaOverride){
+        return;
+    }
+
+    emitter[offMethod] = function(){
+        consuela._off(emitter, arguments, offName);
+        oldOff.apply(emitter, arguments);
+    };
+    emitter[offMethod].__isConsuelaOverride = true;
 };
 
 module.exports = Consuela;
-},{}],22:[function(require,module,exports){
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/deep-equal/index.js":[function(require,module,exports){
 var pSlice = Array.prototype.slice;
 var Object_keys = typeof Object.keys === 'function'
     ? Object.keys
@@ -2239,17 +2241,7 @@ function objEquiv(a, b) {
   return true;
 }
 
-},{}],23:[function(require,module,exports){
-module.exports=require(2)
-},{"./getTarget":25,"./getTargets":26,"./isList":27}],24:[function(require,module,exports){
-arguments[4][3][0].apply(exports,arguments)
-},{"./doc":23,"./getTargets":26,"./isList":27}],25:[function(require,module,exports){
-module.exports=require(4)
-},{}],26:[function(require,module,exports){
-module.exports=require(5)
-},{}],27:[function(require,module,exports){
-module.exports=require(6)
-},{}],28:[function(require,module,exports){
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/events.js":[function(require,module,exports){
 var WM = typeof WM !== 'undefined' ? WeakMap : require('weak-map'),
     paths = require('gedi-paths'),
     pathConstants = paths.constants
@@ -2661,7 +2653,7 @@ module.exports = function(modelGet, gel, PathToken){
         removeModelReference: removeModelReference
     };
 };
-},{"./modelOperations":30,"gedi-paths":32,"weak-map":34}],29:[function(require,module,exports){
+},{"./modelOperations":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/modelOperations.js","gedi-paths":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/paths.js","weak-map":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/weak-map/weak-map.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/gedi.js":[function(require,module,exports){
 //Copyright (C) 2012 Kory Nunn
 
 //Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
@@ -2905,11 +2897,11 @@ function newGedi(model) {
     //
     //***********************************************
 
-    function getSourcePathInfo(expression, parentPath, subPathOpperation){
-        var scope = {
-                _gmc_: parentPath
-            },
+    function getSourcePathInfo(expression, parentPath, scope, subPathOpperation){
+        var scope = scope || {},
             path;
+
+        scope._gmc_ = parentPath;
 
         var resultToken = gel.evaluate(expression, scope, true)[0],
             sourcePathInfo = resultToken.sourcePathInfo;
@@ -2932,7 +2924,27 @@ function newGedi(model) {
 
     function DeletedItem(){}
 
-    function modelSet(expression, value, parentPath, dirty) {
+    function modelSetPath(path, value, parentPath, dirty, scope){
+        parentPath = parentPath || paths.create();
+        path = paths.resolve(parentPath, path);
+
+        setDirtyState(path, dirty);
+
+        var previousValue = get(path, model);
+
+        var keysChanged = set(path, value, model);
+
+        if(!(value instanceof DeletedItem)){
+            events.addModelReference(path, value);
+            events.trigger(path, keysChanged);
+        }
+
+        if(!(value && typeof value !== 'object') && previousValue && typeof previousValue === 'object'){
+            events.removeModelReference(path, previousValue);
+        }
+    }
+
+    function modelSet(expression, value, parentPath, dirty, scope) {
         if(typeof expression === 'object' && !paths.create(expression)){
             dirty = value;
             value = expression;
@@ -2942,30 +2954,9 @@ function newGedi(model) {
             parentPath = undefined;
         }
 
-        if(expression && !arguments[4]){
-            getSourcePathInfo(expression, parentPath, function(subPath){
-                modelSet(subPath, value, parentPath, dirty, true);
-            });
-            return;
-        }
-
-        parentPath = parentPath || paths.create();
-        expression = paths.resolve(parentPath, expression);
-
-        setDirtyState(expression, dirty);
-
-        var previousValue = get(expression, model);
-
-        var keysChanged = set(expression, value, model);
-
-        if(!(value instanceof DeletedItem)){
-            events.addModelReference(expression, value);
-            events.trigger(expression, keysChanged);
-        }
-
-        if(!(value && typeof value !== 'object') && previousValue && typeof previousValue === 'object'){
-            events.removeModelReference(expression, previousValue);
-        }
+        getSourcePathInfo(expression, parentPath, scope, function(subPath){
+            modelSetPath(subPath, value, parentPath, dirty, scope);
+        });
     }
 
     //***********************************************
@@ -2974,67 +2965,47 @@ function newGedi(model) {
     //
     //***********************************************
 
-    function modelRemove(expression, parentPath, dirty) {
+    function modelRemove(expression, parentPath, dirty, scope) {
         if(parentPath instanceof Boolean){
             dirty = parentPath;
             parentPath = undefined;
         }
 
-        if(expression && !arguments[3]){
-            itemParentPaths = {};
-            getSourcePathInfo(expression, parentPath, function(subPath){
-                modelSet(subPath, new DeletedItem(), parentPath, dirty, true);
-                itemParentPaths[paths.append(subPath, paths.create(pathConstants.upALevel))] = null;
-            });
+        itemParentPaths = {};
+        getSourcePathInfo(expression, parentPath, scope, function(subPath){
+            modelSetPath(subPath, new DeletedItem(), parentPath, dirty, scope);
+            itemParentPaths[paths.append(subPath, paths.create(pathConstants.upALevel))] = null;
+        });
 
-            for(var key in itemParentPaths){
-                if(itemParentPaths.hasOwnProperty(key)){
-                    var itemParentPath = paths.resolve(parentPath || paths.createRoot(), key),
-                        parentObject = get(itemParentPath, model),
-                        isArray = Array.isArray(parentObject);
+        for(var key in itemParentPaths){
+            if(itemParentPaths.hasOwnProperty(key)){
+                var itemParentPath = paths.resolve(parentPath || paths.createRoot(), key),
+                    parentObject = get(itemParentPath, model),
+                    isArray = Array.isArray(parentObject);
 
-                    if(isArray){
-                        var anyRemoved;
-                        for(var i = 0; i < parentObject.length; i++){
-                            if(parentObject[i] instanceof DeletedItem){
-                                parentObject.splice(i, 1);
-                                i--;
-                                anyRemoved = true;
-                            }
-                        }
-                        if(anyRemoved){
-                            events.trigger(itemParentPath);
+                if(isArray){
+                    var anyRemoved;
+                    for(var i = 0; i < parentObject.length; i++){
+                        if(parentObject[i] instanceof DeletedItem){
+                            parentObject.splice(i, 1);
+                            i--;
+                            anyRemoved = true;
                         }
                     }
-                    // Always run keys version, because array's might have non-index keys
-                    for(var key in parentObject){
-                        if(parentObject[key] instanceof DeletedItem){
-                            delete parentObject[key];
-                            events.trigger(paths.append(itemParentPath, key));
-                        }
+                    if(anyRemoved){
+                        events.trigger(itemParentPath);
+                    }
+                }
+                // Always run keys version, because array's might have non-index keys
+                for(var key in parentObject){
+                    if(parentObject[key] instanceof DeletedItem){
+                        delete parentObject[key];
+                        events.trigger(paths.append(itemParentPath, key));
                     }
                 }
             }
-
-            return;
         }
 
-        parentPath = parentPath || paths.create();
-        expression = paths.resolve(parentPath, expression);
-
-        setDirtyState(expression, dirty);
-
-        var removedItem = get(expression, model),
-            parentObject = remove(expression, model);
-
-        if(Array.isArray(parentObject)){
-            //trigger one above
-            events.trigger(paths.resolve(paths.createRoot(), paths.append(expression, pathConstants.upALevel)));
-        }else{
-            events.trigger(expression);
-        }
-
-        events.removeModelReference(expression, removedItem);
     }
 
     //***********************************************
@@ -3043,18 +3014,9 @@ function newGedi(model) {
     //
     //***********************************************
 
-    function setDirtyState(expression, dirty, parentPath) {
-
+    function setPathDirtyState(path, dirty, parentPath, scope){
         var reference = dirtyModel;
-
-        if(expression && !arguments[3]){
-            getSourcePathInfo(expression, parentPath, function(subPath){
-                setDirtyState(subPath, dirty, parentPath, true);
-            });
-            return;
-        }
-
-        if(!paths.create(expression)){
+        if(!paths.create(path)){
             throw exceptions.invalidPath;
         }
 
@@ -3063,7 +3025,7 @@ function newGedi(model) {
 
         dirty = dirty !== false;
 
-        if(paths.isRoot(expression)){
+        if(paths.isRoot(path)){
             dirtyModel = {
                 '_isDirty_': dirty
             };
@@ -3072,11 +3034,11 @@ function newGedi(model) {
 
         var index = 0;
 
-        if(paths.isAbsolute(expression)){
+        if(paths.isAbsolute(path)){
             index = 1;
         }
 
-        var pathParts = paths.toParts(paths.resolve(parentPath, expression));
+        var pathParts = paths.toParts(paths.resolve(parentPath, path));
 
         for(; index < pathParts.length; index++){
             var key = pathParts[index];
@@ -3095,6 +3057,12 @@ function newGedi(model) {
         if(!pathParts.length){
             dirtyModel['_isDirty_'] = dirty;
         }
+    }
+
+    function setDirtyState(expression, dirty, parentPath, scope) {
+        getSourcePathInfo(expression, parentPath, scope, function(subPath){
+            setPathDirtyState(subPath, dirty, parentPath, scope);
+        });
     }
 
     //***********************************************
@@ -3292,7 +3260,7 @@ function newGedi(model) {
 }
 
 module.exports = gediConstructor;
-},{"./events":28,"./modelOperations":30,"./pathToken":35,"gedi-paths":32,"gel-js":33,"spec-js":40}],30:[function(require,module,exports){
+},{"./events":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/events.js","./modelOperations":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/modelOperations.js","./pathToken":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/pathToken.js","gedi-paths":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/paths.js","gel-js":"/home/kory/dev/gaffa-select/node_modules/gel-js/gel.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/modelOperations.js":[function(require,module,exports){
 var paths = require('gedi-paths'),
     memoiseCache = {};
 
@@ -3422,7 +3390,7 @@ module.exports = {
     get: get,
     set: set
 };
-},{"gedi-paths":32}],31:[function(require,module,exports){
+},{"gedi-paths":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/paths.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/detectPath.js":[function(require,module,exports){
 module.exports = function detectPath(substring){
     if (substring.charAt(0) === '[') {
         var index = 1;
@@ -3441,7 +3409,7 @@ module.exports = function detectPath(substring){
         } while (index < substring.length);
     }
 };
-},{}],32:[function(require,module,exports){
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/paths.js":[function(require,module,exports){
 var detectPath = require('./detectPath');
 
 var pathSeparator = "/",
@@ -3712,7 +3680,2474 @@ module.exports = {
         wildcard: pathWildcard
     }
 };
-},{"./detectPath":31}],33:[function(require,module,exports){
+},{"./detectPath":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/detectPath.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/weak-map/weak-map.js":[function(require,module,exports){
+// Copyright (C) 2011 Google Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * @fileoverview Install a leaky WeakMap emulation on platforms that
+ * don't provide a built-in one.
+ *
+ * <p>Assumes that an ES5 platform where, if {@code WeakMap} is
+ * already present, then it conforms to the anticipated ES6
+ * specification. To run this file on an ES5 or almost ES5
+ * implementation where the {@code WeakMap} specification does not
+ * quite conform, run <code>repairES5.js</code> first.
+ *
+ * <p>Even though WeakMapModule is not global, the linter thinks it
+ * is, which is why it is in the overrides list below.
+ *
+ * <p>NOTE: Before using this WeakMap emulation in a non-SES
+ * environment, see the note below about hiddenRecord.
+ *
+ * @author Mark S. Miller
+ * @requires crypto, ArrayBuffer, Uint8Array, navigator, console
+ * @overrides WeakMap, ses, Proxy
+ * @overrides WeakMapModule
+ */
+
+/**
+ * This {@code WeakMap} emulation is observably equivalent to the
+ * ES-Harmony WeakMap, but with leakier garbage collection properties.
+ *
+ * <p>As with true WeakMaps, in this emulation, a key does not
+ * retain maps indexed by that key and (crucially) a map does not
+ * retain the keys it indexes. A map by itself also does not retain
+ * the values associated with that map.
+ *
+ * <p>However, the values associated with a key in some map are
+ * retained so long as that key is retained and those associations are
+ * not overridden. For example, when used to support membranes, all
+ * values exported from a given membrane will live for the lifetime
+ * they would have had in the absence of an interposed membrane. Even
+ * when the membrane is revoked, all objects that would have been
+ * reachable in the absence of revocation will still be reachable, as
+ * far as the GC can tell, even though they will no longer be relevant
+ * to ongoing computation.
+ *
+ * <p>The API implemented here is approximately the API as implemented
+ * in FF6.0a1 and agreed to by MarkM, Andreas Gal, and Dave Herman,
+ * rather than the offially approved proposal page. TODO(erights):
+ * upgrade the ecmascript WeakMap proposal page to explain this API
+ * change and present to EcmaScript committee for their approval.
+ *
+ * <p>The first difference between the emulation here and that in
+ * FF6.0a1 is the presence of non enumerable {@code get___, has___,
+ * set___, and delete___} methods on WeakMap instances to represent
+ * what would be the hidden internal properties of a primitive
+ * implementation. Whereas the FF6.0a1 WeakMap.prototype methods
+ * require their {@code this} to be a genuine WeakMap instance (i.e.,
+ * an object of {@code [[Class]]} "WeakMap}), since there is nothing
+ * unforgeable about the pseudo-internal method names used here,
+ * nothing prevents these emulated prototype methods from being
+ * applied to non-WeakMaps with pseudo-internal methods of the same
+ * names.
+ *
+ * <p>Another difference is that our emulated {@code
+ * WeakMap.prototype} is not itself a WeakMap. A problem with the
+ * current FF6.0a1 API is that WeakMap.prototype is itself a WeakMap
+ * providing ambient mutability and an ambient communications
+ * channel. Thus, if a WeakMap is already present and has this
+ * problem, repairES5.js wraps it in a safe wrappper in order to
+ * prevent access to this channel. (See
+ * PATCH_MUTABLE_FROZEN_WEAKMAP_PROTO in repairES5.js).
+ */
+
+/**
+ * If this is a full <a href=
+ * "http://code.google.com/p/es-lab/wiki/SecureableES5"
+ * >secureable ES5</a> platform and the ES-Harmony {@code WeakMap} is
+ * absent, install an approximate emulation.
+ *
+ * <p>If WeakMap is present but cannot store some objects, use our approximate
+ * emulation as a wrapper.
+ *
+ * <p>If this is almost a secureable ES5 platform, then WeakMap.js
+ * should be run after repairES5.js.
+ *
+ * <p>See {@code WeakMap} for documentation of the garbage collection
+ * properties of this WeakMap emulation.
+ */
+(function WeakMapModule() {
+  "use strict";
+
+  if (typeof ses !== 'undefined' && ses.ok && !ses.ok()) {
+    // already too broken, so give up
+    return;
+  }
+
+  /**
+   * In some cases (current Firefox), we must make a choice betweeen a
+   * WeakMap which is capable of using all varieties of host objects as
+   * keys and one which is capable of safely using proxies as keys. See
+   * comments below about HostWeakMap and DoubleWeakMap for details.
+   *
+   * This function (which is a global, not exposed to guests) marks a
+   * WeakMap as permitted to do what is necessary to index all host
+   * objects, at the cost of making it unsafe for proxies.
+   *
+   * Do not apply this function to anything which is not a genuine
+   * fresh WeakMap.
+   */
+  function weakMapPermitHostObjects(map) {
+    // identity of function used as a secret -- good enough and cheap
+    if (map.permitHostObjects___) {
+      map.permitHostObjects___(weakMapPermitHostObjects);
+    }
+  }
+  if (typeof ses !== 'undefined') {
+    ses.weakMapPermitHostObjects = weakMapPermitHostObjects;
+  }
+
+  // IE 11 has no Proxy but has a broken WeakMap such that we need to patch
+  // it using DoubleWeakMap; this flag tells DoubleWeakMap so.
+  var doubleWeakMapCheckSilentFailure = false;
+
+  // Check if there is already a good-enough WeakMap implementation, and if so
+  // exit without replacing it.
+  if (typeof WeakMap === 'function') {
+    var HostWeakMap = WeakMap;
+    // There is a WeakMap -- is it good enough?
+    if (typeof navigator !== 'undefined' &&
+        /Firefox/.test(navigator.userAgent)) {
+      // We're now *assuming not*, because as of this writing (2013-05-06)
+      // Firefox's WeakMaps have a miscellany of objects they won't accept, and
+      // we don't want to make an exhaustive list, and testing for just one
+      // will be a problem if that one is fixed alone (as they did for Event).
+
+      // If there is a platform that we *can* reliably test on, here's how to
+      // do it:
+      //  var problematic = ... ;
+      //  var testHostMap = new HostWeakMap();
+      //  try {
+      //    testHostMap.set(problematic, 1);  // Firefox 20 will throw here
+      //    if (testHostMap.get(problematic) === 1) {
+      //      return;
+      //    }
+      //  } catch (e) {}
+
+    } else {
+      // IE 11 bug: WeakMaps silently fail to store frozen objects.
+      var testMap = new HostWeakMap();
+      var testObject = Object.freeze({});
+      testMap.set(testObject, 1);
+      if (testMap.get(testObject) !== 1) {
+        doubleWeakMapCheckSilentFailure = true;
+        // Fall through to installing our WeakMap.
+      } else {
+        module.exports = WeakMap;
+        return;
+      }
+    }
+  }
+
+  var hop = Object.prototype.hasOwnProperty;
+  var gopn = Object.getOwnPropertyNames;
+  var defProp = Object.defineProperty;
+  var isExtensible = Object.isExtensible;
+
+  /**
+   * Security depends on HIDDEN_NAME being both <i>unguessable</i> and
+   * <i>undiscoverable</i> by untrusted code.
+   *
+   * <p>Given the known weaknesses of Math.random() on existing
+   * browsers, it does not generate unguessability we can be confident
+   * of.
+   *
+   * <p>It is the monkey patching logic in this file that is intended
+   * to ensure undiscoverability. The basic idea is that there are
+   * three fundamental means of discovering properties of an object:
+   * The for/in loop, Object.keys(), and Object.getOwnPropertyNames(),
+   * as well as some proposed ES6 extensions that appear on our
+   * whitelist. The first two only discover enumerable properties, and
+   * we only use HIDDEN_NAME to name a non-enumerable property, so the
+   * only remaining threat should be getOwnPropertyNames and some
+   * proposed ES6 extensions that appear on our whitelist. We monkey
+   * patch them to remove HIDDEN_NAME from the list of properties they
+   * returns.
+   *
+   * <p>TODO(erights): On a platform with built-in Proxies, proxies
+   * could be used to trap and thereby discover the HIDDEN_NAME, so we
+   * need to monkey patch Proxy.create, Proxy.createFunction, etc, in
+   * order to wrap the provided handler with the real handler which
+   * filters out all traps using HIDDEN_NAME.
+   *
+   * <p>TODO(erights): Revisit Mike Stay's suggestion that we use an
+   * encapsulated function at a not-necessarily-secret name, which
+   * uses the Stiegler shared-state rights amplification pattern to
+   * reveal the associated value only to the WeakMap in which this key
+   * is associated with that value. Since only the key retains the
+   * function, the function can also remember the key without causing
+   * leakage of the key, so this doesn't violate our general gc
+   * goals. In addition, because the name need not be a guarded
+   * secret, we could efficiently handle cross-frame frozen keys.
+   */
+  var HIDDEN_NAME_PREFIX = 'weakmap:';
+  var HIDDEN_NAME = HIDDEN_NAME_PREFIX + 'ident:' + Math.random() + '___';
+
+  if (typeof crypto !== 'undefined' &&
+      typeof crypto.getRandomValues === 'function' &&
+      typeof ArrayBuffer === 'function' &&
+      typeof Uint8Array === 'function') {
+    var ab = new ArrayBuffer(25);
+    var u8s = new Uint8Array(ab);
+    crypto.getRandomValues(u8s);
+    HIDDEN_NAME = HIDDEN_NAME_PREFIX + 'rand:' +
+      Array.prototype.map.call(u8s, function(u8) {
+        return (u8 % 36).toString(36);
+      }).join('') + '___';
+  }
+
+  function isNotHiddenName(name) {
+    return !(
+        name.substr(0, HIDDEN_NAME_PREFIX.length) == HIDDEN_NAME_PREFIX &&
+        name.substr(name.length - 3) === '___');
+  }
+
+  /**
+   * Monkey patch getOwnPropertyNames to avoid revealing the
+   * HIDDEN_NAME.
+   *
+   * <p>The ES5.1 spec requires each name to appear only once, but as
+   * of this writing, this requirement is controversial for ES6, so we
+   * made this code robust against this case. If the resulting extra
+   * search turns out to be expensive, we can probably relax this once
+   * ES6 is adequately supported on all major browsers, iff no browser
+   * versions we support at that time have relaxed this constraint
+   * without providing built-in ES6 WeakMaps.
+   */
+  defProp(Object, 'getOwnPropertyNames', {
+    value: function fakeGetOwnPropertyNames(obj) {
+      return gopn(obj).filter(isNotHiddenName);
+    }
+  });
+
+  /**
+   * getPropertyNames is not in ES5 but it is proposed for ES6 and
+   * does appear in our whitelist, so we need to clean it too.
+   */
+  if ('getPropertyNames' in Object) {
+    var originalGetPropertyNames = Object.getPropertyNames;
+    defProp(Object, 'getPropertyNames', {
+      value: function fakeGetPropertyNames(obj) {
+        return originalGetPropertyNames(obj).filter(isNotHiddenName);
+      }
+    });
+  }
+
+  /**
+   * <p>To treat objects as identity-keys with reasonable efficiency
+   * on ES5 by itself (i.e., without any object-keyed collections), we
+   * need to add a hidden property to such key objects when we
+   * can. This raises several issues:
+   * <ul>
+   * <li>Arranging to add this property to objects before we lose the
+   *     chance, and
+   * <li>Hiding the existence of this new property from most
+   *     JavaScript code.
+   * <li>Preventing <i>certification theft</i>, where one object is
+   *     created falsely claiming to be the key of an association
+   *     actually keyed by another object.
+   * <li>Preventing <i>value theft</i>, where untrusted code with
+   *     access to a key object but not a weak map nevertheless
+   *     obtains access to the value associated with that key in that
+   *     weak map.
+   * </ul>
+   * We do so by
+   * <ul>
+   * <li>Making the name of the hidden property unguessable, so "[]"
+   *     indexing, which we cannot intercept, cannot be used to access
+   *     a property without knowing the name.
+   * <li>Making the hidden property non-enumerable, so we need not
+   *     worry about for-in loops or {@code Object.keys},
+   * <li>monkey patching those reflective methods that would
+   *     prevent extensions, to add this hidden property first,
+   * <li>monkey patching those methods that would reveal this
+   *     hidden property.
+   * </ul>
+   * Unfortunately, because of same-origin iframes, we cannot reliably
+   * add this hidden property before an object becomes
+   * non-extensible. Instead, if we encounter a non-extensible object
+   * without a hidden record that we can detect (whether or not it has
+   * a hidden record stored under a name secret to us), then we just
+   * use the key object itself to represent its identity in a brute
+   * force leaky map stored in the weak map, losing all the advantages
+   * of weakness for these.
+   */
+  function getHiddenRecord(key) {
+    if (key !== Object(key)) {
+      throw new TypeError('Not an object: ' + key);
+    }
+    var hiddenRecord = key[HIDDEN_NAME];
+    if (hiddenRecord && hiddenRecord.key === key) { return hiddenRecord; }
+    if (!isExtensible(key)) {
+      // Weak map must brute force, as explained in doc-comment above.
+      return void 0;
+    }
+
+    // The hiddenRecord and the key point directly at each other, via
+    // the "key" and HIDDEN_NAME properties respectively. The key
+    // field is for quickly verifying that this hidden record is an
+    // own property, not a hidden record from up the prototype chain.
+    //
+    // NOTE: Because this WeakMap emulation is meant only for systems like
+    // SES where Object.prototype is frozen without any numeric
+    // properties, it is ok to use an object literal for the hiddenRecord.
+    // This has two advantages:
+    // * It is much faster in a performance critical place
+    // * It avoids relying on Object.create(null), which had been
+    //   problematic on Chrome 28.0.1480.0. See
+    //   https://code.google.com/p/google-caja/issues/detail?id=1687
+    hiddenRecord = { key: key };
+
+    // When using this WeakMap emulation on platforms where
+    // Object.prototype might not be frozen and Object.create(null) is
+    // reliable, use the following two commented out lines instead.
+    // hiddenRecord = Object.create(null);
+    // hiddenRecord.key = key;
+
+    // Please contact us if you need this to work on platforms where
+    // Object.prototype might not be frozen and
+    // Object.create(null) might not be reliable.
+
+    try {
+      defProp(key, HIDDEN_NAME, {
+        value: hiddenRecord,
+        writable: false,
+        enumerable: false,
+        configurable: false
+      });
+      return hiddenRecord;
+    } catch (error) {
+      // Under some circumstances, isExtensible seems to misreport whether
+      // the HIDDEN_NAME can be defined.
+      // The circumstances have not been isolated, but at least affect
+      // Node.js v0.10.26 on TravisCI / Linux, but not the same version of
+      // Node.js on OS X.
+      return void 0;
+    }
+  }
+
+  /**
+   * Monkey patch operations that would make their argument
+   * non-extensible.
+   *
+   * <p>The monkey patched versions throw a TypeError if their
+   * argument is not an object, so it should only be done to functions
+   * that should throw a TypeError anyway if their argument is not an
+   * object.
+   */
+  (function(){
+    var oldFreeze = Object.freeze;
+    defProp(Object, 'freeze', {
+      value: function identifyingFreeze(obj) {
+        getHiddenRecord(obj);
+        return oldFreeze(obj);
+      }
+    });
+    var oldSeal = Object.seal;
+    defProp(Object, 'seal', {
+      value: function identifyingSeal(obj) {
+        getHiddenRecord(obj);
+        return oldSeal(obj);
+      }
+    });
+    var oldPreventExtensions = Object.preventExtensions;
+    defProp(Object, 'preventExtensions', {
+      value: function identifyingPreventExtensions(obj) {
+        getHiddenRecord(obj);
+        return oldPreventExtensions(obj);
+      }
+    });
+  })();
+
+  function constFunc(func) {
+    func.prototype = null;
+    return Object.freeze(func);
+  }
+
+  var calledAsFunctionWarningDone = false;
+  function calledAsFunctionWarning() {
+    // Future ES6 WeakMap is currently (2013-09-10) expected to reject WeakMap()
+    // but we used to permit it and do it ourselves, so warn only.
+    if (!calledAsFunctionWarningDone && typeof console !== 'undefined') {
+      calledAsFunctionWarningDone = true;
+      console.warn('WeakMap should be invoked as new WeakMap(), not ' +
+          'WeakMap(). This will be an error in the future.');
+    }
+  }
+
+  var nextId = 0;
+
+  var OurWeakMap = function() {
+    if (!(this instanceof OurWeakMap)) {  // approximate test for new ...()
+      calledAsFunctionWarning();
+    }
+
+    // We are currently (12/25/2012) never encountering any prematurely
+    // non-extensible keys.
+    var keys = []; // brute force for prematurely non-extensible keys.
+    var values = []; // brute force for corresponding values.
+    var id = nextId++;
+
+    function get___(key, opt_default) {
+      var index;
+      var hiddenRecord = getHiddenRecord(key);
+      if (hiddenRecord) {
+        return id in hiddenRecord ? hiddenRecord[id] : opt_default;
+      } else {
+        index = keys.indexOf(key);
+        return index >= 0 ? values[index] : opt_default;
+      }
+    }
+
+    function has___(key) {
+      var hiddenRecord = getHiddenRecord(key);
+      if (hiddenRecord) {
+        return id in hiddenRecord;
+      } else {
+        return keys.indexOf(key) >= 0;
+      }
+    }
+
+    function set___(key, value) {
+      var index;
+      var hiddenRecord = getHiddenRecord(key);
+      if (hiddenRecord) {
+        hiddenRecord[id] = value;
+      } else {
+        index = keys.indexOf(key);
+        if (index >= 0) {
+          values[index] = value;
+        } else {
+          // Since some browsers preemptively terminate slow turns but
+          // then continue computing with presumably corrupted heap
+          // state, we here defensively get keys.length first and then
+          // use it to update both the values and keys arrays, keeping
+          // them in sync.
+          index = keys.length;
+          values[index] = value;
+          // If we crash here, values will be one longer than keys.
+          keys[index] = key;
+        }
+      }
+      return this;
+    }
+
+    function delete___(key) {
+      var hiddenRecord = getHiddenRecord(key);
+      var index, lastIndex;
+      if (hiddenRecord) {
+        return id in hiddenRecord && delete hiddenRecord[id];
+      } else {
+        index = keys.indexOf(key);
+        if (index < 0) {
+          return false;
+        }
+        // Since some browsers preemptively terminate slow turns but
+        // then continue computing with potentially corrupted heap
+        // state, we here defensively get keys.length first and then use
+        // it to update both the keys and the values array, keeping
+        // them in sync. We update the two with an order of assignments,
+        // such that any prefix of these assignments will preserve the
+        // key/value correspondence, either before or after the delete.
+        // Note that this needs to work correctly when index === lastIndex.
+        lastIndex = keys.length - 1;
+        keys[index] = void 0;
+        // If we crash here, there's a void 0 in the keys array, but
+        // no operation will cause a "keys.indexOf(void 0)", since
+        // getHiddenRecord(void 0) will always throw an error first.
+        values[index] = values[lastIndex];
+        // If we crash here, values[index] cannot be found here,
+        // because keys[index] is void 0.
+        keys[index] = keys[lastIndex];
+        // If index === lastIndex and we crash here, then keys[index]
+        // is still void 0, since the aliasing killed the previous key.
+        keys.length = lastIndex;
+        // If we crash here, keys will be one shorter than values.
+        values.length = lastIndex;
+        return true;
+      }
+    }
+
+    return Object.create(OurWeakMap.prototype, {
+      get___:    { value: constFunc(get___) },
+      has___:    { value: constFunc(has___) },
+      set___:    { value: constFunc(set___) },
+      delete___: { value: constFunc(delete___) }
+    });
+  };
+
+  OurWeakMap.prototype = Object.create(Object.prototype, {
+    get: {
+      /**
+       * Return the value most recently associated with key, or
+       * opt_default if none.
+       */
+      value: function get(key, opt_default) {
+        return this.get___(key, opt_default);
+      },
+      writable: true,
+      configurable: true
+    },
+
+    has: {
+      /**
+       * Is there a value associated with key in this WeakMap?
+       */
+      value: function has(key) {
+        return this.has___(key);
+      },
+      writable: true,
+      configurable: true
+    },
+
+    set: {
+      /**
+       * Associate value with key in this WeakMap, overwriting any
+       * previous association if present.
+       */
+      value: function set(key, value) {
+        return this.set___(key, value);
+      },
+      writable: true,
+      configurable: true
+    },
+
+    'delete': {
+      /**
+       * Remove any association for key in this WeakMap, returning
+       * whether there was one.
+       *
+       * <p>Note that the boolean return here does not work like the
+       * {@code delete} operator. The {@code delete} operator returns
+       * whether the deletion succeeds at bringing about a state in
+       * which the deleted property is absent. The {@code delete}
+       * operator therefore returns true if the property was already
+       * absent, whereas this {@code delete} method returns false if
+       * the association was already absent.
+       */
+      value: function remove(key) {
+        return this.delete___(key);
+      },
+      writable: true,
+      configurable: true
+    }
+  });
+
+  if (typeof HostWeakMap === 'function') {
+    (function() {
+      // If we got here, then the platform has a WeakMap but we are concerned
+      // that it may refuse to store some key types. Therefore, make a map
+      // implementation which makes use of both as possible.
+
+      // In this mode we are always using double maps, so we are not proxy-safe.
+      // This combination does not occur in any known browser, but we had best
+      // be safe.
+      if (doubleWeakMapCheckSilentFailure && typeof Proxy !== 'undefined') {
+        Proxy = undefined;
+      }
+
+      function DoubleWeakMap() {
+        if (!(this instanceof OurWeakMap)) {  // approximate test for new ...()
+          calledAsFunctionWarning();
+        }
+
+        // Preferable, truly weak map.
+        var hmap = new HostWeakMap();
+
+        // Our hidden-property-based pseudo-weak-map. Lazily initialized in the
+        // 'set' implementation; thus we can avoid performing extra lookups if
+        // we know all entries actually stored are entered in 'hmap'.
+        var omap = undefined;
+
+        // Hidden-property maps are not compatible with proxies because proxies
+        // can observe the hidden name and either accidentally expose it or fail
+        // to allow the hidden property to be set. Therefore, we do not allow
+        // arbitrary WeakMaps to switch to using hidden properties, but only
+        // those which need the ability, and unprivileged code is not allowed
+        // to set the flag.
+        //
+        // (Except in doubleWeakMapCheckSilentFailure mode in which case we
+        // disable proxies.)
+        var enableSwitching = false;
+
+        function dget(key, opt_default) {
+          if (omap) {
+            return hmap.has(key) ? hmap.get(key)
+                : omap.get___(key, opt_default);
+          } else {
+            return hmap.get(key, opt_default);
+          }
+        }
+
+        function dhas(key) {
+          return hmap.has(key) || (omap ? omap.has___(key) : false);
+        }
+
+        var dset;
+        if (doubleWeakMapCheckSilentFailure) {
+          dset = function(key, value) {
+            hmap.set(key, value);
+            if (!hmap.has(key)) {
+              if (!omap) { omap = new OurWeakMap(); }
+              omap.set(key, value);
+            }
+            return this;
+          };
+        } else {
+          dset = function(key, value) {
+            if (enableSwitching) {
+              try {
+                hmap.set(key, value);
+              } catch (e) {
+                if (!omap) { omap = new OurWeakMap(); }
+                omap.set___(key, value);
+              }
+            } else {
+              hmap.set(key, value);
+            }
+            return this;
+          };
+        }
+
+        function ddelete(key) {
+          var result = !!hmap['delete'](key);
+          if (omap) { return omap.delete___(key) || result; }
+          return result;
+        }
+
+        return Object.create(OurWeakMap.prototype, {
+          get___:    { value: constFunc(dget) },
+          has___:    { value: constFunc(dhas) },
+          set___:    { value: constFunc(dset) },
+          delete___: { value: constFunc(ddelete) },
+          permitHostObjects___: { value: constFunc(function(token) {
+            if (token === weakMapPermitHostObjects) {
+              enableSwitching = true;
+            } else {
+              throw new Error('bogus call to permitHostObjects___');
+            }
+          })}
+        });
+      }
+      DoubleWeakMap.prototype = OurWeakMap.prototype;
+      module.exports = DoubleWeakMap;
+
+      // define .constructor to hide OurWeakMap ctor
+      Object.defineProperty(WeakMap.prototype, 'constructor', {
+        value: WeakMap,
+        enumerable: false,  // as default .constructor is
+        configurable: true,
+        writable: true
+      });
+    })();
+  } else {
+    // There is no host WeakMap, so we must use the emulation.
+
+    // Emulated WeakMaps are incompatible with native proxies (because proxies
+    // can observe the hidden name), so we must disable Proxy usage (in
+    // ArrayLike and Domado, currently).
+    if (typeof Proxy !== 'undefined') {
+      Proxy = undefined;
+    }
+
+    module.exports = OurWeakMap;
+  }
+})();
+
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/pathToken.js":[function(require,module,exports){
+var Lang = require('lang-js'),
+    Token = Lang.Token,
+    paths = require('gedi-paths'),
+    createSpec = require('spec-js'),
+    detectPath = require('gedi-paths/detectPath');
+
+module.exports = function(get, model){
+
+    function PathToken(path){
+        this.path = path;
+    }
+    PathToken = createSpec(PathToken, Token);
+    PathToken.prototype.name = 'PathToken';
+    PathToken.tokenPrecedence = 1;
+    PathToken.prototype.parsePrecedence = 2;
+    PathToken.tokenise = function(substring){
+        var path = detectPath(substring);
+
+        if(path){
+            return new PathToken(path, path.length);
+        }
+    };
+    PathToken.prototype.evaluate = function(scope){
+        this.path = this.original;
+        this.result = get(paths.resolve(scope.get('_gmc_'), this.original), model);
+        this.sourcePathInfo = {
+            path: this.original
+        };
+    };
+
+    return PathToken;
+}
+},{"gedi-paths":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/paths.js","gedi-paths/detectPath":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/detectPath.js","lang-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/lang-js/lang.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/laidout/index.js":[function(require,module,exports){
+function checkElement(element){
+    if(!element){
+        return false;
+    }
+    var parentNode = element.parentNode;
+    while(parentNode){
+        if(parentNode === element.ownerDocument){
+            return true;
+        }
+        parentNode = parentNode.parentNode;
+    }
+    return false;
+}
+
+module.exports = function laidout(element, callback){
+    if(checkElement(element)){
+        return callback();
+    }
+
+    var recheckElement = function(){
+            if(checkElement(element)){
+                document.removeEventListener('DOMNodeInserted', recheckElement);
+                callback();
+            }
+        };
+
+    document.addEventListener('DOMNodeInserted', recheckElement);
+};
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/lang-js/lang.js":[function(require,module,exports){
+(function (process){
+var Token = require('./token');
+
+function fastEach(items, callback) {
+    for (var i = 0; i < items.length; i++) {
+        if (callback(items[i], i, items)) break;
+    }
+    return items;
+}
+
+var now;
+
+if(typeof process !== 'undefined' && process.hrtime){
+    now = function(){
+        var time = process.hrtime();
+        return time[0] + time[1] / 1000000;
+    };
+}else if(typeof performance !== 'undefined' && performance.now){
+    now = function(){
+        return performance.now();
+    };
+}else if(Date.now){
+    now = function(){
+        return Date.now();
+    };
+}else{
+    now = function(){
+        return new Date().getTime();
+    };
+}
+
+function callWith(fn, fnArguments, calledToken){
+    if(fn instanceof Token){
+        fn.evaluate(scope);
+        fn = fn.result;
+    }
+    var argIndex = 0,
+        scope = this,
+        args = {
+            callee: calledToken,
+            length: fnArguments.length,
+            raw: function(evaluated){
+                var rawArgs = fnArguments.slice();
+                if(evaluated){
+                    fastEach(rawArgs, function(arg){
+                        if(arg instanceof Token){
+                            arg.evaluate(scope);
+                        }
+                    });
+                }
+                return rawArgs;
+            },
+            getRaw: function(index, evaluated){
+                var arg = fnArguments[index];
+
+                if(evaluated){
+                    if(arg instanceof Token){
+                        arg.evaluate(scope);
+                    }
+                }
+                return arg;
+            },
+            get: function(index){
+                var arg = fnArguments[index];
+
+                if(arg instanceof Token){
+                    arg.evaluate(scope);
+                    return arg.result;
+                }
+                return arg;
+            },
+            hasNext: function(){
+                return argIndex < fnArguments.length;
+            },
+            next: function(){
+                if(!this.hasNext()){
+                    throw "Incorrect number of arguments";
+                }
+                if(fnArguments[argIndex] instanceof Token){
+                    fnArguments[argIndex].evaluate(scope);
+                    return fnArguments[argIndex++].result;
+                }
+                return fnArguments[argIndex++];
+            },
+            all: function(){
+                var allArgs = [];
+                while(this.hasNext()){
+                    allArgs.push(this.next());
+                }
+                return allArgs;
+            }
+        };
+
+    return fn(scope, args);
+}
+
+function Scope(oldScope){
+    this.__scope__ = {};
+    if(oldScope){
+        this.__outerScope__ = oldScope instanceof Scope ? oldScope : {__scope__:oldScope};
+    }
+}
+Scope.prototype.get = function(key){
+    var scope = this;
+    while(scope && !scope.__scope__.hasOwnProperty(key)){
+        scope = scope.__outerScope__;
+    }
+    return scope && scope.__scope__[key];
+};
+Scope.prototype.set = function(key, value, bubble){
+    if(bubble){
+        var currentScope = this;
+        while(currentScope && !(key in currentScope.__scope__)){
+            currentScope = currentScope.__outerScope__;
+        }
+
+        if(currentScope){
+            currentScope.set(key, value);
+        }
+    }
+    this.__scope__[key] = value;
+    return this;
+};
+Scope.prototype.add = function(obj){
+    for(var key in obj){
+        this.__scope__[key] = obj[key];
+    }
+    return this;
+};
+Scope.prototype.isDefined = function(key){
+    if(key in this.__scope__){
+        return true;
+    }
+    return this.__outerScope__ && this.__outerScope__.isDefined(key) || false;
+};
+Scope.prototype.callWith = callWith;
+
+// Takes a start and end regex, returns an appropriate parse function
+function createNestingParser(closeConstructor){
+    return function(tokens, index, parse){
+        var openConstructor = this.constructor,
+            position = index,
+            opens = 1;
+
+        while(position++, position <= tokens.length && opens){
+            if(!tokens[position]){
+                throw "Invalid nesting. No closing token was found";
+            }
+            if(tokens[position] instanceof openConstructor){
+                opens++;
+            }
+            if(tokens[position] instanceof closeConstructor){
+                opens--;
+            }
+        }
+
+        // remove all wrapped tokens from the token array, including nest end token.
+        var childTokens = tokens.splice(index + 1, position - 1 - index);
+
+        // Remove the nest end token.
+        childTokens.pop();
+
+        // parse them, then add them as child tokens.
+        this.childTokens = parse(childTokens);
+    };
+}
+
+function scanForToken(tokenisers, expression){
+    for (var i = 0; i < tokenisers.length; i++) {
+        var token = tokenisers[i].tokenise(expression);
+        if (token) {
+            return token;
+        }
+    }
+}
+
+function sortByPrecedence(items, key){
+    return items.slice().sort(function(a,b){
+        var precedenceDifference = a[key] - b[key];
+        return precedenceDifference ? precedenceDifference : items.indexOf(a) - items.indexOf(b);
+    });
+}
+
+function tokenise(expression, tokenConverters, memoisedTokens) {
+    if(!expression){
+        return [];
+    }
+
+    if(memoisedTokens && memoisedTokens[expression]){
+        return memoisedTokens[expression].slice();
+    }
+
+    tokenConverters = sortByPrecedence(tokenConverters, 'tokenPrecedence');
+
+    var originalExpression = expression,
+        tokens = [],
+        totalCharsProcessed = 0,
+        previousLength,
+        reservedKeywordToken;
+
+    do {
+        previousLength = expression.length;
+
+        var token;
+
+        token = scanForToken(tokenConverters, expression);
+
+        if(token){
+            expression = expression.slice(token.length);
+            totalCharsProcessed += token.length;
+            tokens.push(token);
+            continue;
+        }
+
+        if(expression.length === previousLength){
+            throw "Unable to determine next token in expression: " + expression;
+        }
+
+    } while (expression);
+
+    memoisedTokens && (memoisedTokens[originalExpression] = tokens.slice());
+
+    return tokens;
+}
+
+function parse(tokens){
+    var parsedTokens = 0,
+        tokensByPrecedence = sortByPrecedence(tokens, 'parsePrecedence'),
+        currentToken = tokensByPrecedence[0],
+        tokenNumber = 0;
+
+    while(currentToken && currentToken.parsed == true){
+        currentToken = tokensByPrecedence[tokenNumber++];
+    }
+
+    if(!currentToken){
+        return tokens;
+    }
+
+    if(currentToken.parse){
+        currentToken.parse(tokens, tokens.indexOf(currentToken), parse);
+    }
+
+    // Even if the token has no parse method, it is still concidered 'parsed' at this point.
+    currentToken.parsed = true;
+
+    return parse(tokens);
+}
+
+function evaluate(tokens, scope){
+    scope = scope || new Scope();
+    for(var i = 0; i < tokens.length; i++){
+        var token = tokens[i];
+        token.evaluate(scope);
+    }
+
+    return tokens;
+}
+
+function printTopExpressions(stats){
+    var allStats = [];
+    for(var key in stats){
+        allStats.push({
+            expression: key,
+            time: stats[key].time,
+            calls: stats[key].calls,
+            averageTime: stats[key].averageTime
+        });
+    }
+
+    allStats.sort(function(stat1, stat2){
+        return stat2.time - stat1.time;
+    }).slice(0, 10).forEach(function(stat){
+        console.log([
+            "Expression: ",
+            stat.expression,
+            '\n',
+            'Average evaluation time: ',
+            stat.averageTime,
+            '\n',
+            'Total time: ',
+            stat.time,
+            '\n',
+            'Call count: ',
+            stat.calls
+        ].join(''));
+    });
+}
+
+function Lang(){
+    var lang = {},
+        memoisedTokens = {},
+        memoisedExpressions = {};
+
+
+    var stats = {};
+
+    lang.printTopExpressions = function(){
+        printTopExpressions(stats);
+    }
+
+    function addStat(stat){
+        var expStats = stats[stat.expression] = stats[stat.expression] || {time:0, calls:0};
+
+        expStats.time += stat.time;
+        expStats.calls++;
+        expStats.averageTime = expStats.time / expStats.calls;
+    }
+
+    lang.parse = parse;
+    lang.tokenise = function(expression, tokenConverters){
+        return tokenise(expression, tokenConverters, memoisedTokens);
+    };
+    lang.evaluate = function(expression, scope, tokenConverters, returnAsTokens){
+        var langInstance = this,
+            memoiseKey = expression,
+            expressionTree,
+            evaluatedTokens,
+            lastToken;
+
+        if(!(scope instanceof Scope)){
+            scope = new Scope(scope);
+        }
+
+        if(Array.isArray(expression)){
+            return evaluate(expression , scope).slice(-1).pop();
+        }
+
+        if(memoisedExpressions[memoiseKey]){
+            expressionTree = memoisedExpressions[memoiseKey].slice();
+        } else{
+            expressionTree = langInstance.parse(langInstance.tokenise(expression, tokenConverters, memoisedTokens));
+
+            memoisedExpressions[memoiseKey] = expressionTree;
+        }
+
+
+        var startTime = now();
+        evaluatedTokens = evaluate(expressionTree , scope);
+        addStat({
+            expression: expression,
+            time: now() - startTime
+        });
+
+        if(returnAsTokens){
+            return evaluatedTokens.slice();
+        }
+
+        lastToken = evaluatedTokens.slice(-1).pop();
+
+        return lastToken && lastToken.result;
+    };
+
+    lang.callWith = callWith;
+    return lang;
+};
+
+Lang.createNestingParser = createNestingParser;
+Lang.Scope = Scope;
+Lang.Token = Token;
+
+module.exports = Lang;
+}).call(this,require('_process'))
+},{"./token":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/lang-js/token.js","_process":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/lang-js/token.js":[function(require,module,exports){
+function Token(substring, length){
+    this.original = substring;
+    this.length = length;
+}
+Token.prototype.name = 'token';
+Token.prototype.precedence = 0;
+Token.prototype.valueOf = function(){
+    return this.result;
+}
+
+module.exports = Token;
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/merge/merge.js":[function(require,module,exports){
+/*!
+ * @name JavaScript/NodeJS Merge v1.1.3
+ * @author yeikos
+ * @repository https://github.com/yeikos/js.merge
+
+ * Copyright 2014 yeikos - MIT license
+ * https://raw.github.com/yeikos/js.merge/master/LICENSE
+ */
+
+;(function(isNode) {
+
+	function merge() {
+
+		var items = Array.prototype.slice.call(arguments),
+			result = items.shift(),
+			deep = (result === true),
+			size = items.length,
+			item, index, key;
+
+		if (deep || typeOf(result) !== 'object')
+
+			result = {};
+
+		for (index=0;index<size;++index)
+
+			if (typeOf(item = items[index]) === 'object')
+
+				for (key in item)
+
+					result[key] = deep ? clone(item[key]) : item[key];
+
+		return result;
+
+	}
+
+	function clone(input) {
+
+		var output = input,
+			type = typeOf(input),
+			index, size;
+
+		if (type === 'array') {
+
+			output = [];
+			size = input.length;
+
+			for (index=0;index<size;++index)
+
+				output[index] = clone(input[index]);
+
+		} else if (type === 'object') {
+
+			output = {};
+
+			for (index in input)
+
+				output[index] = clone(input[index]);
+
+		}
+
+		return output;
+
+	}
+
+	function typeOf(input) {
+
+		return ({}).toString.call(input).match(/\s([\w]+)/)[1].toLowerCase();
+
+	}
+
+	if (isNode) {
+
+		module.exports = merge;
+
+	} else {
+
+		window.merge = merge;
+
+	}
+
+})(typeof module === 'object' && module && typeof module.exports === 'object' && module.exports);
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/next-tick/index.js":[function(require,module,exports){
+(function (process){
+'use strict';
+
+var callable, byObserver;
+
+callable = function (fn) {
+	if (typeof fn !== 'function') throw new TypeError(fn + " is not a function");
+	return fn;
+};
+
+byObserver = function (Observer) {
+	var node = document.createTextNode(''), queue, i = 0;
+	new Observer(function () {
+		var data;
+		if (!queue) return;
+		data = queue;
+		queue = null;
+		if (typeof data === 'function') {
+			data();
+			return;
+		}
+		data.forEach(function (fn) { fn(); });
+	}).observe(node, { characterData: true });
+	return function (fn) {
+		callable(fn);
+		if (queue) {
+			if (typeof queue === 'function') queue = [queue, fn];
+			else queue.push(fn);
+			return;
+		}
+		queue = fn;
+		node.data = (i = ++i % 2);
+	};
+};
+
+module.exports = (function () {
+	// Node.js
+	if ((typeof process !== 'undefined') && process &&
+			(typeof process.nextTick === 'function')) {
+		return process.nextTick;
+	}
+
+	// MutationObserver=
+	if ((typeof document === 'object') && document) {
+		if (typeof MutationObserver === 'function') {
+			return byObserver(MutationObserver);
+		}
+		if (typeof WebKitMutationObserver === 'function') {
+			return byObserver(WebKitMutationObserver);
+		}
+	}
+
+	// W3C Draft
+	// http://dvcs.w3.org/hg/webperf/raw-file/tip/specs/setImmediate/Overview.html
+	if (typeof setImmediate === 'function') {
+		return function (cb) { setImmediate(callable(cb)); };
+	}
+
+	// Wide available standard
+	if (typeof setTimeout === 'function') {
+		return function (cb) { setTimeout(callable(cb), 0); };
+	}
+
+	return null;
+}());
+
+}).call(this,require('_process'))
+},{"_process":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js":[function(require,module,exports){
+Object.create = Object.create || function (o) {
+    if (arguments.length > 1) {
+        throw new Error('Object.create implementation only accepts the first parameter.');
+    }
+    function F() {}
+    F.prototype = o;
+    return new F();
+};
+
+function createSpec(child, parent){
+    var parentPrototype;
+
+    if(!parent) {
+        parent = Object;
+    }
+
+    if(!parent.prototype) {
+        parent.prototype = {};
+    }
+
+    parentPrototype = parent.prototype;
+
+    child.prototype = Object.create(parent.prototype);
+    child.prototype.__super__ = parentPrototype;
+    child.__super__ = parent;
+
+    // Yes, This is 'bad'. However, it runs once per Spec creation.
+    var spec = new Function("child", "return function " + child.name + "(){child.__super__.apply(this, arguments);return child.apply(this, arguments);}")(child);
+
+    spec.prototype = child.prototype;
+    spec.prototype.constructor = child.prototype.constructor = spec;
+    spec.__super__ = parent;
+
+    return spec;
+}
+
+module.exports = createSpec;
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/what-changed/index.js":[function(require,module,exports){
+var clone = require('clone'),
+    deepEqual = require('deep-equal');
+
+function keysAreDifferent(keys1, keys2){
+    if(keys1 === keys2){
+        return;
+    }
+    if(!keys1 || !keys2 || keys1.length !== keys2.length){
+        return true;
+    }
+    for(var i = 0; i < keys1.length; i++){
+        if(!~keys2.indexOf(keys1[i])){
+            return true;
+        }
+    }
+}
+
+function getKeys(value){
+    if(!value || typeof value !== 'object'){
+        return;
+    }
+
+    return Object.keys(value);
+}
+
+function WhatChanged(value){
+    this.update(value);
+}
+WhatChanged.prototype.update = function(value){
+    var result = {},
+        newKeys = getKeys(value);
+
+    if(value+'' !== this._lastReference+''){
+        result.value = true;
+    }
+    if(typeof value !== typeof this._lastValue){
+        result.type = true;
+    }
+    if(keysAreDifferent(this._lastKeys, getKeys(value))){
+        result.keys = true;
+    }
+
+    if(value !== null && typeof value === 'object'){
+        if(!deepEqual(value, this._lastValue)){
+            result.structure = true;
+        }
+        if(value !== this._lastReference){
+            result.reference = true;
+        }
+    }
+
+    this._lastValue = clone(value);
+    this._lastReference = value;
+    this._lastKeys = newKeys;
+
+    return result;
+};
+
+module.exports = WhatChanged;
+},{"clone":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/what-changed/node_modules/clone/clone.js","deep-equal":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/what-changed/node_modules/deep-equal/index.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/what-changed/node_modules/clone/clone.js":[function(require,module,exports){
+(function (Buffer){
+'use strict';
+
+function objectToString(o) {
+  return Object.prototype.toString.call(o);
+}
+
+// shim for Node's 'util' package
+// DO NOT REMOVE THIS! It is required for compatibility with EnderJS (http://enderjs.com/).
+var util = {
+  isArray: function (ar) {
+    return Array.isArray(ar) || (typeof ar === 'object' && objectToString(ar) === '[object Array]');
+  },
+  isDate: function (d) {
+    return typeof d === 'object' && objectToString(d) === '[object Date]';
+  },
+  isRegExp: function (re) {
+    return typeof re === 'object' && objectToString(re) === '[object RegExp]';
+  },
+  getRegExpFlags: function (re) {
+    var flags = '';
+    re.global && (flags += 'g');
+    re.ignoreCase && (flags += 'i');
+    re.multiline && (flags += 'm');
+    return flags;
+  }
+};
+
+
+if (typeof module === 'object')
+  module.exports = clone;
+
+/**
+ * Clones (copies) an Object using deep copying.
+ *
+ * This function supports circular references by default, but if you are certain
+ * there are no circular references in your object, you can save some CPU time
+ * by calling clone(obj, false).
+ *
+ * Caution: if `circular` is false and `parent` contains circular references,
+ * your program may enter an infinite loop and crash.
+ *
+ * @param `parent` - the object to be cloned
+ * @param `circular` - set to true if the object to be cloned may contain
+ *    circular references. (optional - true by default)
+ * @param `depth` - set to a number if the object is only to be cloned to
+ *    a particular depth. (optional - defaults to Infinity)
+ * @param `prototype` - sets the prototype to be used when cloning an object.
+ *    (optional - defaults to parent prototype).
+*/
+
+function clone(parent, circular, depth, prototype) {
+  // maintain two arrays for circular references, where corresponding parents
+  // and children have the same index
+  var allParents = [];
+  var allChildren = [];
+
+  var useBuffer = typeof Buffer != 'undefined';
+
+  if (typeof circular == 'undefined')
+    circular = true;
+
+  if (typeof depth == 'undefined')
+    depth = Infinity;
+
+  // recurse this function so we don't reset allParents and allChildren
+  function _clone(parent, depth) {
+    // cloning null always returns null
+    if (parent === null)
+      return null;
+
+    if (depth == 0)
+      return parent;
+
+    var child;
+    if (typeof parent != 'object') {
+      return parent;
+    }
+
+    if (util.isArray(parent)) {
+      child = [];
+    } else if (util.isRegExp(parent)) {
+      child = new RegExp(parent.source, util.getRegExpFlags(parent));
+      if (parent.lastIndex) child.lastIndex = parent.lastIndex;
+    } else if (util.isDate(parent)) {
+      child = new Date(parent.getTime());
+    } else if (useBuffer && Buffer.isBuffer(parent)) {
+      child = new Buffer(parent.length);
+      parent.copy(child);
+      return child;
+    } else {
+      if (typeof prototype == 'undefined') child = Object.create(Object.getPrototypeOf(parent));
+      else child = Object.create(prototype);
+    }
+
+    if (circular) {
+      var index = allParents.indexOf(parent);
+
+      if (index != -1) {
+        return allChildren[index];
+      }
+      allParents.push(parent);
+      allChildren.push(child);
+    }
+
+    for (var i in parent) {
+      child[i] = _clone(parent[i], depth - 1);
+    }
+
+    return child;
+  }
+
+  return _clone(parent, depth);
+}
+
+/**
+ * Simple flat clone using prototype, accepts only objects, usefull for property
+ * override on FLAT configuration object (no nested props).
+ *
+ * USE WITH CAUTION! This may not behave as you wish if you do not know how this
+ * works.
+ */
+clone.clonePrototype = function(parent) {
+  if (parent === null)
+    return null;
+
+  var c = function () {};
+  c.prototype = parent;
+  return new c();
+};
+
+}).call(this,require("buffer").Buffer)
+},{"buffer":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/what-changed/node_modules/deep-equal/index.js":[function(require,module,exports){
+var pSlice = Array.prototype.slice;
+var objectKeys = require('./lib/keys.js');
+var isArguments = require('./lib/is_arguments.js');
+
+var deepEqual = module.exports = function (actual, expected, opts) {
+  if (!opts) opts = {};
+  // 7.1. All identical values are equivalent, as determined by ===.
+  if (actual === expected) {
+    return true;
+
+  } else if (actual instanceof Date && expected instanceof Date) {
+    return actual.getTime() === expected.getTime();
+
+  // 7.3. Other pairs that do not both pass typeof value == 'object',
+  // equivalence is determined by ==.
+  } else if (typeof actual != 'object' && typeof expected != 'object') {
+    return opts.strict ? actual === expected : actual == expected;
+
+  // 7.4. For all other Object pairs, including Array objects, equivalence is
+  // determined by having the same number of owned properties (as verified
+  // with Object.prototype.hasOwnProperty.call), the same set of keys
+  // (although not necessarily the same order), equivalent values for every
+  // corresponding key, and an identical 'prototype' property. Note: this
+  // accounts for both named and indexed properties on Arrays.
+  } else {
+    return objEquiv(actual, expected, opts);
+  }
+}
+
+function isUndefinedOrNull(value) {
+  return value === null || value === undefined;
+}
+
+function isBuffer (x) {
+  if (!x || typeof x !== 'object' || typeof x.length !== 'number') return false;
+  if (typeof x.copy !== 'function' || typeof x.slice !== 'function') {
+    return false;
+  }
+  if (x.length > 0 && typeof x[0] !== 'number') return false;
+  return true;
+}
+
+function objEquiv(a, b, opts) {
+  var i, key;
+  if (isUndefinedOrNull(a) || isUndefinedOrNull(b))
+    return false;
+  // an identical 'prototype' property.
+  if (a.prototype !== b.prototype) return false;
+  //~~~I've managed to break Object.keys through screwy arguments passing.
+  //   Converting to array solves the problem.
+  if (isArguments(a)) {
+    if (!isArguments(b)) {
+      return false;
+    }
+    a = pSlice.call(a);
+    b = pSlice.call(b);
+    return deepEqual(a, b, opts);
+  }
+  if (isBuffer(a)) {
+    if (!isBuffer(b)) {
+      return false;
+    }
+    if (a.length !== b.length) return false;
+    for (i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
+  }
+  try {
+    var ka = objectKeys(a),
+        kb = objectKeys(b);
+  } catch (e) {//happens when one is a string literal and the other isn't
+    return false;
+  }
+  // having the same number of owned properties (keys incorporates
+  // hasOwnProperty)
+  if (ka.length != kb.length)
+    return false;
+  //the same set of keys (although not necessarily the same order),
+  ka.sort();
+  kb.sort();
+  //~~~cheap key test
+  for (i = ka.length - 1; i >= 0; i--) {
+    if (ka[i] != kb[i])
+      return false;
+  }
+  //equivalent values for every corresponding key, and
+  //~~~possibly expensive deep test
+  for (i = ka.length - 1; i >= 0; i--) {
+    key = ka[i];
+    if (!deepEqual(a[key], b[key], opts)) return false;
+  }
+  return true;
+}
+
+},{"./lib/is_arguments.js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/what-changed/node_modules/deep-equal/lib/is_arguments.js","./lib/keys.js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/what-changed/node_modules/deep-equal/lib/keys.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/what-changed/node_modules/deep-equal/lib/is_arguments.js":[function(require,module,exports){
+var supportsArgumentsClass = (function(){
+  return Object.prototype.toString.call(arguments)
+})() == '[object Arguments]';
+
+exports = module.exports = supportsArgumentsClass ? supported : unsupported;
+
+exports.supported = supported;
+function supported(object) {
+  return Object.prototype.toString.call(object) == '[object Arguments]';
+};
+
+exports.unsupported = unsupported;
+function unsupported(object){
+  return object &&
+    typeof object == 'object' &&
+    typeof object.length == 'number' &&
+    Object.prototype.hasOwnProperty.call(object, 'callee') &&
+    !Object.prototype.propertyIsEnumerable.call(object, 'callee') ||
+    false;
+};
+
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/what-changed/node_modules/deep-equal/lib/keys.js":[function(require,module,exports){
+exports = module.exports = typeof Object.keys === 'function'
+  ? Object.keys : shim;
+
+exports.shim = shim;
+function shim (obj) {
+  var keys = [];
+  for (var key in obj) keys.push(key);
+  return keys;
+}
+
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/property.js":[function(require,module,exports){
+var createSpec = require('spec-js'),
+    Bindable = require('./bindable'),
+    IdentifierToken = require('gel-js').IdentifierToken,
+    jsonConverter = require('./jsonConverter'),
+    createModelScope = require('./createModelScope'),
+    Consuela = require('consuela'),
+    WhatChanged = require('what-changed'),
+    merge = require('merge'),
+    resolvePath = require('./resolvePath'),
+    nextTick = require('next-tick');
+
+var nextFrame;
+function updateFrame() {
+    while(nextFrame.length){
+        var property = nextFrame.pop();
+        if(property._bound){
+            property.update(property.parent, property.value);
+        }
+        property._queuedForUpdate = false;
+    }
+    nextFrame = null;
+}
+
+function requestUpdate(property){
+    if(!nextFrame){
+        nextFrame = [];
+
+        requestAnimationFrame(updateFrame);
+    }
+
+
+    if(!property._queuedForUpdate){
+        nextFrame.push(property);
+        property._queuedForUpdate = true;
+    }
+}
+
+function getItemPath(item){
+    var gedi = item.gaffa.gedi,
+        paths = [],
+        referencePath,
+        referenceItem = item;
+
+    while(referenceItem){
+
+        // item.path should be a child ref after item.sourcePath
+        if(referenceItem.path != null){
+            paths.push(referenceItem.path);
+        }
+
+        // item.sourcePath is most root level path
+        if(referenceItem.sourcePath != null){
+            paths.push(gedi.paths.create(referenceItem.sourcePath));
+        }
+
+        referenceItem = referenceItem.parent;
+    }
+
+    return gedi.paths.resolve.apply(this, paths.reverse());
+}
+
+function updateProperty(property, firstUpdate){
+    // Update immediately, reduces reflows,
+    // as things like classes are added before
+    //  the element is inserted into the DOM
+    if(firstUpdate){
+        property.update(property.parent, property.value);
+    }
+
+    if(!property._bound){
+        return;
+    }
+
+    // Still run the _lastValue.update(),
+    // because it sets up the state of the last value,
+    // and it will be false anyway.
+
+    if(property.hasChanged()){
+        if(property.gaffa.debug){
+            property.update(property.parent, property.value);
+            return;
+        }
+
+        requestUpdate(property);
+    }
+}
+
+function createPropertyCallback(property){
+    return function (event) {
+
+        var value,
+            scope,
+            valueTokens;
+
+        if(event){
+
+            scope = createModelScope(property.parent, event);
+
+            if(event === true){ // Initial update.
+
+                valueTokens = property.get(scope, true);
+
+            }else if(event.captureType === 'bubble' && property.ignoreBubbledEvents){
+
+                return;
+
+            }else if(property.binding){ // Model change update.
+
+                if(property.ignoreTargets && event.target.match(property.ignoreTargets)){
+                    return;
+                }
+
+                valueTokens = property.get(scope, true);
+            }
+
+            if(valueTokens){
+                var valueToken = valueTokens[valueTokens.length - 1];
+                value = valueToken.result;
+                property._sourcePathInfo = valueToken.sourcePathInfo;
+            }
+
+            property.value = value;
+        }
+
+        // Call the properties update function, if it has one.
+        // Only call if the changed value is an object, or if it actually changed.
+        if(!property.update){
+            return;
+        }
+
+        updateProperty(property, event === true);
+    }
+}
+
+
+function Property(propertyDescription){
+    if(typeof propertyDescription === 'function'){
+        this.update = propertyDescription;
+    }else{
+        for(var key in propertyDescription){
+            this[key] = propertyDescription[key];
+        }
+    }
+}
+Property = createSpec(Property, Bindable);
+Property.prototype.watchChanges = 'value keys structure reference type';
+Property.prototype.hasChanged = function(){
+    var changes = this._lastValue.update(this.value),
+        watched = this.watchChanges.split(' ');
+
+    for(var i = 0; i < watched.length; i++){
+        if(changes[watched[i]]){
+            return true;
+        }
+    }
+};
+Property.prototype.set = function(value, isDirty){
+    var gaffa = this.gaffa;
+
+    if(this.binding){
+        var setValue = this.setTransform ? gaffa.model.get(this.setTransform, this, {value: value}) : value;
+        gaffa.model.set(
+            this.binding,
+            setValue,
+            this,
+            isDirty
+        );
+    }else{
+        this.value = value;
+        if(this.update && this.parent._bound){
+            this.update(this.parent, value);
+        }
+    }
+
+};
+Property.prototype.get = function(scope, asTokens){
+    scope = merge(false, this.scope, scope);
+
+    if(this.binding){
+        var value = this.gaffa.model.get(this.binding, this, scope, asTokens);
+        if(this.getTransform){
+            scope.value = asTokens ? value[value.length-1].result : value;
+            return this.gaffa.model.get(this.getTransform, this, scope, asTokens);
+        }
+        return value;
+    }else{
+        return this.value;
+    }
+};
+Property.prototype.bind = function(parent, scope) {
+    if(this._bound){
+        return;
+    }
+
+    Bindable.prototype.bind.call(this);
+
+    this._lastValue = new WhatChanged();
+    this.parent = parent;
+    this.scope = merge(false, scope, this.scope);
+    this.gaffa = parent.gaffa;
+
+    parent.once('destroy', this.destroy.bind(this));
+    parent.once('debind', this.debind.bind(this));
+
+    // Shortcut for properties that have no binding.
+    // This has a significant impact on performance.
+    if(this.binding == null){
+        if(this.update){
+            this.update(parent, this.value);
+        }
+        return;
+    }
+
+    var propertyCallback = createPropertyCallback(this),
+        parentPath = resolvePath(parent);
+
+    this._currentBinding = [this.binding, propertyCallback, parentPath];
+    this.gaffa.gedi.bind(this.binding, propertyCallback, parentPath);
+    propertyCallback(true, scope);
+};
+Property.prototype.debind = function(){
+    if(this._currentBinding){
+        this.gaffa.gedi.debind.apply(null, this._currentBinding);
+        this._currentBinding = null;
+    }
+
+    Bindable.prototype.debind.call(this);
+    this._lastValue = null;
+};
+Property.prototype.destroy = function(){
+    if(this._bound){
+        this.debind();
+    }
+    Bindable.prototype.destroy.call(this);
+
+    var property = this;
+
+    // Let any children bound to 'destroy' do their thing before actually destroying this.
+    nextTick(function(){
+        property.gaffa = null;
+        property.parent = null;
+    });
+};
+Property.prototype.__serialiseExclude__ = ['_lastValue'];
+
+module.exports = Property;
+},{"./bindable":"/home/kory/dev/gaffa-select/node_modules/gaffa/bindable.js","./createModelScope":"/home/kory/dev/gaffa-select/node_modules/gaffa/createModelScope.js","./jsonConverter":"/home/kory/dev/gaffa-select/node_modules/gaffa/jsonConverter.js","./resolvePath":"/home/kory/dev/gaffa-select/node_modules/gaffa/resolvePath.js","consuela":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/consuela/index.js","gel-js":"/home/kory/dev/gaffa-select/node_modules/gel-js/gel.js","merge":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/merge/merge.js","next-tick":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/next-tick/index.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js","what-changed":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/what-changed/index.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/raf.js":[function(require,module,exports){
+/*
+ * raf.js
+ * https://github.com/ngryman/raf.js
+ *
+ * original requestAnimationFrame polyfill by Erik Möller
+ * inspired from paul_irish gist and post
+ *
+ * Copyright (c) 2013 ngryman
+ * Licensed under the MIT license.
+ */
+
+var global = typeof window !== 'undefined' ? window : this;
+
+var lastTime = 0,
+    vendors = ['webkit', 'moz'],
+    requestAnimationFrame = global.requestAnimationFrame,
+    cancelAnimationFrame = global.cancelAnimationFrame,
+    i = vendors.length;
+
+// try to un-prefix existing raf
+while (--i >= 0 && !requestAnimationFrame) {
+    requestAnimationFrame = global[vendors[i] + 'RequestAnimationFrame'];
+    cancelAnimationFrame = global[vendors[i] + 'CancelAnimationFrame'];
+}
+
+// polyfill with setTimeout fallback
+// heavily inspired from @darius gist mod: https://gist.github.com/paulirish/1579671#comment-837945
+if (!requestAnimationFrame || !cancelAnimationFrame) {
+    requestAnimationFrame = function(callback) {
+        var now = +Date.now(),
+            nextTime = Math.max(lastTime + 16, now);
+        return setTimeout(function() {
+            callback(lastTime = nextTime);
+        }, nextTime - now);
+    };
+
+    cancelAnimationFrame = clearTimeout;
+}
+
+if (!cancelAnimationFrame){
+    global.cancelAnimationFrame = function(id) {
+        clearTimeout(id);
+    };
+}
+
+global.requestAnimationFrame = requestAnimationFrame;
+global.cancelAnimationFrame = cancelAnimationFrame;
+
+module.exports = {
+    requestAnimationFrame: requestAnimationFrame,
+    cancelAnimationFrame: cancelAnimationFrame
+};
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/removeViews.js":[function(require,module,exports){
+function removeViews(views){
+    if(!views){
+        return;
+    }
+
+    views = views.slice ? views.slice() : [views];
+
+    for(var i = 0; i < views.length; i++) {
+        views[i].remove();
+    }
+}
+
+module.exports = removeViews;
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/resolvePath.js":[function(require,module,exports){
+module.exports = function resolvePath(viewItem){
+    if(viewItem && viewItem.getPath){
+        return viewItem.getPath();
+    }
+};
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/view.js":[function(require,module,exports){
+/**
+    ## View
+
+    A base constructor for gaffa Views that have content view.
+
+    All Views that inherit from ContainerView will have:
+
+        someView.views.content
+*/
+
+var createSpec = require('spec-js'),
+    doc = require('doc-js'),
+    crel = require('crel'),
+    laidout = require('laidout'),
+    ViewItem = require('./viewItem'),
+    Property = require('./property'),
+    createModelScope = require('./createModelScope'),
+    getClosestItem = require('./getClosestItem'),
+    Behaviour = require('./behaviour');
+
+function insertFunction(selector, renderedElement, insertIndex){
+    var target = ((typeof selector === "string") ? document.querySelectorAll(selector)[0] : selector),
+        referenceSibling;
+
+    if(target && target.childNodes){
+        referenceSibling = target.childNodes[insertIndex];
+    }
+    if (referenceSibling){
+        target.insertBefore(renderedElement, referenceSibling);
+    }  else {
+        target.appendChild(renderedElement);
+    }
+}
+
+function langify(fn, context){
+    return function(scope, args){
+        var args = args.all();
+
+        return fn.apply(context, args);
+    }
+}
+
+function createEventedActionScope(view, event){
+    var scope = createModelScope(view);
+
+    scope.event = {
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+        which: event.which,
+        target: event.target,
+        targetViewItem: getClosestItem(event.target),
+        preventDefault: langify(event.preventDefault, event),
+        stopPropagation: langify(event.stopPropagation, event)
+    };
+
+    return scope;
+}
+
+function bindViewEvent(view, eventName){
+    return view.gaffa.events.on(eventName, view.renderedElement, function (event) {
+        view.triggerActions(eventName, createEventedActionScope(view, event), event);
+    });
+}
+
+function View(viewDescription){
+    var view = this;
+
+    view.behaviours = view.behaviours || [];
+}
+View = createSpec(View, ViewItem);
+
+View.prototype.bind = function(parent, scope){
+    ViewItem.prototype.bind.apply(this, arguments);
+
+    for(var key in this){
+        if(crel.isNode(this[key])){
+            this.consuela.watch(this[key]);
+        }
+    }
+
+    for(var key in this.actions){
+        var actions = this.actions[key],
+            off;
+
+        if(actions.__bound){
+            continue;
+        }
+
+        actions.__bound = true;
+
+        bindViewEvent(this, key);
+    }
+
+    this.triggerActions('load');
+
+    for(var i = 0; i < this.behaviours.length; i++){
+        Behaviour.prototype.bind.call(this.behaviours[i], this, scope);
+        if(this.behaviours[i].bind !== Behaviour.prototype.bind){
+            this.behaviours[i].bind(this, scope);
+        }
+    }
+};
+
+View.prototype.detach = function(){
+    this.renderedElement && this.renderedElement.parentNode && this.renderedElement.parentNode.removeChild(this.renderedElement);
+};
+
+View.prototype.remove = function(){
+    this.detach();
+    ViewItem.prototype.remove.call(this);
+}
+
+View.prototype.debind = function () {
+    if(!this._bound){
+        return;
+    }
+    this.triggerActions('unload');
+
+    for(var key in this.actions){
+        this.actions[key].__bound = false;
+    }
+    this.renderedElement.viewModel = null;
+    for(var key in this){
+        if(crel.isNode(this[key])){
+            this[key] = null;
+        }
+    }
+    ViewItem.prototype.debind.call(this);
+};
+
+View.prototype.render = function(){};
+
+function insert(view, viewContainer, insertIndex){
+    var gaffa = view.gaffa,
+        renderTarget = view.insertSelector || view.renderTarget || viewContainer && viewContainer.element || gaffa.views.renderTarget;
+
+    if(view.afterInsert){
+        laidout(view.renderedElement, function(){
+            view.afterInsert();
+        });
+    }
+
+    if(viewContainer.indexOf(view) !== insertIndex){
+        viewContainer.splice(insertIndex, 1, view);
+    }
+
+    view.insertFunction(view.insertSelector || renderTarget, view.renderedElement, insertIndex);
+}
+
+View.prototype.insert = function(viewContainer, insertIndex){
+    insert(this, viewContainer, insertIndex);
+};
+
+function Classes(){};
+Classes = createSpec(Classes, Property);
+Classes.prototype.update = function(view, value){
+    doc.removeClass(view.renderedElement, this._previousClasses);
+    this._previousClasses = value;
+    doc.addClass(view.renderedElement, value);
+};
+View.prototype.classes = new Classes();
+
+function Visible(){};
+Visible = createSpec(Visible, Property);
+Visible.prototype.value = true;
+Visible.prototype.update = function(view, value) {
+    view.renderedElement.style.display = value ? '' : 'none';
+};
+View.prototype.visible = new Visible();
+
+function Enabled(){};
+Enabled = createSpec(Enabled, Property);
+Enabled.prototype.value = true;
+Enabled.prototype.update = function(view, value) {
+    if(!value === !!view.renderedElement.getAttribute('disabled')){
+        return;
+    }
+    view.renderedElement[!value ? 'setAttribute' : 'removeAttribute']('disabled','disabled');
+};
+View.prototype.enabled = new Enabled();
+
+function Title(){};
+Title = createSpec(Title, Property);
+Title.prototype.update = function(view, value) {
+    view.renderedElement[value ? 'setAttribute' : 'removeAttribute']('title',value);
+};
+View.prototype.title = new Title();
+
+View.prototype.insertFunction = insertFunction;
+
+module.exports = View;
+},{"./behaviour":"/home/kory/dev/gaffa-select/node_modules/gaffa/behaviour.js","./createModelScope":"/home/kory/dev/gaffa-select/node_modules/gaffa/createModelScope.js","./getClosestItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/getClosestItem.js","./property":"/home/kory/dev/gaffa-select/node_modules/gaffa/property.js","./viewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewItem.js","crel":"/home/kory/dev/gaffa-select/node_modules/crel/crel.js","doc-js":"/home/kory/dev/gaffa-select/node_modules/doc-js/fluent.js","laidout":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/laidout/index.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/viewContainer.js":[function(require,module,exports){
+var createSpec = require('spec-js'),
+    Bindable = require('./bindable'),
+    View = require('./view'),
+    initialiseViewItem = require('./initialiseViewItem'),
+    Consuela = require('consuela'),
+    removeViews = require('./removeViews'),
+    arrayProto = Array.prototype;
+
+function ViewContainer(viewContainerDescription){
+    Bindable.call(this);
+    var viewContainer = this;
+
+    this._deferredViews = [];
+
+    if(viewContainerDescription instanceof Array){
+        viewContainer.add(viewContainerDescription);
+    }
+}
+ViewContainer = createSpec(ViewContainer, Array);
+for(var key in Bindable.prototype){
+    ViewContainer.prototype[key] = Bindable.prototype[key];
+}
+ViewContainer.prototype.constructor = ViewContainer;
+ViewContainer.prototype.bind = function(parent){
+    Bindable.prototype.bind.call(this);
+
+    this.parent = parent;
+    this.gaffa = parent.gaffa;
+
+    parent.once('debind', this.debind.bind(this));
+    parent.once('destroy', this.destroy.bind(this));
+
+    for(var i = 0; i < this.length; i++){
+        this.add(this[i], i);
+    }
+
+    return this;
+};
+ViewContainer.prototype.debind = function(){
+    for (var i = 0; i < this.length; i++) {
+        this[i].detach();
+    }
+    Bindable.prototype.debind.call(this);
+};
+ViewContainer.prototype.getPath = function(){
+    return getItemPath(this);
+};
+
+/*
+    ViewContainers handle their own array state.
+    A View that is added to a ViewContainer will
+    be automatically removed from its current
+    container, if it has one.
+*/
+ViewContainer.prototype.add = function(view, insertIndex){
+    // If passed an array
+    if(Array.isArray(view)){
+        // Clone the array so splicing can't cause issues
+        var views = view.slice();
+        for(var i = 0; i < view.length; i++){
+            this.add(view[i]);
+        }
+        return this;
+    }
+
+    // Is already in the tree somewhere? remove it.
+    if(view.parentContainer instanceof ViewContainer){
+        view.parentContainer.splice(view.parentContainer.indexOf(view),1);
+    }
+
+    this.splice(insertIndex >= 0 ? insertIndex : this.length,0,view);
+
+    view.parentContainer = this;
+
+    if(this._bound){
+        if(view._bound){
+            view.debind();
+        }
+        if(!(view instanceof View)){
+            view = this[this.indexOf(view)] = initialiseViewItem(view, this.gaffa, this.gaffa.views._constructors);
+        }
+        view.gaffa = this.gaffa;
+
+        this.gaffa.namedViews[view.name] = view;
+
+        if(!view.renderedElement){
+            view.render();
+            view.renderedElement.viewModel = view;
+        }
+        view.bind(this.parent, this.parent.scope);
+        view.insert(this, insertIndex);
+    }
+
+    return view;
+};
+
+/*
+    adds 5 (5 is arbitrary) views at a time to the target viewContainer,
+    then queues up another add.
+*/
+function executeDeferredAdd(viewContainer){
+    var currentOpperation = viewContainer._deferredViews.splice(0,5);
+
+    if(!currentOpperation.length){
+        return;
+    }
+
+    for (var i = 0; i < currentOpperation.length; i++) {
+        viewContainer.add(currentOpperation[i][0], currentOpperation[i][1]);
+    };
+    requestAnimationFrame(function(time){
+        executeDeferredAdd(viewContainer);
+    });
+}
+
+/*
+    Adds children to the view container over time, via RAF.
+    Will only begin the render cycle if there are no _deferredViews,
+    because if _deferredViews.length is > 0, the render loop will
+    already be going.
+*/
+ViewContainer.prototype.deferredAdd = function(view, insertIndex){
+    var viewContainer = this,
+        shouldStart = !this._deferredViews.length;
+
+    this._deferredViews.push([view, insertIndex]);
+
+    if(shouldStart){
+        requestAnimationFrame(function(){
+            executeDeferredAdd(viewContainer);
+        });
+    }
+};
+
+ViewContainer.prototype.abortDeferredAdd = function(){
+    this._deferredViews = [];
+};
+ViewContainer.prototype.remove = function(view){
+    view.remove();
+};
+ViewContainer.prototype.empty = function(){
+    removeViews(this);
+};
+ViewContainer.prototype.__serialiseExclude__ = ['element'];
+
+module.exports = ViewContainer;
+},{"./bindable":"/home/kory/dev/gaffa-select/node_modules/gaffa/bindable.js","./initialiseViewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseViewItem.js","./removeViews":"/home/kory/dev/gaffa-select/node_modules/gaffa/removeViews.js","./view":"/home/kory/dev/gaffa-select/node_modules/gaffa/view.js","consuela":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/consuela/index.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/viewItem.js":[function(require,module,exports){
+var createSpec = require('spec-js'),
+    Bindable = require('./bindable'),
+    jsonConverter = require('./jsonConverter'),
+    Property = require('./property'),
+    merge = require('merge'),
+    nextTick = require('next-tick');
+
+function copyProperties(source, target){
+    if(
+        !source || typeof source !== 'object' ||
+        !target || typeof target !== 'object'
+    ){
+        return;
+    }
+
+    for(var key in source){
+        if(source.hasOwnProperty(key)){
+            target[key] = source[key];
+        }
+    }
+}
+
+function inflateViewItem(viewItem, description){
+    var ViewContainer = require('./viewContainer');
+
+    for(var key in viewItem){
+        if(viewItem[key] instanceof Property){
+            viewItem[key] = new viewItem[key].constructor(viewItem[key]);
+        }
+    }
+
+    /**
+        ## .actions
+
+        All ViewItems have an actions object which can be overriden.
+
+        The actions object looks like this:
+
+            viewItem.actions = {
+                click: [action1, action2],
+                hover: [action3, action4]
+            }
+
+        eg:
+
+            // Some ViewItems
+            var someButton = new views.button(),
+                removeItem = new actions.remove();
+
+            // Set removeItem as a child of someButton.
+            someButton.actions.click = [removeItem];
+
+        If a Views action.[name] matches a DOM event name, it will be automatically _bound.
+
+            myView.actions.click = [
+                // actions to trigger when a 'click' event is raised by the views renderedElement
+            ];
+    */
+    viewItem.actions = viewItem.actions ? clone(viewItem.actions) : {};
+
+    for(var key in description){
+        var prop = viewItem[key];
+        if(prop instanceof Property || prop instanceof ViewContainer){
+            copyProperties(description[key], prop);
+        }else{
+            viewItem[key] = description[key];
+        }
+    }
+}
+
+/**
+    ## ViewItem
+
+    The base constructor for all gaffa ViewItems.
+
+    Views, Behaviours, and Actions inherrit from ViewItem.
+*/
+function ViewItem(viewItemDescription){
+    inflateViewItem(this, viewItemDescription);
+}
+ViewItem = createSpec(ViewItem, Bindable);
+
+    /**
+        ## .path
+
+        the base path for a viewItem.
+
+        Any bindings on a ViewItem will recursivly resolve through the ViewItems parent's paths.
+
+        Eg:
+
+            // Some ViewItems
+            var viewItem1 = new views.button(),
+                viewItem2 = new actions.set();
+
+            // Give viewItem1 a path.
+            viewItem1.path = '[things]';
+            // Set viewItem2 as a child of viewItem1.
+            viewItem1.actions.click = [viewItem2];
+
+            // Give viewItem2 a path.
+            viewItem2.path = '[stuff]';
+            // Set viewItem2s target binding.
+            viewItem2.target.binding = '[majigger]';
+
+        viewItem2.target.binding will resolve to:
+
+            '[/things/stuff/majigger]'
+    */
+ViewItem.prototype.path = '[]';
+ViewItem.prototype.bind = function(parent, scope){
+    Bindable.prototype.bind.call(this);
+
+    var viewItem = this,
+        property;
+
+    if(parent){
+        parent.once('debind', this.debind.bind(this));
+        parent.once('destroy', this.destroy.bind(this));
+    }
+
+
+    this.parent = parent;
+    this.scope = merge(false, scope, this.scope);
+    this.gaffa = parent && parent.gaffa || this.gaffa;
+
+
+    // Only set up properties that were on the prototype.
+    // Faster and 'safer'
+    for(var propertyKey in this.constructor.prototype){
+        property = this[propertyKey];
+        if(property instanceof Property){
+            property.bind(this, this.scope);
+        }
+    }
+
+    // Create item scope
+};
+ViewItem.prototype.remove = function(){
+    if(this.parentContainer){
+        var index = this.parentContainer.indexOf(this);
+        if(index >= 0){
+            this.parentContainer.splice(index, 1);
+        }
+        this.parentContainer = null;
+    }
+
+    this.emit('remove');
+
+    this.debind();
+
+    this.destroy();
+};
+ViewItem.prototype.destroy = function(){
+    Bindable.prototype.destroy.call(this);
+
+    var viewItem = this;
+
+    // Let any children bound to 'destroy' do their thing before actually destroying this.
+    nextTick(function(){
+        viewItem.gaffa = null;
+    });
+};
+ViewItem.prototype.triggerActions = function(actionName, scope, event){
+    if(!this.gaffa){
+        return;
+    }
+    scope = merge(false, this.scope, scope);
+    this.gaffa.actions.trigger(this.actions[actionName], this, scope, event);
+};
+
+module.exports = ViewItem;
+},{"./bindable":"/home/kory/dev/gaffa-select/node_modules/gaffa/bindable.js","./jsonConverter":"/home/kory/dev/gaffa-select/node_modules/gaffa/jsonConverter.js","./property":"/home/kory/dev/gaffa-select/node_modules/gaffa/property.js","./viewContainer":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewContainer.js","merge":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/merge/merge.js","next-tick":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/next-tick/index.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gel-js/gel.js":[function(require,module,exports){
 var Lang = require('lang-js'),
     paths = require('gedi-paths'),
     merge = require('merge'),
@@ -5174,756 +7609,297 @@ for (var i = 0; i < tokenConverters.length; i++) {
 Gel.Token = Token;
 Gel.Scope = Scope;
 module.exports = Gel;
-},{"gedi-paths":32,"lang-js":37,"merge":39,"spec-js":40}],34:[function(require,module,exports){
-// Copyright (C) 2011 Google Inc.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+},{"gedi-paths":"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/gedi-paths/paths.js","lang-js":"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/lang-js/lang.js","merge":"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/merge/merge.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/gedi-paths/detectPath.js":[function(require,module,exports){
+module.exports = function detectPath(substring){
+    if (substring.charAt(0) === '[') {
+        var index = 1;
 
-/**
- * @fileoverview Install a leaky WeakMap emulation on platforms that
- * don't provide a built-in one.
- *
- * <p>Assumes that an ES5 platform where, if {@code WeakMap} is
- * already present, then it conforms to the anticipated ES6
- * specification. To run this file on an ES5 or almost ES5
- * implementation where the {@code WeakMap} specification does not
- * quite conform, run <code>repairES5.js</code> first.
- *
- * <p>Even though WeakMapModule is not global, the linter thinks it
- * is, which is why it is in the overrides list below.
- *
- * <p>NOTE: Before using this WeakMap emulation in a non-SES
- * environment, see the note below about hiddenRecord.
- *
- * @author Mark S. Miller
- * @requires crypto, ArrayBuffer, Uint8Array, navigator, console
- * @overrides WeakMap, ses, Proxy
- * @overrides WeakMapModule
- */
-
-/**
- * This {@code WeakMap} emulation is observably equivalent to the
- * ES-Harmony WeakMap, but with leakier garbage collection properties.
- *
- * <p>As with true WeakMaps, in this emulation, a key does not
- * retain maps indexed by that key and (crucially) a map does not
- * retain the keys it indexes. A map by itself also does not retain
- * the values associated with that map.
- *
- * <p>However, the values associated with a key in some map are
- * retained so long as that key is retained and those associations are
- * not overridden. For example, when used to support membranes, all
- * values exported from a given membrane will live for the lifetime
- * they would have had in the absence of an interposed membrane. Even
- * when the membrane is revoked, all objects that would have been
- * reachable in the absence of revocation will still be reachable, as
- * far as the GC can tell, even though they will no longer be relevant
- * to ongoing computation.
- *
- * <p>The API implemented here is approximately the API as implemented
- * in FF6.0a1 and agreed to by MarkM, Andreas Gal, and Dave Herman,
- * rather than the offially approved proposal page. TODO(erights):
- * upgrade the ecmascript WeakMap proposal page to explain this API
- * change and present to EcmaScript committee for their approval.
- *
- * <p>The first difference between the emulation here and that in
- * FF6.0a1 is the presence of non enumerable {@code get___, has___,
- * set___, and delete___} methods on WeakMap instances to represent
- * what would be the hidden internal properties of a primitive
- * implementation. Whereas the FF6.0a1 WeakMap.prototype methods
- * require their {@code this} to be a genuine WeakMap instance (i.e.,
- * an object of {@code [[Class]]} "WeakMap}), since there is nothing
- * unforgeable about the pseudo-internal method names used here,
- * nothing prevents these emulated prototype methods from being
- * applied to non-WeakMaps with pseudo-internal methods of the same
- * names.
- *
- * <p>Another difference is that our emulated {@code
- * WeakMap.prototype} is not itself a WeakMap. A problem with the
- * current FF6.0a1 API is that WeakMap.prototype is itself a WeakMap
- * providing ambient mutability and an ambient communications
- * channel. Thus, if a WeakMap is already present and has this
- * problem, repairES5.js wraps it in a safe wrappper in order to
- * prevent access to this channel. (See
- * PATCH_MUTABLE_FROZEN_WEAKMAP_PROTO in repairES5.js).
- */
-
-/**
- * If this is a full <a href=
- * "http://code.google.com/p/es-lab/wiki/SecureableES5"
- * >secureable ES5</a> platform and the ES-Harmony {@code WeakMap} is
- * absent, install an approximate emulation.
- *
- * <p>If WeakMap is present but cannot store some objects, use our approximate
- * emulation as a wrapper.
- *
- * <p>If this is almost a secureable ES5 platform, then WeakMap.js
- * should be run after repairES5.js.
- *
- * <p>See {@code WeakMap} for documentation of the garbage collection
- * properties of this WeakMap emulation.
- */
-(function WeakMapModule() {
-  "use strict";
-
-  if (typeof ses !== 'undefined' && ses.ok && !ses.ok()) {
-    // already too broken, so give up
-    return;
-  }
-
-  /**
-   * In some cases (current Firefox), we must make a choice betweeen a
-   * WeakMap which is capable of using all varieties of host objects as
-   * keys and one which is capable of safely using proxies as keys. See
-   * comments below about HostWeakMap and DoubleWeakMap for details.
-   *
-   * This function (which is a global, not exposed to guests) marks a
-   * WeakMap as permitted to do what is necessary to index all host
-   * objects, at the cost of making it unsafe for proxies.
-   *
-   * Do not apply this function to anything which is not a genuine
-   * fresh WeakMap.
-   */
-  function weakMapPermitHostObjects(map) {
-    // identity of function used as a secret -- good enough and cheap
-    if (map.permitHostObjects___) {
-      map.permitHostObjects___(weakMapPermitHostObjects);
-    }
-  }
-  if (typeof ses !== 'undefined') {
-    ses.weakMapPermitHostObjects = weakMapPermitHostObjects;
-  }
-
-  // IE 11 has no Proxy but has a broken WeakMap such that we need to patch
-  // it using DoubleWeakMap; this flag tells DoubleWeakMap so.
-  var doubleWeakMapCheckSilentFailure = false;
-
-  // Check if there is already a good-enough WeakMap implementation, and if so
-  // exit without replacing it.
-  if (typeof WeakMap === 'function') {
-    var HostWeakMap = WeakMap;
-    // There is a WeakMap -- is it good enough?
-    if (typeof navigator !== 'undefined' &&
-        /Firefox/.test(navigator.userAgent)) {
-      // We're now *assuming not*, because as of this writing (2013-05-06)
-      // Firefox's WeakMaps have a miscellany of objects they won't accept, and
-      // we don't want to make an exhaustive list, and testing for just one
-      // will be a problem if that one is fixed alone (as they did for Event).
-
-      // If there is a platform that we *can* reliably test on, here's how to
-      // do it:
-      //  var problematic = ... ;
-      //  var testHostMap = new HostWeakMap();
-      //  try {
-      //    testHostMap.set(problematic, 1);  // Firefox 20 will throw here
-      //    if (testHostMap.get(problematic) === 1) {
-      //      return;
-      //    }
-      //  } catch (e) {}
-
-    } else {
-      // IE 11 bug: WeakMaps silently fail to store frozen objects.
-      var testMap = new HostWeakMap();
-      var testObject = Object.freeze({});
-      testMap.set(testObject, 1);
-      if (testMap.get(testObject) !== 1) {
-        doubleWeakMapCheckSilentFailure = true;
-        // Fall through to installing our WeakMap.
-      } else {
-        module.exports = WeakMap;
-        return;
-      }
-    }
-  }
-
-  var hop = Object.prototype.hasOwnProperty;
-  var gopn = Object.getOwnPropertyNames;
-  var defProp = Object.defineProperty;
-  var isExtensible = Object.isExtensible;
-
-  /**
-   * Security depends on HIDDEN_NAME being both <i>unguessable</i> and
-   * <i>undiscoverable</i> by untrusted code.
-   *
-   * <p>Given the known weaknesses of Math.random() on existing
-   * browsers, it does not generate unguessability we can be confident
-   * of.
-   *
-   * <p>It is the monkey patching logic in this file that is intended
-   * to ensure undiscoverability. The basic idea is that there are
-   * three fundamental means of discovering properties of an object:
-   * The for/in loop, Object.keys(), and Object.getOwnPropertyNames(),
-   * as well as some proposed ES6 extensions that appear on our
-   * whitelist. The first two only discover enumerable properties, and
-   * we only use HIDDEN_NAME to name a non-enumerable property, so the
-   * only remaining threat should be getOwnPropertyNames and some
-   * proposed ES6 extensions that appear on our whitelist. We monkey
-   * patch them to remove HIDDEN_NAME from the list of properties they
-   * returns.
-   *
-   * <p>TODO(erights): On a platform with built-in Proxies, proxies
-   * could be used to trap and thereby discover the HIDDEN_NAME, so we
-   * need to monkey patch Proxy.create, Proxy.createFunction, etc, in
-   * order to wrap the provided handler with the real handler which
-   * filters out all traps using HIDDEN_NAME.
-   *
-   * <p>TODO(erights): Revisit Mike Stay's suggestion that we use an
-   * encapsulated function at a not-necessarily-secret name, which
-   * uses the Stiegler shared-state rights amplification pattern to
-   * reveal the associated value only to the WeakMap in which this key
-   * is associated with that value. Since only the key retains the
-   * function, the function can also remember the key without causing
-   * leakage of the key, so this doesn't violate our general gc
-   * goals. In addition, because the name need not be a guarded
-   * secret, we could efficiently handle cross-frame frozen keys.
-   */
-  var HIDDEN_NAME_PREFIX = 'weakmap:';
-  var HIDDEN_NAME = HIDDEN_NAME_PREFIX + 'ident:' + Math.random() + '___';
-
-  if (typeof crypto !== 'undefined' &&
-      typeof crypto.getRandomValues === 'function' &&
-      typeof ArrayBuffer === 'function' &&
-      typeof Uint8Array === 'function') {
-    var ab = new ArrayBuffer(25);
-    var u8s = new Uint8Array(ab);
-    crypto.getRandomValues(u8s);
-    HIDDEN_NAME = HIDDEN_NAME_PREFIX + 'rand:' +
-      Array.prototype.map.call(u8s, function(u8) {
-        return (u8 % 36).toString(36);
-      }).join('') + '___';
-  }
-
-  function isNotHiddenName(name) {
-    return !(
-        name.substr(0, HIDDEN_NAME_PREFIX.length) == HIDDEN_NAME_PREFIX &&
-        name.substr(name.length - 3) === '___');
-  }
-
-  /**
-   * Monkey patch getOwnPropertyNames to avoid revealing the
-   * HIDDEN_NAME.
-   *
-   * <p>The ES5.1 spec requires each name to appear only once, but as
-   * of this writing, this requirement is controversial for ES6, so we
-   * made this code robust against this case. If the resulting extra
-   * search turns out to be expensive, we can probably relax this once
-   * ES6 is adequately supported on all major browsers, iff no browser
-   * versions we support at that time have relaxed this constraint
-   * without providing built-in ES6 WeakMaps.
-   */
-  defProp(Object, 'getOwnPropertyNames', {
-    value: function fakeGetOwnPropertyNames(obj) {
-      return gopn(obj).filter(isNotHiddenName);
-    }
-  });
-
-  /**
-   * getPropertyNames is not in ES5 but it is proposed for ES6 and
-   * does appear in our whitelist, so we need to clean it too.
-   */
-  if ('getPropertyNames' in Object) {
-    var originalGetPropertyNames = Object.getPropertyNames;
-    defProp(Object, 'getPropertyNames', {
-      value: function fakeGetPropertyNames(obj) {
-        return originalGetPropertyNames(obj).filter(isNotHiddenName);
-      }
-    });
-  }
-
-  /**
-   * <p>To treat objects as identity-keys with reasonable efficiency
-   * on ES5 by itself (i.e., without any object-keyed collections), we
-   * need to add a hidden property to such key objects when we
-   * can. This raises several issues:
-   * <ul>
-   * <li>Arranging to add this property to objects before we lose the
-   *     chance, and
-   * <li>Hiding the existence of this new property from most
-   *     JavaScript code.
-   * <li>Preventing <i>certification theft</i>, where one object is
-   *     created falsely claiming to be the key of an association
-   *     actually keyed by another object.
-   * <li>Preventing <i>value theft</i>, where untrusted code with
-   *     access to a key object but not a weak map nevertheless
-   *     obtains access to the value associated with that key in that
-   *     weak map.
-   * </ul>
-   * We do so by
-   * <ul>
-   * <li>Making the name of the hidden property unguessable, so "[]"
-   *     indexing, which we cannot intercept, cannot be used to access
-   *     a property without knowing the name.
-   * <li>Making the hidden property non-enumerable, so we need not
-   *     worry about for-in loops or {@code Object.keys},
-   * <li>monkey patching those reflective methods that would
-   *     prevent extensions, to add this hidden property first,
-   * <li>monkey patching those methods that would reveal this
-   *     hidden property.
-   * </ul>
-   * Unfortunately, because of same-origin iframes, we cannot reliably
-   * add this hidden property before an object becomes
-   * non-extensible. Instead, if we encounter a non-extensible object
-   * without a hidden record that we can detect (whether or not it has
-   * a hidden record stored under a name secret to us), then we just
-   * use the key object itself to represent its identity in a brute
-   * force leaky map stored in the weak map, losing all the advantages
-   * of weakness for these.
-   */
-  function getHiddenRecord(key) {
-    if (key !== Object(key)) {
-      throw new TypeError('Not an object: ' + key);
-    }
-    var hiddenRecord = key[HIDDEN_NAME];
-    if (hiddenRecord && hiddenRecord.key === key) { return hiddenRecord; }
-    if (!isExtensible(key)) {
-      // Weak map must brute force, as explained in doc-comment above.
-      return void 0;
-    }
-
-    // The hiddenRecord and the key point directly at each other, via
-    // the "key" and HIDDEN_NAME properties respectively. The key
-    // field is for quickly verifying that this hidden record is an
-    // own property, not a hidden record from up the prototype chain.
-    //
-    // NOTE: Because this WeakMap emulation is meant only for systems like
-    // SES where Object.prototype is frozen without any numeric
-    // properties, it is ok to use an object literal for the hiddenRecord.
-    // This has two advantages:
-    // * It is much faster in a performance critical place
-    // * It avoids relying on Object.create(null), which had been
-    //   problematic on Chrome 28.0.1480.0. See
-    //   https://code.google.com/p/google-caja/issues/detail?id=1687
-    hiddenRecord = { key: key };
-
-    // When using this WeakMap emulation on platforms where
-    // Object.prototype might not be frozen and Object.create(null) is
-    // reliable, use the following two commented out lines instead.
-    // hiddenRecord = Object.create(null);
-    // hiddenRecord.key = key;
-
-    // Please contact us if you need this to work on platforms where
-    // Object.prototype might not be frozen and
-    // Object.create(null) might not be reliable.
-
-    try {
-      defProp(key, HIDDEN_NAME, {
-        value: hiddenRecord,
-        writable: false,
-        enumerable: false,
-        configurable: false
-      });
-      return hiddenRecord;
-    } catch (error) {
-      // Under some circumstances, isExtensible seems to misreport whether
-      // the HIDDEN_NAME can be defined.
-      // The circumstances have not been isolated, but at least affect
-      // Node.js v0.10.26 on TravisCI / Linux, but not the same version of
-      // Node.js on OS X.
-      return void 0;
-    }
-  }
-
-  /**
-   * Monkey patch operations that would make their argument
-   * non-extensible.
-   *
-   * <p>The monkey patched versions throw a TypeError if their
-   * argument is not an object, so it should only be done to functions
-   * that should throw a TypeError anyway if their argument is not an
-   * object.
-   */
-  (function(){
-    var oldFreeze = Object.freeze;
-    defProp(Object, 'freeze', {
-      value: function identifyingFreeze(obj) {
-        getHiddenRecord(obj);
-        return oldFreeze(obj);
-      }
-    });
-    var oldSeal = Object.seal;
-    defProp(Object, 'seal', {
-      value: function identifyingSeal(obj) {
-        getHiddenRecord(obj);
-        return oldSeal(obj);
-      }
-    });
-    var oldPreventExtensions = Object.preventExtensions;
-    defProp(Object, 'preventExtensions', {
-      value: function identifyingPreventExtensions(obj) {
-        getHiddenRecord(obj);
-        return oldPreventExtensions(obj);
-      }
-    });
-  })();
-
-  function constFunc(func) {
-    func.prototype = null;
-    return Object.freeze(func);
-  }
-
-  var calledAsFunctionWarningDone = false;
-  function calledAsFunctionWarning() {
-    // Future ES6 WeakMap is currently (2013-09-10) expected to reject WeakMap()
-    // but we used to permit it and do it ourselves, so warn only.
-    if (!calledAsFunctionWarningDone && typeof console !== 'undefined') {
-      calledAsFunctionWarningDone = true;
-      console.warn('WeakMap should be invoked as new WeakMap(), not ' +
-          'WeakMap(). This will be an error in the future.');
-    }
-  }
-
-  var nextId = 0;
-
-  var OurWeakMap = function() {
-    if (!(this instanceof OurWeakMap)) {  // approximate test for new ...()
-      calledAsFunctionWarning();
-    }
-
-    // We are currently (12/25/2012) never encountering any prematurely
-    // non-extensible keys.
-    var keys = []; // brute force for prematurely non-extensible keys.
-    var values = []; // brute force for corresponding values.
-    var id = nextId++;
-
-    function get___(key, opt_default) {
-      var index;
-      var hiddenRecord = getHiddenRecord(key);
-      if (hiddenRecord) {
-        return id in hiddenRecord ? hiddenRecord[id] : opt_default;
-      } else {
-        index = keys.indexOf(key);
-        return index >= 0 ? values[index] : opt_default;
-      }
-    }
-
-    function has___(key) {
-      var hiddenRecord = getHiddenRecord(key);
-      if (hiddenRecord) {
-        return id in hiddenRecord;
-      } else {
-        return keys.indexOf(key) >= 0;
-      }
-    }
-
-    function set___(key, value) {
-      var index;
-      var hiddenRecord = getHiddenRecord(key);
-      if (hiddenRecord) {
-        hiddenRecord[id] = value;
-      } else {
-        index = keys.indexOf(key);
-        if (index >= 0) {
-          values[index] = value;
-        } else {
-          // Since some browsers preemptively terminate slow turns but
-          // then continue computing with presumably corrupted heap
-          // state, we here defensively get keys.length first and then
-          // use it to update both the values and keys arrays, keeping
-          // them in sync.
-          index = keys.length;
-          values[index] = value;
-          // If we crash here, values will be one longer than keys.
-          keys[index] = key;
-        }
-      }
-      return this;
-    }
-
-    function delete___(key) {
-      var hiddenRecord = getHiddenRecord(key);
-      var index, lastIndex;
-      if (hiddenRecord) {
-        return id in hiddenRecord && delete hiddenRecord[id];
-      } else {
-        index = keys.indexOf(key);
-        if (index < 0) {
-          return false;
-        }
-        // Since some browsers preemptively terminate slow turns but
-        // then continue computing with potentially corrupted heap
-        // state, we here defensively get keys.length first and then use
-        // it to update both the keys and the values array, keeping
-        // them in sync. We update the two with an order of assignments,
-        // such that any prefix of these assignments will preserve the
-        // key/value correspondence, either before or after the delete.
-        // Note that this needs to work correctly when index === lastIndex.
-        lastIndex = keys.length - 1;
-        keys[index] = void 0;
-        // If we crash here, there's a void 0 in the keys array, but
-        // no operation will cause a "keys.indexOf(void 0)", since
-        // getHiddenRecord(void 0) will always throw an error first.
-        values[index] = values[lastIndex];
-        // If we crash here, values[index] cannot be found here,
-        // because keys[index] is void 0.
-        keys[index] = keys[lastIndex];
-        // If index === lastIndex and we crash here, then keys[index]
-        // is still void 0, since the aliasing killed the previous key.
-        keys.length = lastIndex;
-        // If we crash here, keys will be one shorter than values.
-        values.length = lastIndex;
-        return true;
-      }
-    }
-
-    return Object.create(OurWeakMap.prototype, {
-      get___:    { value: constFunc(get___) },
-      has___:    { value: constFunc(has___) },
-      set___:    { value: constFunc(set___) },
-      delete___: { value: constFunc(delete___) }
-    });
-  };
-
-  OurWeakMap.prototype = Object.create(Object.prototype, {
-    get: {
-      /**
-       * Return the value most recently associated with key, or
-       * opt_default if none.
-       */
-      value: function get(key, opt_default) {
-        return this.get___(key, opt_default);
-      },
-      writable: true,
-      configurable: true
-    },
-
-    has: {
-      /**
-       * Is there a value associated with key in this WeakMap?
-       */
-      value: function has(key) {
-        return this.has___(key);
-      },
-      writable: true,
-      configurable: true
-    },
-
-    set: {
-      /**
-       * Associate value with key in this WeakMap, overwriting any
-       * previous association if present.
-       */
-      value: function set(key, value) {
-        return this.set___(key, value);
-      },
-      writable: true,
-      configurable: true
-    },
-
-    'delete': {
-      /**
-       * Remove any association for key in this WeakMap, returning
-       * whether there was one.
-       *
-       * <p>Note that the boolean return here does not work like the
-       * {@code delete} operator. The {@code delete} operator returns
-       * whether the deletion succeeds at bringing about a state in
-       * which the deleted property is absent. The {@code delete}
-       * operator therefore returns true if the property was already
-       * absent, whereas this {@code delete} method returns false if
-       * the association was already absent.
-       */
-      value: function remove(key) {
-        return this.delete___(key);
-      },
-      writable: true,
-      configurable: true
-    }
-  });
-
-  if (typeof HostWeakMap === 'function') {
-    (function() {
-      // If we got here, then the platform has a WeakMap but we are concerned
-      // that it may refuse to store some key types. Therefore, make a map
-      // implementation which makes use of both as possible.
-
-      // In this mode we are always using double maps, so we are not proxy-safe.
-      // This combination does not occur in any known browser, but we had best
-      // be safe.
-      if (doubleWeakMapCheckSilentFailure && typeof Proxy !== 'undefined') {
-        Proxy = undefined;
-      }
-
-      function DoubleWeakMap() {
-        if (!(this instanceof OurWeakMap)) {  // approximate test for new ...()
-          calledAsFunctionWarning();
-        }
-
-        // Preferable, truly weak map.
-        var hmap = new HostWeakMap();
-
-        // Our hidden-property-based pseudo-weak-map. Lazily initialized in the
-        // 'set' implementation; thus we can avoid performing extra lookups if
-        // we know all entries actually stored are entered in 'hmap'.
-        var omap = undefined;
-
-        // Hidden-property maps are not compatible with proxies because proxies
-        // can observe the hidden name and either accidentally expose it or fail
-        // to allow the hidden property to be set. Therefore, we do not allow
-        // arbitrary WeakMaps to switch to using hidden properties, but only
-        // those which need the ability, and unprivileged code is not allowed
-        // to set the flag.
-        //
-        // (Except in doubleWeakMapCheckSilentFailure mode in which case we
-        // disable proxies.)
-        var enableSwitching = false;
-
-        function dget(key, opt_default) {
-          if (omap) {
-            return hmap.has(key) ? hmap.get(key)
-                : omap.get___(key, opt_default);
-          } else {
-            return hmap.get(key, opt_default);
-          }
-        }
-
-        function dhas(key) {
-          return hmap.has(key) || (omap ? omap.has___(key) : false);
-        }
-
-        var dset;
-        if (doubleWeakMapCheckSilentFailure) {
-          dset = function(key, value) {
-            hmap.set(key, value);
-            if (!hmap.has(key)) {
-              if (!omap) { omap = new OurWeakMap(); }
-              omap.set(key, value);
+        do {
+            if (
+                (substring.charAt(index) === '\\' && substring.charAt(index + 1) === '\\') || // escaped escapes
+                (substring.charAt(index) === '\\' && (substring.charAt(index + 1) === '[' || substring.charAt(index + 1) === ']')) //escaped braces
+            ) {
+                index++;
             }
-            return this;
-          };
-        } else {
-          dset = function(key, value) {
-            if (enableSwitching) {
-              try {
-                hmap.set(key, value);
-              } catch (e) {
-                if (!omap) { omap = new OurWeakMap(); }
-                omap.set___(key, value);
-              }
-            } else {
-              hmap.set(key, value);
+            else if(substring.charAt(index) === ']'){
+                return substring.slice(0, index+1);
             }
-            return this;
-          };
-        }
-
-        function ddelete(key) {
-          var result = !!hmap['delete'](key);
-          if (omap) { return omap.delete___(key) || result; }
-          return result;
-        }
-
-        return Object.create(OurWeakMap.prototype, {
-          get___:    { value: constFunc(dget) },
-          has___:    { value: constFunc(dhas) },
-          set___:    { value: constFunc(dset) },
-          delete___: { value: constFunc(ddelete) },
-          permitHostObjects___: { value: constFunc(function(token) {
-            if (token === weakMapPermitHostObjects) {
-              enableSwitching = true;
-            } else {
-              throw new Error('bogus call to permitHostObjects___');
-            }
-          })}
-        });
-      }
-      DoubleWeakMap.prototype = OurWeakMap.prototype;
-      module.exports = DoubleWeakMap;
-
-      // define .constructor to hide OurWeakMap ctor
-      Object.defineProperty(WeakMap.prototype, 'constructor', {
-        value: WeakMap,
-        enumerable: false,  // as default .constructor is
-        configurable: true,
-        writable: true
-      });
-    })();
-  } else {
-    // There is no host WeakMap, so we must use the emulation.
-
-    // Emulated WeakMaps are incompatible with native proxies (because proxies
-    // can observe the hidden name), so we must disable Proxy usage (in
-    // ArrayLike and Domado, currently).
-    if (typeof Proxy !== 'undefined') {
-      Proxy = undefined;
+            index++;
+        } while (index < substring.length);
     }
+};
+},{}],"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/gedi-paths/paths.js":[function(require,module,exports){
+var detectPath = require('./detectPath');
 
-    module.exports = OurWeakMap;
-  }
-})();
+var pathSeparator = "/",
+    upALevel = "..",
+    bubbleCapture = "...",
+    currentKey = "#",
+    rootPath = "",
+    pathStart = "[",
+    pathEnd = "]",
+    pathWildcard = "*";
 
-},{}],35:[function(require,module,exports){
-var Lang = require('lang-js'),
-    Token = Lang.Token,
-    paths = require('gedi-paths'),
-    createSpec = require('spec-js'),
-    detectPath = require('gedi-paths/detectPath');
-
-module.exports = function(get, model){
-
-    function PathToken(path){
-        this.path = path;
-    }
-    PathToken = createSpec(PathToken, Token);
-    PathToken.prototype.name = 'PathToken';
-    PathToken.tokenPrecedence = 1;
-    PathToken.prototype.parsePrecedence = 2;
-    PathToken.tokenise = function(substring){
-        var path = detectPath(substring);
-
-        if(path){
-            return new PathToken(path, path.length);
-        }
-    };
-    PathToken.prototype.evaluate = function(scope){
-        this.path = this.original;
-        this.result = get(paths.resolve(scope.get('_gmc_'), this.original), model);
-        this.sourcePathInfo = {
-            path: this.original
-        };
-    };
-
-    return PathToken;
+function pathToRaw(path) {
+    return path && path.slice(1, -1);
 }
-},{"gedi-paths":32,"gedi-paths/detectPath":31,"lang-js":37,"spec-js":40}],36:[function(require,module,exports){
-function checkElement(element){
-    if(!element){
+
+//***********************************************
+//
+//      Raw To Path
+//
+//***********************************************
+
+function rawToPath(rawPath) {
+    return pathStart + (rawPath == null ? '' : rawPath) + pathEnd;
+}
+
+var memoisePathCache = {};
+function resolvePath() {
+    var memoiseKey,
+        pathParts = [];
+
+    for(var argumentIndex = arguments.length; argumentIndex--;){
+        pathParts.unshift.apply(pathParts, pathToParts(arguments[argumentIndex]));
+        if(isPathAbsolute(arguments[argumentIndex])){
+            break;
+        }
+    }
+
+    memoiseKey = pathParts.join(',');
+
+    if(memoisePathCache[memoiseKey]){
+        return memoisePathCache[memoiseKey];
+    }
+
+    var absoluteParts = [],
+        lastRemoved,
+        pathParts,
+        pathPart;
+
+    for(var pathPartIndex = 0; pathPartIndex < pathParts.length; pathPartIndex++){
+        pathPart = pathParts[pathPartIndex];
+
+        if (pathPart === currentKey) {
+            // Has a last removed? Add it back on.
+            if(lastRemoved != null){
+                absoluteParts.push(lastRemoved);
+                lastRemoved = null;
+            }
+        } else if (pathPart === rootPath) {
+            // Root path? Reset parts to be absolute.
+            absoluteParts = [''];
+
+        } else if (pathPart.slice(-bubbleCapture.length) === bubbleCapture) {
+            // deep bindings
+            if(pathPart !== bubbleCapture){
+                absoluteParts.push(pathPart.slice(0, -bubbleCapture.length));
+            }
+        } else if (pathPart === upALevel) {
+            // Up a level? Remove the last item in absoluteParts
+            lastRemoved = absoluteParts.pop();
+        } else if (pathPart.slice(0,2) === upALevel) {
+            var argument = pathPart.slice(2);
+            //named
+            while(absoluteParts[absoluteParts.length - 1] !== argument){
+                if(absoluteParts.length === 0){
+                    throw "Named path part was not found: '" + pathPart + "', in path: '" + arguments[argumentIndex] + "'.";
+                }
+                lastRemoved = absoluteParts.pop();
+            }
+        } else {
+            // any following valid part? Add it to the absoluteParts.
+            absoluteParts.push(pathPart);
+        }
+    }
+
+    // Convert the absoluteParts to a Path and memoise the result.
+    return memoisePathCache[memoiseKey] = createPath(absoluteParts);
+}
+
+var memoisedPathTokens = {};
+
+function createPath(path){
+
+    if(typeof path === 'number'){
+        path = path.toString();
+    }
+
+    if(path == null){
+        return rawToPath();
+    }
+
+    // passed in an Expression or an 'expression formatted' Path (eg: '[bla]')
+    if (typeof path === "string"){
+
+        if(memoisedPathTokens[path]){
+            return memoisedPathTokens[path];
+        }
+
+        if(path.charAt(0) === pathStart) {
+            var pathString = path.toString(),
+                detectedPath = detectPath(pathString);
+
+            if (detectedPath && detectedPath.length === pathString.length) {
+                return memoisedPathTokens[pathString] = detectedPath;
+            } else {
+                return false;
+            }
+        }else{
+            return createPath(rawToPath(path));
+        }
+    }
+
+    if(path instanceof Array) {
+
+        var parts = [];
+        for (var i = 0; i < path.length; i++) {
+            var pathPart = path[i];
+            pathPart = pathPart.replace(/([\[|\]|\\|\/])/g, '\\$1');
+            parts.push(pathPart);
+        }
+        if(parts.length === 1 && parts[0] === rootPath){
+            return createRootPath();
+        }
+        return rawToPath(parts.join(pathSeparator));
+    }
+}
+
+function createRootPath(){
+    return createPath([rootPath, rootPath]);
+}
+
+function pathToParts(path){
+    var pathType = typeof path;
+
+    if(pathType !== 'string' && pathType !== 'number'){
+        if(Array.isArray(path)){
+            return path;
+        }
+        return;
+    }
+
+    // if we haven't been passed a path, then turn the input into a path
+    if (!isPath(path)) {
+        path = createPath(path);
+        if(path === false){
+            return;
+        }
+    }
+
+    path = path.slice(1,-1);
+
+    if(path === ""){
+        return [];
+    }
+
+    var lastPartIndex = 0,
+        parts,
+        nextChar,
+        currentChar;
+
+    if(path.indexOf('\\') < 0){
+        return path.split(pathSeparator);
+    }
+
+    parts = [];
+
+    for(var i = 0; i < path.length; i++){
+        currentChar = path.charAt(i);
+        if(currentChar === pathSeparator){
+            parts.push(path.slice(lastPartIndex,i));
+            lastPartIndex = i+1;
+        }else if(currentChar === '\\'){
+            nextChar = path.charAt(i+1);
+            if(nextChar === '\\'){
+                path = path.slice(0, i) + path.slice(i + 1);
+            }else if(nextChar === ']' || nextChar === '['){
+                path = path.slice(0, i) + path.slice(i + 1);
+            }else if(nextChar === pathSeparator){
+                parts.push(path.slice(lastPartIndex), i);
+            }
+        }
+    }
+    parts.push(path.slice(lastPartIndex));
+
+    return parts;
+}
+
+function appendPath(){
+    var parts = pathToParts(arguments[0]);
+
+    if(!parts){
+        return;
+    }
+
+    if(isPathRoot(arguments[0])){
+        parts.pop();
+    }
+
+    for (var argumentIndex = 1; argumentIndex < arguments.length; argumentIndex++) {
+        var pathParts = pathToParts(arguments[argumentIndex]);
+
+        pathParts && parts.push.apply(parts, pathParts);
+    }
+
+    return createPath(parts);
+}
+
+function isPath(path) {
+    if(!(typeof path === 'string' || (path instanceof String))){
+        return;
+    }
+    var match = path.match(/\[.*?(?:\\\])*(?:\\\[)*\]/g);
+    if(match && match.length === 1 && match[0] === path){
+        return true;
+    }
+}
+
+function isPathAbsolute(path){
+    var parts = pathToParts(path);
+
+    if(parts == null){
         return false;
     }
-    var parentNode = element.parentNode;
-    while(parentNode){
-        if(parentNode === element.ownerDocument){
-            return true;
-        }
-        parentNode = parentNode.parentNode;
-    }
-    return false;
+
+    return parts[0] === rootPath;
 }
 
-module.exports = function laidout(element, callback){
-    if(checkElement(element)){
-        return callback();
+function isPathRoot(path){
+    var parts = pathToParts(path);
+    if(parts == null){
+        return false;
     }
+    return (isPathAbsolute(parts) && parts[0] === parts[1]) || parts.length === 0;
+}
 
-    var recheckElement = function(){
-            if(checkElement(element)){
-                document.removeEventListener('DOMNodeInserted', recheckElement);
-                callback();
-            }
-        };
+function isBubbleCapturePath(path){
+    var parts = pathToParts(path),
+        lastPart = parts[parts.length-1];
+    return lastPart && lastPart.slice(-bubbleCapture.length) === bubbleCapture;
+}
 
-    document.addEventListener('DOMNodeInserted', recheckElement);
+module.exports = {
+    resolve: resolvePath,
+    create: createPath,
+    is: isPath,
+    isAbsolute: isPathAbsolute,
+    isRoot: isPathRoot,
+    isBubbleCapture: isBubbleCapturePath,
+    append: appendPath,
+    toParts: pathToParts,
+    createRoot: createRootPath,
+    constants:{
+        separator: pathSeparator,
+        upALevel: upALevel,
+        currentKey: currentKey,
+        root: rootPath,
+        start: pathStart,
+        end: pathEnd,
+        wildcard: pathWildcard
+    }
 };
-},{}],37:[function(require,module,exports){
+},{"./detectPath":"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/gedi-paths/detectPath.js"}],"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/lang-js/lang.js":[function(require,module,exports){
 (function (process){
 var Token = require('./token');
 
@@ -6286,8 +8262,8 @@ Lang.Scope = Scope;
 Lang.Token = Token;
 
 module.exports = Lang;
-}).call(this,require("/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js"))
-},{"./token":38,"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":75}],38:[function(require,module,exports){
+}).call(this,require('_process'))
+},{"./token":"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/lang-js/token.js","_process":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js"}],"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/lang-js/token.js":[function(require,module,exports){
 function Token(substring, length){
     this.original = substring;
     this.length = length;
@@ -6299,7 +8275,7 @@ Token.prototype.valueOf = function(){
 }
 
 module.exports = Token;
-},{}],39:[function(require,module,exports){
+},{}],"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/merge/merge.js":[function(require,module,exports){
 /*!
  * @name JavaScript/NodeJS Merge v1.1.3
  * @author yeikos
@@ -6381,7 +8357,7 @@ module.exports = Token;
 	}
 
 })(typeof module === 'object' && module && typeof module.exports === 'object' && module.exports);
-},{}],40:[function(require,module,exports){
+},{}],"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/spec-js/spec.js":[function(require,module,exports){
 Object.create = Object.create || function (o) {
     if (arguments.length > 1) {
         throw new Error('Object.create implementation only accepts the first parameter.');
@@ -6419,7 +8395,7 @@ function createSpec(child, parent){
 }
 
 module.exports = createSpec;
-},{}],41:[function(require,module,exports){
+},{}],"/home/kory/dev/gaffa-select/node_modules/statham/createKey.js":[function(require,module,exports){
 function escapeHex(hex){
     return String.fromCharCode(hex);
 }
@@ -6432,7 +8408,7 @@ function createKey(number){
 }
 
 module.exports = createKey;
-},{}],42:[function(require,module,exports){
+},{}],"/home/kory/dev/gaffa-select/node_modules/statham/parse.js":[function(require,module,exports){
 var revive = require('./revive');
 
 function parse(json, reviver){
@@ -6440,7 +8416,7 @@ function parse(json, reviver){
 }
 
 module.exports = parse;
-},{"./revive":43}],43:[function(require,module,exports){
+},{"./revive":"/home/kory/dev/gaffa-select/node_modules/statham/revive.js"}],"/home/kory/dev/gaffa-select/node_modules/statham/revive.js":[function(require,module,exports){
 var createKey = require('./createKey'),
     keyKey = createKey(-1);
 
@@ -6499,13 +8475,13 @@ function revive(input){
 }
 
 module.exports = revive;
-},{"./createKey":41}],44:[function(require,module,exports){
+},{"./createKey":"/home/kory/dev/gaffa-select/node_modules/statham/createKey.js"}],"/home/kory/dev/gaffa-select/node_modules/statham/statham.js":[function(require,module,exports){
 module.exports = {
     stringify: require('./stringify'),
     parse: require('./parse'),
     revive: require('./revive')
 };
-},{"./parse":42,"./revive":43,"./stringify":45}],45:[function(require,module,exports){
+},{"./parse":"/home/kory/dev/gaffa-select/node_modules/statham/parse.js","./revive":"/home/kory/dev/gaffa-select/node_modules/statham/revive.js","./stringify":"/home/kory/dev/gaffa-select/node_modules/statham/stringify.js"}],"/home/kory/dev/gaffa-select/node_modules/statham/stringify.js":[function(require,module,exports){
 var createKey = require('./createKey'),
     keyKey = createKey(-1);
 
@@ -6561,1139 +8537,7 @@ function stringify(input, replacer, spacer){
 }
 
 module.exports = stringify;
-},{"./createKey":41}],46:[function(require,module,exports){
-var clone = require('clone'),
-    deepEqual = require('deep-equal');
-
-function keysAreDifferent(keys1, keys2){
-    if(keys1 === keys2){
-        return;
-    }
-    if(!keys1 || !keys2 || keys1.length !== keys2.length){
-        return true;
-    }
-    for(var i = 0; i < keys1.length; i++){
-        if(!~keys2.indexOf(keys1[i])){
-            return true;
-        }
-    }
-}
-
-function getKeys(value){
-    if(!value || typeof value !== 'object'){
-        return;
-    }
-
-    return Object.keys(value);
-}
-
-function WhatChanged(value){
-    this.update(value);
-}
-WhatChanged.prototype.update = function(value){
-    var result = {},
-        newKeys = getKeys(value);
-
-    if(value+'' !== this._lastReference+''){
-        result.value = true;
-    }
-    if(typeof value !== typeof this._lastValue){
-        result.type = true;
-    }
-    if(keysAreDifferent(this._lastKeys, getKeys(value))){
-        result.keys = true;
-    }
-
-    if(value !== null && typeof value === 'object'){
-        if(!deepEqual(value, this._lastValue)){
-            result.structure = true;
-        }
-        if(value !== this._lastReference){
-            result.reference = true;
-        }
-    }
-
-    this._lastValue = clone(value);
-    this._lastReference = value;
-    this._lastKeys = newKeys;
-
-    return result;
-};
-
-module.exports = WhatChanged;
-},{"clone":47,"deep-equal":48}],47:[function(require,module,exports){
-(function (Buffer){
-'use strict';
-
-function objectToString(o) {
-  return Object.prototype.toString.call(o);
-}
-
-// shim for Node's 'util' package
-// DO NOT REMOVE THIS! It is required for compatibility with EnderJS (http://enderjs.com/).
-var util = {
-  isArray: function (ar) {
-    return Array.isArray(ar) || (typeof ar === 'object' && objectToString(ar) === '[object Array]');
-  },
-  isDate: function (d) {
-    return typeof d === 'object' && objectToString(d) === '[object Date]';
-  },
-  isRegExp: function (re) {
-    return typeof re === 'object' && objectToString(re) === '[object RegExp]';
-  },
-  getRegExpFlags: function (re) {
-    var flags = '';
-    re.global && (flags += 'g');
-    re.ignoreCase && (flags += 'i');
-    re.multiline && (flags += 'm');
-    return flags;
-  }
-};
-
-
-if (typeof module === 'object')
-  module.exports = clone;
-
-/**
- * Clones (copies) an Object using deep copying.
- *
- * This function supports circular references by default, but if you are certain
- * there are no circular references in your object, you can save some CPU time
- * by calling clone(obj, false).
- *
- * Caution: if `circular` is false and `parent` contains circular references,
- * your program may enter an infinite loop and crash.
- *
- * @param `parent` - the object to be cloned
- * @param `circular` - set to true if the object to be cloned may contain
- *    circular references. (optional - true by default)
- * @param `depth` - set to a number if the object is only to be cloned to
- *    a particular depth. (optional - defaults to Infinity)
- * @param `prototype` - sets the prototype to be used when cloning an object.
- *    (optional - defaults to parent prototype).
-*/
-
-function clone(parent, circular, depth, prototype) {
-  // maintain two arrays for circular references, where corresponding parents
-  // and children have the same index
-  var allParents = [];
-  var allChildren = [];
-
-  var useBuffer = typeof Buffer != 'undefined';
-
-  if (typeof circular == 'undefined')
-    circular = true;
-
-  if (typeof depth == 'undefined')
-    depth = Infinity;
-
-  // recurse this function so we don't reset allParents and allChildren
-  function _clone(parent, depth) {
-    // cloning null always returns null
-    if (parent === null)
-      return null;
-
-    if (depth == 0)
-      return parent;
-
-    var child;
-    if (typeof parent != 'object') {
-      return parent;
-    }
-
-    if (util.isArray(parent)) {
-      child = [];
-    } else if (util.isRegExp(parent)) {
-      child = new RegExp(parent.source, util.getRegExpFlags(parent));
-      if (parent.lastIndex) child.lastIndex = parent.lastIndex;
-    } else if (util.isDate(parent)) {
-      child = new Date(parent.getTime());
-    } else if (useBuffer && Buffer.isBuffer(parent)) {
-      child = new Buffer(parent.length);
-      parent.copy(child);
-      return child;
-    } else {
-      if (typeof prototype == 'undefined') child = Object.create(Object.getPrototypeOf(parent));
-      else child = Object.create(prototype);
-    }
-
-    if (circular) {
-      var index = allParents.indexOf(parent);
-
-      if (index != -1) {
-        return allChildren[index];
-      }
-      allParents.push(parent);
-      allChildren.push(child);
-    }
-
-    for (var i in parent) {
-      child[i] = _clone(parent[i], depth - 1);
-    }
-
-    return child;
-  }
-
-  return _clone(parent, depth);
-}
-
-/**
- * Simple flat clone using prototype, accepts only objects, usefull for property
- * override on FLAT configuration object (no nested props).
- *
- * USE WITH CAUTION! This may not behave as you wish if you do not know how this
- * works.
- */
-clone.clonePrototype = function(parent) {
-  if (parent === null)
-    return null;
-
-  var c = function () {};
-  c.prototype = parent;
-  return new c();
-};
-
-}).call(this,require("buffer").Buffer)
-},{"buffer":71}],48:[function(require,module,exports){
-var pSlice = Array.prototype.slice;
-var objectKeys = require('./lib/keys.js');
-var isArguments = require('./lib/is_arguments.js');
-
-var deepEqual = module.exports = function (actual, expected, opts) {
-  if (!opts) opts = {};
-  // 7.1. All identical values are equivalent, as determined by ===.
-  if (actual === expected) {
-    return true;
-
-  } else if (actual instanceof Date && expected instanceof Date) {
-    return actual.getTime() === expected.getTime();
-
-  // 7.3. Other pairs that do not both pass typeof value == 'object',
-  // equivalence is determined by ==.
-  } else if (typeof actual != 'object' && typeof expected != 'object') {
-    return opts.strict ? actual === expected : actual == expected;
-
-  // 7.4. For all other Object pairs, including Array objects, equivalence is
-  // determined by having the same number of owned properties (as verified
-  // with Object.prototype.hasOwnProperty.call), the same set of keys
-  // (although not necessarily the same order), equivalent values for every
-  // corresponding key, and an identical 'prototype' property. Note: this
-  // accounts for both named and indexed properties on Arrays.
-  } else {
-    return objEquiv(actual, expected, opts);
-  }
-}
-
-function isUndefinedOrNull(value) {
-  return value === null || value === undefined;
-}
-
-function isBuffer (x) {
-  if (!x || typeof x !== 'object' || typeof x.length !== 'number') return false;
-  if (typeof x.copy !== 'function' || typeof x.slice !== 'function') {
-    return false;
-  }
-  if (x.length > 0 && typeof x[0] !== 'number') return false;
-  return true;
-}
-
-function objEquiv(a, b, opts) {
-  var i, key;
-  if (isUndefinedOrNull(a) || isUndefinedOrNull(b))
-    return false;
-  // an identical 'prototype' property.
-  if (a.prototype !== b.prototype) return false;
-  //~~~I've managed to break Object.keys through screwy arguments passing.
-  //   Converting to array solves the problem.
-  if (isArguments(a)) {
-    if (!isArguments(b)) {
-      return false;
-    }
-    a = pSlice.call(a);
-    b = pSlice.call(b);
-    return deepEqual(a, b, opts);
-  }
-  if (isBuffer(a)) {
-    if (!isBuffer(b)) {
-      return false;
-    }
-    if (a.length !== b.length) return false;
-    for (i = 0; i < a.length; i++) {
-      if (a[i] !== b[i]) return false;
-    }
-    return true;
-  }
-  try {
-    var ka = objectKeys(a),
-        kb = objectKeys(b);
-  } catch (e) {//happens when one is a string literal and the other isn't
-    return false;
-  }
-  // having the same number of owned properties (keys incorporates
-  // hasOwnProperty)
-  if (ka.length != kb.length)
-    return false;
-  //the same set of keys (although not necessarily the same order),
-  ka.sort();
-  kb.sort();
-  //~~~cheap key test
-  for (i = ka.length - 1; i >= 0; i--) {
-    if (ka[i] != kb[i])
-      return false;
-  }
-  //equivalent values for every corresponding key, and
-  //~~~possibly expensive deep test
-  for (i = ka.length - 1; i >= 0; i--) {
-    key = ka[i];
-    if (!deepEqual(a[key], b[key], opts)) return false;
-  }
-  return true;
-}
-
-},{"./lib/is_arguments.js":49,"./lib/keys.js":50}],49:[function(require,module,exports){
-var supportsArgumentsClass = (function(){
-  return Object.prototype.toString.call(arguments)
-})() == '[object Arguments]';
-
-exports = module.exports = supportsArgumentsClass ? supported : unsupported;
-
-exports.supported = supported;
-function supported(object) {
-  return Object.prototype.toString.call(object) == '[object Arguments]';
-};
-
-exports.unsupported = unsupported;
-function unsupported(object){
-  return object &&
-    typeof object == 'object' &&
-    typeof object.length == 'number' &&
-    Object.prototype.hasOwnProperty.call(object, 'callee') &&
-    !Object.prototype.propertyIsEnumerable.call(object, 'callee') ||
-    false;
-};
-
-},{}],50:[function(require,module,exports){
-exports = module.exports = typeof Object.keys === 'function'
-  ? Object.keys : shim;
-
-exports.shim = shim;
-function shim (obj) {
-  var keys = [];
-  for (var key in obj) keys.push(key);
-  return keys;
-}
-
-},{}],51:[function(require,module,exports){
-var createSpec = require('spec-js'),
-    Bindable = require('./bindable'),
-    IdentifierToken = require('gel-js').IdentifierToken,
-    jsonConverter = require('./jsonConverter'),
-    createModelScope = require('./createModelScope'),
-    Consuela = require('consuela'),
-    WhatChanged = require('what-changed');
-
-function getItemPath(item){
-    var gedi = item.gaffa.gedi,
-        paths = [],
-        referencePath,
-        referenceItem = item;
-
-    while(referenceItem){
-
-        // item.path should be a child ref after item.sourcePath
-        if(referenceItem.path != null){
-            paths.push(referenceItem.path);
-        }
-
-        // item.sourcePath is most root level path
-        if(referenceItem.sourcePath != null){
-            paths.push(gedi.paths.create(referenceItem.sourcePath));
-        }
-
-        referenceItem = referenceItem.parent;
-    }
-
-    return gedi.paths.resolve.apply(this, paths.reverse());
-}
-
-function updateProperty(property, firstUpdate){
-    // Update immediately, reduces reflows,
-    // as things like classes are added before
-    //  the element is inserted into the DOM
-    if(firstUpdate){
-        property.update(property.parent, property.value);
-    }
-
-    if(!property._bound){
-        return;
-    }
-
-    // Still run the _lastValue.update(),
-    // because it sets up the state of the last value,
-    // and it will be false anyway.
-
-    if(property.hasChanged() && !property.nextUpdate){
-        if(property.gaffa.debug){
-            property.update(property.parent, property.value);
-            return;
-        }
-        property.nextUpdate = requestAnimationFrame(function(){
-            if(property.parent._bound){
-                property.update(property.parent, property.value);
-            }
-            property.nextUpdate = null;
-        });
-    }
-}
-
-function createPropertyCallback(property){
-    return function (event) {
-
-        var value,
-            scope,
-            valueTokens;
-
-        if(event){
-
-            scope = createModelScope(property.parent, event);
-
-            if(event === true){ // Initial update.
-
-                valueTokens = property.get(scope, true);
-
-            }else if(event.captureType === 'bubble' && property.ignoreBubbledEvents){
-
-                return;
-
-            }else if(property.binding){ // Model change update.
-
-                if(property.ignoreTargets && event.target.match(property.ignoreTargets)){
-                    return;
-                }
-
-                valueTokens = property.get(scope, true);
-            }
-
-            if(valueTokens){
-                var valueToken = valueTokens[valueTokens.length - 1];
-                value = valueToken.result;
-                property._sourcePathInfo = valueToken.sourcePathInfo;
-            }
-
-            property.value = value;
-        }
-
-        // Call the properties update function, if it has one.
-        // Only call if the changed value is an object, or if it actually changed.
-        if(!property.update){
-            return;
-        }
-
-        updateProperty(property, event === true);
-    }
-}
-
-
-function bindProperty(parent) {
-    this._lastValue = new WhatChanged();
-    this.parent = parent;
-    this.gaffa = parent.gaffa;
-
-    parent.on('destroy', this.destroy.bind(this));
-    parent.on('debind', this.debind.bind(this));
-
-    // Shortcut for properties that have no binding.
-    // This has a significant impact on performance.
-    if(this.binding == null){
-        if(this.update){
-            this.update(parent, this.value);
-        }
-        return;
-    }
-
-    var propertyCallback = createPropertyCallback(this);
-
-    this.gaffa.model.bind(this.binding, propertyCallback, this);
-    propertyCallback(true);
-    Bindable.prototype.bind.call(this);
-}
-
-
-function Property(propertyDescription){
-    if(typeof propertyDescription === 'function'){
-        this.update = propertyDescription;
-    }else{
-        for(var key in propertyDescription){
-            this[key] = propertyDescription[key];
-        }
-    }
-}
-Property = createSpec(Property, Bindable);
-Property.prototype.watchChanges = 'value keys structure reference type';
-Property.prototype.hasChanged = function(){
-    var changes = this._lastValue.update(this.value),
-        watched = this.watchChanges.split(' ');
-
-    for(var i = 0; i < watched.length; i++){
-        if(changes[watched[i]]){
-            return true;
-        }
-    }
-};
-Property.prototype.set = function(value, isDirty){
-    var gaffa = this.gaffa;
-
-    if(this.binding){
-        var setValue = this.setTransform ? gaffa.model.get(this.setTransform, this, {value: value}) : value;
-        gaffa.model.set(
-            this.binding,
-            setValue,
-            this,
-            isDirty
-        );
-    }else{
-        this.value = value;
-        if(this.update && this.parent._bound){
-            this.update(this.parent, value);
-        }
-    }
-
-};
-Property.prototype.get = function(scope, asTokens){
-    if(this.binding){
-        var value = this.gaffa.model.get(this.binding, this, scope, asTokens);
-        if(this.getTransform){
-            scope.value = asTokens ? value[value.length-1].result : value;
-            return this.gaffa.model.get(this.getTransform, this, scope, asTokens);
-        }
-        return value;
-    }else{
-        return this.value;
-    }
-};
-Property.prototype.bind = bindProperty;
-Property.prototype.debind = function(){
-    cancelAnimationFrame(this.nextUpdate);
-    this.gaffa.model.debind(this);
-    Bindable.prototype.debind.call(this);
-    delete this._lastValue;
-};
-Property.prototype.destroy = function(){
-    delete this.gaffa;
-    delete this.parent;
-};
-Property.prototype.__serialiseExclude__ = ['_lastValue'];
-
-module.exports = Property;
-},{"./bindable":11,"./createModelScope":13,"./jsonConverter":20,"consuela":21,"gel-js":57,"spec-js":40,"what-changed":46}],52:[function(require,module,exports){
-/*
- * raf.js
- * https://github.com/ngryman/raf.js
- *
- * original requestAnimationFrame polyfill by Erik Möller
- * inspired from paul_irish gist and post
- *
- * Copyright (c) 2013 ngryman
- * Licensed under the MIT license.
- */
-
-var global = typeof window !== 'undefined' ? window : this;
-
-var lastTime = 0,
-    vendors = ['webkit', 'moz'],
-    requestAnimationFrame = global.requestAnimationFrame,
-    cancelAnimationFrame = global.cancelAnimationFrame,
-    i = vendors.length;
-
-// try to un-prefix existing raf
-while (--i >= 0 && !requestAnimationFrame) {
-    requestAnimationFrame = global[vendors[i] + 'RequestAnimationFrame'];
-    cancelAnimationFrame = global[vendors[i] + 'CancelAnimationFrame'];
-}
-
-// polyfill with setTimeout fallback
-// heavily inspired from @darius gist mod: https://gist.github.com/paulirish/1579671#comment-837945
-if (!requestAnimationFrame || !cancelAnimationFrame) {
-    requestAnimationFrame = function(callback) {
-        var now = +Date.now(),
-            nextTime = Math.max(lastTime + 16, now);
-        return setTimeout(function() {
-            callback(lastTime = nextTime);
-        }, nextTime - now);
-    };
-
-    cancelAnimationFrame = clearTimeout;
-}
-
-if (!cancelAnimationFrame){
-    global.cancelAnimationFrame = function(id) {
-        clearTimeout(id);
-    };
-}
-
-global.requestAnimationFrame = requestAnimationFrame;
-global.cancelAnimationFrame = cancelAnimationFrame;
-
-module.exports = {
-    requestAnimationFrame: requestAnimationFrame,
-    cancelAnimationFrame: cancelAnimationFrame
-};
-},{}],53:[function(require,module,exports){
-function removeViews(views){
-    if(!views){
-        return;
-    }
-
-    views = views.slice ? views.slice() : [views];
-
-    for(var i = 0; i < views.length; i++) {
-        views[i].remove();
-    }
-}
-
-module.exports = removeViews;
-},{}],54:[function(require,module,exports){
-/**
-    ## View
-
-    A base constructor for gaffa Views that have content view.
-
-    All Views that inherit from ContainerView will have:
-
-        someView.views.content
-*/
-
-var createSpec = require('spec-js'),
-    doc = require('doc-js'),
-    crel = require('crel'),
-    laidout = require('laidout'),
-    ViewItem = require('./viewItem'),
-    Property = require('./property'),
-    createModelScope = require('./createModelScope'),
-    getClosestItem = require('./getClosestItem'),
-    Behaviour = require('./behaviour');
-
-function insertFunction(selector, renderedElement, insertIndex){
-    var target = ((typeof selector === "string") ? document.querySelectorAll(selector)[0] : selector),
-        referenceSibling;
-
-    if(target && target.childNodes){
-        referenceSibling = target.childNodes[insertIndex];
-    }
-    if (referenceSibling){
-        target.insertBefore(renderedElement, referenceSibling);
-    }  else {
-        target.appendChild(renderedElement);
-    }
-}
-
-function langify(fn, context){
-    return function(scope, args){
-        var args = args.all();
-
-        return fn.apply(context, args);
-    }
-}
-
-function createEventedActionScope(view, event){
-    var scope = createModelScope(view);
-
-    scope.event = {
-        shiftKey: event.shiftKey,
-        altKey: event.altKey,
-        which: event.which,
-        target: event.target,
-        targetViewItem: getClosestItem(event.target),
-        preventDefault: langify(event.preventDefault, event),
-        stopPropagation: langify(event.stopPropagation, event)
-    };
-
-    return scope;
-}
-
-function bindViewEvent(view, eventName){
-    return view.gaffa.events.on(eventName, view.renderedElement, function (event) {
-        view.triggerActions(eventName, createEventedActionScope(view, event), event);
-    });
-}
-
-function View(viewDescription){
-    var view = this;
-
-    view.behaviours = view.behaviours || [];
-}
-View = createSpec(View, ViewItem);
-
-View.prototype.bind = function(parent){
-    ViewItem.prototype.bind.apply(this, arguments);
-
-    for(var key in this){
-        if(crel.isNode(this[key])){
-            this._watch(this[key]);
-        }
-    }
-
-    for(var key in this.actions){
-        var actions = this.actions[key],
-            off;
-
-        if(actions.__bound){
-            continue;
-        }
-
-        actions.__bound = true;
-
-        bindViewEvent(this, key);
-    }
-
-    this.triggerActions('load');
-
-    for(var i = 0; i < this.behaviours.length; i++){
-        Behaviour.prototype.bind.call(this.behaviours[i], this);
-        this.behaviours[i].bind(this);
-    }
-};
-
-View.prototype.detach = function(){
-    this.renderedElement && this.renderedElement.parentNode && this.renderedElement.parentNode.removeChild(this.renderedElement);
-};
-
-View.prototype.remove = function(){
-    this.detach();
-    ViewItem.prototype.remove.call(this);
-}
-
-View.prototype.debind = function () {
-    for(var i = 0; i < this.behaviours.length; i++){
-        this.behaviours[i].debind();
-    }
-
-    this.triggerActions('unload');
-
-    for(var key in this.actions){
-        this.actions[key].__bound = false;
-    }
-    delete this.renderedElement.viewModel;
-    for(var key in this){
-        if(crel.isNode(this[key])){
-            delete this[key];
-        }
-    }
-    View.__super__.prototype.debind.call(this);
-};
-
-View.prototype.render = function(){};
-
-function insert(view, viewContainer, insertIndex){
-    var gaffa = view.gaffa,
-        renderTarget = view.insertSelector || view.renderTarget || viewContainer && viewContainer.element || gaffa.views.renderTarget;
-
-    if(view.afterInsert){
-        laidout(view.renderedElement, function(){
-            view.afterInsert();
-        });
-    }
-
-    if(viewContainer.indexOf(view) !== insertIndex){
-        viewContainer.splice(insertIndex, 1, view);
-    }
-
-    view.insertFunction(view.insertSelector || renderTarget, view.renderedElement, insertIndex);
-}
-
-View.prototype.insert = function(viewContainer, insertIndex){
-    insert(this, viewContainer, insertIndex);
-};
-
-function Classes(){};
-Classes = createSpec(Classes, Property);
-Classes.prototype.update = function(view, value){
-    doc.removeClass(view.renderedElement, this._previousClasses);
-    this._previousClasses = value;
-    doc.addClass(view.renderedElement, value);
-};
-View.prototype.classes = new Classes();
-
-function Visible(){};
-Visible = createSpec(Visible, Property);
-Visible.prototype.value = true;
-Visible.prototype.update = function(view, value) {
-    view.renderedElement.style.display = value ? '' : 'none';
-};
-View.prototype.visible = new Visible();
-
-function Enabled(){};
-Enabled = createSpec(Enabled, Property);
-Enabled.prototype.value = true;
-Enabled.prototype.update = function(view, value) {
-    if(!value === !!view.renderedElement.getAttribute('disabled')){
-        return;
-    }
-    view.renderedElement[!value ? 'setAttribute' : 'removeAttribute']('disabled','disabled');
-};
-View.prototype.enabled = new Enabled();
-
-function Title(){};
-Title = createSpec(Title, Property);
-Title.prototype.update = function(view, value) {
-    view.renderedElement[value ? 'setAttribute' : 'removeAttribute']('title',value);
-};
-View.prototype.title = new Title();
-
-View.prototype.insertFunction = insertFunction;
-
-module.exports = View;
-},{"./behaviour":10,"./createModelScope":13,"./getClosestItem":15,"./property":51,"./viewItem":56,"crel":1,"doc-js":24,"laidout":36,"spec-js":40}],55:[function(require,module,exports){
-var createSpec = require('spec-js'),
-    Bindable = require('./bindable'),
-    View = require('./view'),
-    initialiseViewItem = require('./initialiseViewItem'),
-    Consuela = require('consuela'),
-    removeViews = require('./removeViews'),
-    arrayProto = Array.prototype;
-
-function ViewContainer(viewContainerDescription){
-    Bindable.call(this);
-    var viewContainer = this;
-
-    this._deferredViews = [];
-
-    if(viewContainerDescription instanceof Array){
-        viewContainer.add(viewContainerDescription);
-    }
-}
-ViewContainer = createSpec(ViewContainer, Array);
-for(var key in Bindable.prototype){
-    ViewContainer.prototype[key] = Bindable.prototype[key];
-}
-ViewContainer.prototype.bind = function(parent){
-    this.parent = parent;
-    this.gaffa = parent.gaffa;
-
-    parent.on('debind', this.debind.bind(this));
-    parent.on('remove', this.empty.bind(this));
-
-    if(this._bound){
-        return;
-    }
-
-    this._bound = true;
-
-    for(var i = 0; i < this.length; i++){
-        this.add(this[i], i);
-    }
-
-    return this;
-};
-ViewContainer.prototype.debind = function(){
-    if(!this._bound){
-        return;
-    }
-
-    this._bound = false;
-
-    for (var i = 0; i < this.length; i++) {
-        this[i].detach();
-        this[i].debind();
-    }
-    Bindable.prototype.debind.call(this);
-};
-ViewContainer.prototype.getPath = function(){
-    return getItemPath(this);
-};
-
-/*
-    ViewContainers handle their own array state.
-    A View that is added to a ViewContainer will
-    be automatically removed from its current
-    container, if it has one.
-*/
-ViewContainer.prototype.add = function(view, insertIndex){
-    // If passed an array
-    if(Array.isArray(view)){
-        // Clone the array so splicing can't cause issues
-        var views = view.slice();
-        for(var i = 0; i < view.length; i++){
-            this.add(view[i]);
-        }
-        return this;
-    }
-
-    // Is already in the tree somewhere? remove it.
-    if(view.parentContainer instanceof ViewContainer){
-        view.parentContainer.splice(view.parentContainer.indexOf(view),1);
-    }
-
-    this.splice(insertIndex >= 0 ? insertIndex : this.length,0,view);
-
-    view.parentContainer = this;
-
-    if(this._bound){
-        if(!(view instanceof View)){
-            view = this[this.indexOf(view)] = initialiseViewItem(view, this.gaffa, this.gaffa.views._constructors);
-        }
-        view.gaffa = this.gaffa;
-
-        this.gaffa.namedViews[view.name] = view;
-
-        if(!view.renderedElement){
-            view.render();
-            view.renderedElement.viewModel = view;
-        }
-        view.bind(this.parent);
-        view.insert(this, insertIndex);
-    }
-
-    return view;
-};
-
-/*
-    adds 5 (5 is arbitrary) views at a time to the target viewContainer,
-    then queues up another add.
-*/
-function executeDeferredAdd(viewContainer){
-    var currentOpperation = viewContainer._deferredViews.splice(0,5);
-
-    if(!currentOpperation.length){
-        return;
-    }
-
-    for (var i = 0; i < currentOpperation.length; i++) {
-        viewContainer.add(currentOpperation[i][0], currentOpperation[i][1]);
-    };
-    requestAnimationFrame(function(time){
-        executeDeferredAdd(viewContainer);
-    });
-}
-
-/*
-    Adds children to the view container over time, via RAF.
-    Will only begin the render cycle if there are no _deferredViews,
-    because if _deferredViews.length is > 0, the render loop will
-    already be going.
-*/
-ViewContainer.prototype.deferredAdd = function(view, insertIndex){
-    var viewContainer = this,
-        shouldStart = !this._deferredViews.length;
-
-    this._deferredViews.push([view, insertIndex]);
-
-    if(shouldStart){
-        requestAnimationFrame(function(){
-            executeDeferredAdd(viewContainer);
-        });
-    }
-};
-
-ViewContainer.prototype.abortDeferredAdd = function(){
-    this._deferredViews = [];
-};
-ViewContainer.prototype.remove = function(view){
-    view.remove();
-};
-ViewContainer.prototype.empty = function(){
-    removeViews(this);
-};
-ViewContainer.prototype.__serialiseExclude__ = ['element'];
-
-module.exports = ViewContainer;
-},{"./bindable":11,"./initialiseViewItem":19,"./removeViews":53,"./view":54,"consuela":21,"spec-js":40}],56:[function(require,module,exports){
-var createSpec = require('spec-js'),
-    Bindable = require('./bindable'),
-    jsonConverter = require('./jsonConverter'),
-    Property = require('./property');
-
-function copyProperties(source, target){
-    if(
-        !source || typeof source !== 'object' ||
-        !target || typeof target !== 'object'
-    ){
-        return;
-    }
-
-    for(var key in source){
-        if(source.hasOwnProperty(key)){
-            target[key] = source[key];
-        }
-    }
-}
-
-function debindViewItem(viewItem){
-    viewItem.emit('debind');
-    viewItem._bound = false;
-}
-
-
-function removeViewItem(viewItem){
-    delete viewItem.gaffa;
-    delete viewItem.parent;
-
-    if(viewItem.parentContainer){
-        var index = viewItem.parentContainer.indexOf(viewItem);
-        if(index >= 0){
-            viewItem.parentContainer.splice(index, 1);
-        }
-        delete viewItem.parentContainer;
-    }
-
-    viewItem.emit('remove');
-
-    viewItem.debind();
-
-    viewItem.destroy();
-}
-
-function inflateViewItem(viewItem, description){
-    var ViewContainer = require('./viewContainer');
-
-    for(var key in viewItem){
-        if(viewItem[key] instanceof Property){
-            viewItem[key] = new viewItem[key].constructor(viewItem[key]);
-        }
-    }
-
-    /**
-        ## .actions
-
-        All ViewItems have an actions object which can be overriden.
-
-        The actions object looks like this:
-
-            viewItem.actions = {
-                click: [action1, action2],
-                hover: [action3, action4]
-            }
-
-        eg:
-
-            // Some ViewItems
-            var someButton = new views.button(),
-                removeItem = new actions.remove();
-
-            // Set removeItem as a child of someButton.
-            someButton.actions.click = [removeItem];
-
-        If a Views action.[name] matches a DOM event name, it will be automatically _bound.
-
-            myView.actions.click = [
-                // actions to trigger when a 'click' event is raised by the views renderedElement
-            ];
-    */
-    viewItem.actions = viewItem.actions ? clone(viewItem.actions) : {};
-
-    for(var key in description){
-        var prop = viewItem[key];
-        if(prop instanceof Property || prop instanceof ViewContainer){
-            copyProperties(description[key], prop);
-        }else{
-            viewItem[key] = description[key];
-        }
-    }
-}
-
-/**
-    ## ViewItem
-
-    The base constructor for all gaffa ViewItems.
-
-    Views, Behaviours, and Actions inherrit from ViewItem.
-*/
-function ViewItem(viewItemDescription){
-    inflateViewItem(this, viewItemDescription);
-}
-ViewItem = createSpec(ViewItem, Bindable);
-
-    /**
-        ## .path
-
-        the base path for a viewItem.
-
-        Any bindings on a ViewItem will recursivly resolve through the ViewItems parent's paths.
-
-        Eg:
-
-            // Some ViewItems
-            var viewItem1 = new views.button(),
-                viewItem2 = new actions.set();
-
-            // Give viewItem1 a path.
-            viewItem1.path = '[things]';
-            // Set viewItem2 as a child of viewItem1.
-            viewItem1.actions.click = [viewItem2];
-
-            // Give viewItem2 a path.
-            viewItem2.path = '[stuff]';
-            // Set viewItem2s target binding.
-            viewItem2.target.binding = '[majigger]';
-
-        viewItem2.target.binding will resolve to:
-
-            '[/things/stuff/majigger]'
-    */
-ViewItem.prototype.path = '[]';
-ViewItem.prototype.bind = function(parent){
-    var viewItem = this,
-        property;
-
-    this.parent = parent;
-    this.gaffa = parent && parent.gaffa || this.gaffa;
-
-    Bindable.prototype.bind.call(this);
-
-    // Only set up properties that were on the prototype.
-    // Faster and 'safer'
-    for(var propertyKey in this.constructor.prototype){
-        property = this[propertyKey];
-        if(property instanceof Property){
-            property.bind(this);
-        }
-    }
-
-    // Create item scope
-};
-ViewItem.prototype.debind = function(){
-    debindViewItem(this);
-    Bindable.prototype.debind.call(this);
-};
-ViewItem.prototype.remove = function(){
-    removeViewItem(this);
-};
-ViewItem.prototype.destroy = function(){
-    this.emit('destroy');
-};
-ViewItem.prototype.triggerActions = function(actionName, scope, event){
-    if(!this.gaffa){
-        return;
-    }
-    this.gaffa.actions.trigger(this.actions[actionName], this, scope, event);
-};
-
-module.exports = ViewItem;
-},{"./bindable":11,"./jsonConverter":20,"./property":51,"./viewContainer":55,"spec-js":40}],57:[function(require,module,exports){
-arguments[4][33][0].apply(exports,arguments)
-},{"gedi-paths":59,"lang-js":60,"merge":62,"spec-js":63}],58:[function(require,module,exports){
-module.exports=require(31)
-},{}],59:[function(require,module,exports){
-module.exports=require(32)
-},{"./detectPath":58}],60:[function(require,module,exports){
-module.exports=require(37)
-},{"./token":61,"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/insert-module-globals/node_modules/process/browser.js":75}],61:[function(require,module,exports){
-module.exports=require(38)
-},{}],62:[function(require,module,exports){
-module.exports=require(39)
-},{}],63:[function(require,module,exports){
-module.exports=require(40)
-},{}],64:[function(require,module,exports){
-module.exports=require(41)
-},{}],65:[function(require,module,exports){
-arguments[4][42][0].apply(exports,arguments)
-},{"./revive":66}],66:[function(require,module,exports){
-module.exports=require(43)
-},{"./createKey":64}],67:[function(require,module,exports){
-arguments[4][44][0].apply(exports,arguments)
-},{"./parse":65,"./revive":66,"./stringify":68}],68:[function(require,module,exports){
-module.exports=require(45)
-},{"./createKey":64}],69:[function(require,module,exports){
+},{"./createKey":"/home/kory/dev/gaffa-select/node_modules/statham/createKey.js"}],"/home/kory/dev/gaffa-select/select.js":[function(require,module,exports){
 var Gaffa = require('gaffa'),
     FormElement = require('gaffa-formelement'),
     crel = require('crel'),
@@ -7804,7 +8648,7 @@ Select.prototype.showBlank = new Gaffa.Property();
 
 module.exports = Select;
 
-},{"crel":1,"doc-js":3,"gaffa":14,"gaffa-formelement":7,"statham":67}],70:[function(require,module,exports){
+},{"crel":"/home/kory/dev/gaffa-select/node_modules/crel/crel.js","doc-js":"/home/kory/dev/gaffa-select/node_modules/doc-js/fluent.js","gaffa":"/home/kory/dev/gaffa-select/node_modules/gaffa/gaffa.js","gaffa-formelement":"/home/kory/dev/gaffa-select/node_modules/gaffa-formelement/formelement.js","statham":"/home/kory/dev/gaffa-select/node_modules/statham/statham.js"}],"/home/kory/dev/gaffa-select/test/index.js":[function(require,module,exports){
 var Gaffa = require('gaffa'),
     Select = require('../'),
     Text = require('gaffa-text'),
@@ -7887,14 +8731,12 @@ window.onload = function(){
 
 // Globalise gaffa for easy debugging.
 window.gaffa = gaffa;
-},{"../":69,"gaffa":14,"gaffa-text":8}],71:[function(require,module,exports){
-/**
+},{"../":"/home/kory/dev/gaffa-select/select.js","gaffa":"/home/kory/dev/gaffa-select/node_modules/gaffa/gaffa.js","gaffa-text":"/home/kory/dev/gaffa-select/node_modules/gaffa-text/text.js"}],"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js":[function(require,module,exports){
+/*!
  * The buffer module from node.js, for the browser.
  *
- * Author:   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
- * License:  MIT
- *
- * `npm install buffer`
+ * @author   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
+ * @license  MIT
  */
 
 var base64 = require('base64-js')
@@ -7906,25 +8748,35 @@ exports.INSPECT_MAX_BYTES = 50
 Buffer.poolSize = 8192
 
 /**
- * If `Buffer._useTypedArrays`:
+ * If `TYPED_ARRAY_SUPPORT`:
  *   === true    Use Uint8Array implementation (fastest)
- *   === false   Use Object implementation (compatible down to IE6)
+ *   === false   Use Object implementation (most compatible, even IE6)
+ *
+ * Browsers that support typed arrays are IE 10+, Firefox 4+, Chrome 7+, Safari 5.1+,
+ * Opera 11.6+, iOS 4.2+.
+ *
+ * Note:
+ *
+ * - Implementation must support adding new properties to `Uint8Array` instances.
+ *   Firefox 4-29 lacked support, fixed in Firefox 30+.
+ *   See: https://bugzilla.mozilla.org/show_bug.cgi?id=695438.
+ *
+ *  - Chrome 9-10 is missing the `TypedArray.prototype.subarray` function.
+ *
+ *  - IE10 has a broken `TypedArray.prototype.subarray` function which returns arrays of
+ *    incorrect length in some situations.
+ *
+ * We detect these buggy browsers and set `TYPED_ARRAY_SUPPORT` to `false` so they will
+ * get the Object implementation, which is slower but will work correctly.
  */
-Buffer._useTypedArrays = (function () {
-   // Detect if browser supports Typed Arrays. Supported browsers are IE 10+,
-   // Firefox 4+, Chrome 7+, Safari 5.1+, Opera 11.6+, iOS 4.2+.
-  if (typeof Uint8Array !== 'function' || typeof ArrayBuffer !== 'function')
-    return false
-
-  // Does the browser support adding properties to `Uint8Array` instances? If
-  // not, then that's the same as no `Uint8Array` support. We need to be able to
-  // add all the node Buffer API methods.
-  // Bug in Firefox 4-29, now fixed: https://bugzilla.mozilla.org/show_bug.cgi?id=695438
+var TYPED_ARRAY_SUPPORT = (function () {
   try {
-    var arr = new Uint8Array(0)
+    var buf = new ArrayBuffer(0)
+    var arr = new Uint8Array(buf)
     arr.foo = function () { return 42 }
-    return 42 === arr.foo() &&
-        typeof arr.subarray === 'function' // Chrome 9-10 lack `subarray`
+    return 42 === arr.foo() && // typed array instances can be augmented
+        typeof arr.subarray === 'function' && // chrome 9-10 lack `subarray`
+        new Uint8Array(1).subarray(1, 1).byteLength === 0 // ie10 has broken `subarray`
   } catch (e) {
     return false
   }
@@ -7948,30 +8800,25 @@ function Buffer (subject, encoding, noZero) {
 
   var type = typeof subject
 
-  // Workaround: node's base64 implementation allows for non-padded strings
-  // while base64-js does not.
-  if (encoding === 'base64' && type === 'string') {
-    subject = stringtrim(subject)
-    while (subject.length % 4 !== 0) {
-      subject = subject + '='
-    }
-  }
-
   // Find the length
   var length
   if (type === 'number')
-    length = coerce(subject)
-  else if (type === 'string')
+    length = subject > 0 ? subject >>> 0 : 0
+  else if (type === 'string') {
+    if (encoding === 'base64')
+      subject = base64clean(subject)
     length = Buffer.byteLength(subject, encoding)
-  else if (type === 'object')
-    length = coerce(subject.length) // Assume object is an array
-  else
+  } else if (type === 'object' && subject !== null) { // assume object is array-like
+    if (subject.type === 'Buffer' && isArray(subject.data))
+      subject = subject.data
+    length = +subject.length > 0 ? Math.floor(+subject.length) : 0
+  } else
     throw new Error('First argument needs to be a number, array or string.')
 
   var buf
-  if (Buffer._useTypedArrays) {
+  if (TYPED_ARRAY_SUPPORT) {
     // Preferred: Return an augmented `Uint8Array` instance for best performance
-    buf = augment(new Uint8Array(length))
+    buf = Buffer._augment(new Uint8Array(length))
   } else {
     // Fallback: Return THIS instance of Buffer (created by `new`)
     buf = this
@@ -7980,21 +8827,21 @@ function Buffer (subject, encoding, noZero) {
   }
 
   var i
-  if (Buffer._useTypedArrays && typeof Uint8Array === 'function' &&
-      subject instanceof Uint8Array) {
-    // Speed optimization -- use set if we're copying from a Uint8Array
+  if (TYPED_ARRAY_SUPPORT && typeof subject.byteLength === 'number') {
+    // Speed optimization -- use set if we're copying from a typed array
     buf._set(subject)
   } else if (isArrayish(subject)) {
     // Treat array-ish objects as a byte array
-    for (i = 0; i < length; i++) {
-      if (Buffer.isBuffer(subject))
+    if (Buffer.isBuffer(subject)) {
+      for (i = 0; i < length; i++)
         buf[i] = subject.readUInt8(i)
-      else
-        buf[i] = subject[i]
+    } else {
+      for (i = 0; i < length; i++)
+        buf[i] = ((subject[i] % 256) + 256) % 256
     }
   } else if (type === 'string') {
     buf.write(subject, 0, encoding)
-  } else if (type === 'number' && !Buffer._useTypedArrays && !noZero) {
+  } else if (type === 'number' && !TYPED_ARRAY_SUPPORT && !noZero) {
     for (i = 0; i < length; i++) {
       buf[i] = 0
     }
@@ -8026,12 +8873,12 @@ Buffer.isEncoding = function (encoding) {
 }
 
 Buffer.isBuffer = function (b) {
-  return !!(b !== null && b !== undefined && b._isBuffer)
+  return !!(b != null && b._isBuffer)
 }
 
 Buffer.byteLength = function (str, encoding) {
   var ret
-  str = str + ''
+  str = str.toString()
   switch (encoding || 'utf8') {
     case 'hex':
       ret = str.length / 2
@@ -8061,8 +8908,7 @@ Buffer.byteLength = function (str, encoding) {
 }
 
 Buffer.concat = function (list, totalLength) {
-  assert(isArray(list), 'Usage: Buffer.concat(list, [totalLength])\n' +
-      'list should be an Array.')
+  assert(isArray(list), 'Usage: Buffer.concat(list[, length])')
 
   if (list.length === 0) {
     return new Buffer(0)
@@ -8071,7 +8917,7 @@ Buffer.concat = function (list, totalLength) {
   }
 
   var i
-  if (typeof totalLength !== 'number') {
+  if (totalLength === undefined) {
     totalLength = 0
     for (i = 0; i < list.length; i++) {
       totalLength += list[i].length
@@ -8088,10 +8934,28 @@ Buffer.concat = function (list, totalLength) {
   return buf
 }
 
+Buffer.compare = function (a, b) {
+  assert(Buffer.isBuffer(a) && Buffer.isBuffer(b), 'Arguments must be Buffers')
+  var x = a.length
+  var y = b.length
+  for (var i = 0, len = Math.min(x, y); i < len && a[i] === b[i]; i++) {}
+  if (i !== len) {
+    x = a[i]
+    y = b[i]
+  }
+  if (x < y) {
+    return -1
+  }
+  if (y < x) {
+    return 1
+  }
+  return 0
+}
+
 // BUFFER INSTANCE METHODS
 // =======================
 
-function _hexWrite (buf, string, offset, length) {
+function hexWrite (buf, string, offset, length) {
   offset = Number(offset) || 0
   var remaining = buf.length - offset
   if (!length) {
@@ -8115,35 +8979,30 @@ function _hexWrite (buf, string, offset, length) {
     assert(!isNaN(byte), 'Invalid hex string')
     buf[offset + i] = byte
   }
-  Buffer._charsWritten = i * 2
   return i
 }
 
-function _utf8Write (buf, string, offset, length) {
-  var charsWritten = Buffer._charsWritten =
-    blitBuffer(utf8ToBytes(string), buf, offset, length)
+function utf8Write (buf, string, offset, length) {
+  var charsWritten = blitBuffer(utf8ToBytes(string), buf, offset, length)
   return charsWritten
 }
 
-function _asciiWrite (buf, string, offset, length) {
-  var charsWritten = Buffer._charsWritten =
-    blitBuffer(asciiToBytes(string), buf, offset, length)
+function asciiWrite (buf, string, offset, length) {
+  var charsWritten = blitBuffer(asciiToBytes(string), buf, offset, length)
   return charsWritten
 }
 
-function _binaryWrite (buf, string, offset, length) {
-  return _asciiWrite(buf, string, offset, length)
+function binaryWrite (buf, string, offset, length) {
+  return asciiWrite(buf, string, offset, length)
 }
 
-function _base64Write (buf, string, offset, length) {
-  var charsWritten = Buffer._charsWritten =
-    blitBuffer(base64ToBytes(string), buf, offset, length)
+function base64Write (buf, string, offset, length) {
+  var charsWritten = blitBuffer(base64ToBytes(string), buf, offset, length)
   return charsWritten
 }
 
-function _utf16leWrite (buf, string, offset, length) {
-  var charsWritten = Buffer._charsWritten =
-    blitBuffer(utf16leToBytes(string), buf, offset, length)
+function utf16leWrite (buf, string, offset, length) {
+  var charsWritten = blitBuffer(utf16leToBytes(string), buf, offset, length)
   return charsWritten
 }
 
@@ -8177,26 +9036,26 @@ Buffer.prototype.write = function (string, offset, length, encoding) {
   var ret
   switch (encoding) {
     case 'hex':
-      ret = _hexWrite(this, string, offset, length)
+      ret = hexWrite(this, string, offset, length)
       break
     case 'utf8':
     case 'utf-8':
-      ret = _utf8Write(this, string, offset, length)
+      ret = utf8Write(this, string, offset, length)
       break
     case 'ascii':
-      ret = _asciiWrite(this, string, offset, length)
+      ret = asciiWrite(this, string, offset, length)
       break
     case 'binary':
-      ret = _binaryWrite(this, string, offset, length)
+      ret = binaryWrite(this, string, offset, length)
       break
     case 'base64':
-      ret = _base64Write(this, string, offset, length)
+      ret = base64Write(this, string, offset, length)
       break
     case 'ucs2':
     case 'ucs-2':
     case 'utf16le':
     case 'utf-16le':
-      ret = _utf16leWrite(this, string, offset, length)
+      ret = utf16leWrite(this, string, offset, length)
       break
     default:
       throw new Error('Unknown encoding')
@@ -8209,9 +9068,7 @@ Buffer.prototype.toString = function (encoding, start, end) {
 
   encoding = String(encoding || 'utf8').toLowerCase()
   start = Number(start) || 0
-  end = (end !== undefined)
-    ? Number(end)
-    : end = self.length
+  end = (end === undefined) ? self.length : Number(end)
 
   // Fastpath empty strings
   if (end === start)
@@ -8220,26 +9077,26 @@ Buffer.prototype.toString = function (encoding, start, end) {
   var ret
   switch (encoding) {
     case 'hex':
-      ret = _hexSlice(self, start, end)
+      ret = hexSlice(self, start, end)
       break
     case 'utf8':
     case 'utf-8':
-      ret = _utf8Slice(self, start, end)
+      ret = utf8Slice(self, start, end)
       break
     case 'ascii':
-      ret = _asciiSlice(self, start, end)
+      ret = asciiSlice(self, start, end)
       break
     case 'binary':
-      ret = _binarySlice(self, start, end)
+      ret = binarySlice(self, start, end)
       break
     case 'base64':
-      ret = _base64Slice(self, start, end)
+      ret = base64Slice(self, start, end)
       break
     case 'ucs2':
     case 'ucs-2':
     case 'utf16le':
     case 'utf-16le':
-      ret = _utf16leSlice(self, start, end)
+      ret = utf16leSlice(self, start, end)
       break
     default:
       throw new Error('Unknown encoding')
@@ -8252,6 +9109,16 @@ Buffer.prototype.toJSON = function () {
     type: 'Buffer',
     data: Array.prototype.slice.call(this._arr || this, 0)
   }
+}
+
+Buffer.prototype.equals = function (b) {
+  assert(Buffer.isBuffer(b), 'Argument must be a Buffer')
+  return Buffer.compare(this, b) === 0
+}
+
+Buffer.prototype.compare = function (b) {
+  assert(Buffer.isBuffer(b), 'Argument must be a Buffer')
+  return Buffer.compare(this, b)
 }
 
 // copy(targetBuffer, targetStart=0, sourceStart=0, sourceEnd=buffer.length)
@@ -8279,12 +9146,18 @@ Buffer.prototype.copy = function (target, target_start, start, end) {
   if (target.length - target_start < end - start)
     end = target.length - target_start + start
 
-  // copy!
-  for (var i = 0; i < end - start; i++)
-    target[i + target_start] = this[i + start]
+  var len = end - start
+
+  if (len < 100 || !TYPED_ARRAY_SUPPORT) {
+    for (var i = 0; i < len; i++) {
+      target[i + target_start] = this[i + start]
+    }
+  } else {
+    target._set(this.subarray(start, start + len), target_start)
+  }
 }
 
-function _base64Slice (buf, start, end) {
+function base64Slice (buf, start, end) {
   if (start === 0 && end === buf.length) {
     return base64.fromByteArray(buf)
   } else {
@@ -8292,7 +9165,7 @@ function _base64Slice (buf, start, end) {
   }
 }
 
-function _utf8Slice (buf, start, end) {
+function utf8Slice (buf, start, end) {
   var res = ''
   var tmp = ''
   end = Math.min(buf.length, end)
@@ -8309,20 +9182,21 @@ function _utf8Slice (buf, start, end) {
   return res + decodeUtf8Char(tmp)
 }
 
-function _asciiSlice (buf, start, end) {
+function asciiSlice (buf, start, end) {
   var ret = ''
   end = Math.min(buf.length, end)
 
-  for (var i = start; i < end; i++)
+  for (var i = start; i < end; i++) {
     ret += String.fromCharCode(buf[i])
+  }
   return ret
 }
 
-function _binarySlice (buf, start, end) {
-  return _asciiSlice(buf, start, end)
+function binarySlice (buf, start, end) {
+  return asciiSlice(buf, start, end)
 }
 
-function _hexSlice (buf, start, end) {
+function hexSlice (buf, start, end) {
   var len = buf.length
 
   if (!start || start < 0) start = 0
@@ -8335,22 +9209,41 @@ function _hexSlice (buf, start, end) {
   return out
 }
 
-function _utf16leSlice (buf, start, end) {
+function utf16leSlice (buf, start, end) {
   var bytes = buf.slice(start, end)
   var res = ''
   for (var i = 0; i < bytes.length; i += 2) {
-    res += String.fromCharCode(bytes[i] + bytes[i+1] * 256)
+    res += String.fromCharCode(bytes[i] + bytes[i + 1] * 256)
   }
   return res
 }
 
 Buffer.prototype.slice = function (start, end) {
   var len = this.length
-  start = clamp(start, len, 0)
-  end = clamp(end, len, len)
+  start = ~~start
+  end = end === undefined ? len : ~~end
 
-  if (Buffer._useTypedArrays) {
-    return augment(this.subarray(start, end))
+  if (start < 0) {
+    start += len;
+    if (start < 0)
+      start = 0
+  } else if (start > len) {
+    start = len
+  }
+
+  if (end < 0) {
+    end += len
+    if (end < 0)
+      end = 0
+  } else if (end > len) {
+    end = len
+  }
+
+  if (end < start)
+    end = start
+
+  if (TYPED_ARRAY_SUPPORT) {
+    return Buffer._augment(this.subarray(start, end))
   } else {
     var sliceLen = end - start
     var newBuf = new Buffer(sliceLen, undefined, true)
@@ -8385,7 +9278,7 @@ Buffer.prototype.readUInt8 = function (offset, noAssert) {
   return this[offset]
 }
 
-function _readUInt16 (buf, offset, littleEndian, noAssert) {
+function readUInt16 (buf, offset, littleEndian, noAssert) {
   if (!noAssert) {
     assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
     assert(offset !== undefined && offset !== null, 'missing offset')
@@ -8410,14 +9303,14 @@ function _readUInt16 (buf, offset, littleEndian, noAssert) {
 }
 
 Buffer.prototype.readUInt16LE = function (offset, noAssert) {
-  return _readUInt16(this, offset, true, noAssert)
+  return readUInt16(this, offset, true, noAssert)
 }
 
 Buffer.prototype.readUInt16BE = function (offset, noAssert) {
-  return _readUInt16(this, offset, false, noAssert)
+  return readUInt16(this, offset, false, noAssert)
 }
 
-function _readUInt32 (buf, offset, littleEndian, noAssert) {
+function readUInt32 (buf, offset, littleEndian, noAssert) {
   if (!noAssert) {
     assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
     assert(offset !== undefined && offset !== null, 'missing offset')
@@ -8450,11 +9343,11 @@ function _readUInt32 (buf, offset, littleEndian, noAssert) {
 }
 
 Buffer.prototype.readUInt32LE = function (offset, noAssert) {
-  return _readUInt32(this, offset, true, noAssert)
+  return readUInt32(this, offset, true, noAssert)
 }
 
 Buffer.prototype.readUInt32BE = function (offset, noAssert) {
-  return _readUInt32(this, offset, false, noAssert)
+  return readUInt32(this, offset, false, noAssert)
 }
 
 Buffer.prototype.readInt8 = function (offset, noAssert) {
@@ -8474,7 +9367,7 @@ Buffer.prototype.readInt8 = function (offset, noAssert) {
     return this[offset]
 }
 
-function _readInt16 (buf, offset, littleEndian, noAssert) {
+function readInt16 (buf, offset, littleEndian, noAssert) {
   if (!noAssert) {
     assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
     assert(offset !== undefined && offset !== null, 'missing offset')
@@ -8485,7 +9378,7 @@ function _readInt16 (buf, offset, littleEndian, noAssert) {
   if (offset >= len)
     return
 
-  var val = _readUInt16(buf, offset, littleEndian, true)
+  var val = readUInt16(buf, offset, littleEndian, true)
   var neg = val & 0x8000
   if (neg)
     return (0xffff - val + 1) * -1
@@ -8494,14 +9387,14 @@ function _readInt16 (buf, offset, littleEndian, noAssert) {
 }
 
 Buffer.prototype.readInt16LE = function (offset, noAssert) {
-  return _readInt16(this, offset, true, noAssert)
+  return readInt16(this, offset, true, noAssert)
 }
 
 Buffer.prototype.readInt16BE = function (offset, noAssert) {
-  return _readInt16(this, offset, false, noAssert)
+  return readInt16(this, offset, false, noAssert)
 }
 
-function _readInt32 (buf, offset, littleEndian, noAssert) {
+function readInt32 (buf, offset, littleEndian, noAssert) {
   if (!noAssert) {
     assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
     assert(offset !== undefined && offset !== null, 'missing offset')
@@ -8512,7 +9405,7 @@ function _readInt32 (buf, offset, littleEndian, noAssert) {
   if (offset >= len)
     return
 
-  var val = _readUInt32(buf, offset, littleEndian, true)
+  var val = readUInt32(buf, offset, littleEndian, true)
   var neg = val & 0x80000000
   if (neg)
     return (0xffffffff - val + 1) * -1
@@ -8521,14 +9414,14 @@ function _readInt32 (buf, offset, littleEndian, noAssert) {
 }
 
 Buffer.prototype.readInt32LE = function (offset, noAssert) {
-  return _readInt32(this, offset, true, noAssert)
+  return readInt32(this, offset, true, noAssert)
 }
 
 Buffer.prototype.readInt32BE = function (offset, noAssert) {
-  return _readInt32(this, offset, false, noAssert)
+  return readInt32(this, offset, false, noAssert)
 }
 
-function _readFloat (buf, offset, littleEndian, noAssert) {
+function readFloat (buf, offset, littleEndian, noAssert) {
   if (!noAssert) {
     assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
     assert(offset + 3 < buf.length, 'Trying to read beyond buffer length')
@@ -8538,14 +9431,14 @@ function _readFloat (buf, offset, littleEndian, noAssert) {
 }
 
 Buffer.prototype.readFloatLE = function (offset, noAssert) {
-  return _readFloat(this, offset, true, noAssert)
+  return readFloat(this, offset, true, noAssert)
 }
 
 Buffer.prototype.readFloatBE = function (offset, noAssert) {
-  return _readFloat(this, offset, false, noAssert)
+  return readFloat(this, offset, false, noAssert)
 }
 
-function _readDouble (buf, offset, littleEndian, noAssert) {
+function readDouble (buf, offset, littleEndian, noAssert) {
   if (!noAssert) {
     assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
     assert(offset + 7 < buf.length, 'Trying to read beyond buffer length')
@@ -8555,11 +9448,11 @@ function _readDouble (buf, offset, littleEndian, noAssert) {
 }
 
 Buffer.prototype.readDoubleLE = function (offset, noAssert) {
-  return _readDouble(this, offset, true, noAssert)
+  return readDouble(this, offset, true, noAssert)
 }
 
 Buffer.prototype.readDoubleBE = function (offset, noAssert) {
-  return _readDouble(this, offset, false, noAssert)
+  return readDouble(this, offset, false, noAssert)
 }
 
 Buffer.prototype.writeUInt8 = function (value, offset, noAssert) {
@@ -8573,9 +9466,10 @@ Buffer.prototype.writeUInt8 = function (value, offset, noAssert) {
   if (offset >= this.length) return
 
   this[offset] = value
+  return offset + 1
 }
 
-function _writeUInt16 (buf, value, offset, littleEndian, noAssert) {
+function writeUInt16 (buf, value, offset, littleEndian, noAssert) {
   if (!noAssert) {
     assert(value !== undefined && value !== null, 'missing value')
     assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
@@ -8593,17 +9487,18 @@ function _writeUInt16 (buf, value, offset, littleEndian, noAssert) {
         (value & (0xff << (8 * (littleEndian ? i : 1 - i)))) >>>
             (littleEndian ? i : 1 - i) * 8
   }
+  return offset + 2
 }
 
 Buffer.prototype.writeUInt16LE = function (value, offset, noAssert) {
-  _writeUInt16(this, value, offset, true, noAssert)
+  return writeUInt16(this, value, offset, true, noAssert)
 }
 
 Buffer.prototype.writeUInt16BE = function (value, offset, noAssert) {
-  _writeUInt16(this, value, offset, false, noAssert)
+  return writeUInt16(this, value, offset, false, noAssert)
 }
 
-function _writeUInt32 (buf, value, offset, littleEndian, noAssert) {
+function writeUInt32 (buf, value, offset, littleEndian, noAssert) {
   if (!noAssert) {
     assert(value !== undefined && value !== null, 'missing value')
     assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
@@ -8620,14 +9515,15 @@ function _writeUInt32 (buf, value, offset, littleEndian, noAssert) {
     buf[offset + i] =
         (value >>> (littleEndian ? i : 3 - i) * 8) & 0xff
   }
+  return offset + 4
 }
 
 Buffer.prototype.writeUInt32LE = function (value, offset, noAssert) {
-  _writeUInt32(this, value, offset, true, noAssert)
+  return writeUInt32(this, value, offset, true, noAssert)
 }
 
 Buffer.prototype.writeUInt32BE = function (value, offset, noAssert) {
-  _writeUInt32(this, value, offset, false, noAssert)
+  return writeUInt32(this, value, offset, false, noAssert)
 }
 
 Buffer.prototype.writeInt8 = function (value, offset, noAssert) {
@@ -8645,9 +9541,10 @@ Buffer.prototype.writeInt8 = function (value, offset, noAssert) {
     this.writeUInt8(value, offset, noAssert)
   else
     this.writeUInt8(0xff + value + 1, offset, noAssert)
+  return offset + 1
 }
 
-function _writeInt16 (buf, value, offset, littleEndian, noAssert) {
+function writeInt16 (buf, value, offset, littleEndian, noAssert) {
   if (!noAssert) {
     assert(value !== undefined && value !== null, 'missing value')
     assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
@@ -8661,20 +9558,21 @@ function _writeInt16 (buf, value, offset, littleEndian, noAssert) {
     return
 
   if (value >= 0)
-    _writeUInt16(buf, value, offset, littleEndian, noAssert)
+    writeUInt16(buf, value, offset, littleEndian, noAssert)
   else
-    _writeUInt16(buf, 0xffff + value + 1, offset, littleEndian, noAssert)
+    writeUInt16(buf, 0xffff + value + 1, offset, littleEndian, noAssert)
+  return offset + 2
 }
 
 Buffer.prototype.writeInt16LE = function (value, offset, noAssert) {
-  _writeInt16(this, value, offset, true, noAssert)
+  return writeInt16(this, value, offset, true, noAssert)
 }
 
 Buffer.prototype.writeInt16BE = function (value, offset, noAssert) {
-  _writeInt16(this, value, offset, false, noAssert)
+  return writeInt16(this, value, offset, false, noAssert)
 }
 
-function _writeInt32 (buf, value, offset, littleEndian, noAssert) {
+function writeInt32 (buf, value, offset, littleEndian, noAssert) {
   if (!noAssert) {
     assert(value !== undefined && value !== null, 'missing value')
     assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
@@ -8688,20 +9586,21 @@ function _writeInt32 (buf, value, offset, littleEndian, noAssert) {
     return
 
   if (value >= 0)
-    _writeUInt32(buf, value, offset, littleEndian, noAssert)
+    writeUInt32(buf, value, offset, littleEndian, noAssert)
   else
-    _writeUInt32(buf, 0xffffffff + value + 1, offset, littleEndian, noAssert)
+    writeUInt32(buf, 0xffffffff + value + 1, offset, littleEndian, noAssert)
+  return offset + 4
 }
 
 Buffer.prototype.writeInt32LE = function (value, offset, noAssert) {
-  _writeInt32(this, value, offset, true, noAssert)
+  return writeInt32(this, value, offset, true, noAssert)
 }
 
 Buffer.prototype.writeInt32BE = function (value, offset, noAssert) {
-  _writeInt32(this, value, offset, false, noAssert)
+  return writeInt32(this, value, offset, false, noAssert)
 }
 
-function _writeFloat (buf, value, offset, littleEndian, noAssert) {
+function writeFloat (buf, value, offset, littleEndian, noAssert) {
   if (!noAssert) {
     assert(value !== undefined && value !== null, 'missing value')
     assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
@@ -8715,17 +9614,18 @@ function _writeFloat (buf, value, offset, littleEndian, noAssert) {
     return
 
   ieee754.write(buf, value, offset, littleEndian, 23, 4)
+  return offset + 4
 }
 
 Buffer.prototype.writeFloatLE = function (value, offset, noAssert) {
-  _writeFloat(this, value, offset, true, noAssert)
+  return writeFloat(this, value, offset, true, noAssert)
 }
 
 Buffer.prototype.writeFloatBE = function (value, offset, noAssert) {
-  _writeFloat(this, value, offset, false, noAssert)
+  return writeFloat(this, value, offset, false, noAssert)
 }
 
-function _writeDouble (buf, value, offset, littleEndian, noAssert) {
+function writeDouble (buf, value, offset, littleEndian, noAssert) {
   if (!noAssert) {
     assert(value !== undefined && value !== null, 'missing value')
     assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
@@ -8740,14 +9640,15 @@ function _writeDouble (buf, value, offset, littleEndian, noAssert) {
     return
 
   ieee754.write(buf, value, offset, littleEndian, 52, 8)
+  return offset + 8
 }
 
 Buffer.prototype.writeDoubleLE = function (value, offset, noAssert) {
-  _writeDouble(this, value, offset, true, noAssert)
+  return writeDouble(this, value, offset, true, noAssert)
 }
 
 Buffer.prototype.writeDoubleBE = function (value, offset, noAssert) {
-  _writeDouble(this, value, offset, false, noAssert)
+  return writeDouble(this, value, offset, false, noAssert)
 }
 
 // fill(value, start=0, end=buffer.length)
@@ -8756,11 +9657,6 @@ Buffer.prototype.fill = function (value, start, end) {
   if (!start) start = 0
   if (!end) end = this.length
 
-  if (typeof value === 'string') {
-    value = value.charCodeAt(0)
-  }
-
-  assert(typeof value === 'number' && !isNaN(value), 'value is not a number')
   assert(end >= start, 'end < start')
 
   // Fill 0 bytes; we're done
@@ -8770,9 +9666,20 @@ Buffer.prototype.fill = function (value, start, end) {
   assert(start >= 0 && start < this.length, 'start out of bounds')
   assert(end >= 0 && end <= this.length, 'end out of bounds')
 
-  for (var i = start; i < end; i++) {
-    this[i] = value
+  var i
+  if (typeof value === 'number') {
+    for (i = start; i < end; i++) {
+      this[i] = value
+    }
+  } else {
+    var bytes = utf8ToBytes(value.toString())
+    var len = bytes.length
+    for (i = start; i < end; i++) {
+      this[i] = bytes[i % len]
+    }
   }
+
+  return this
 }
 
 Buffer.prototype.inspect = function () {
@@ -8793,13 +9700,14 @@ Buffer.prototype.inspect = function () {
  * Added in Node 0.12. Only available in browsers that support ArrayBuffer.
  */
 Buffer.prototype.toArrayBuffer = function () {
-  if (typeof Uint8Array === 'function') {
-    if (Buffer._useTypedArrays) {
+  if (typeof Uint8Array !== 'undefined') {
+    if (TYPED_ARRAY_SUPPORT) {
       return (new Buffer(this)).buffer
     } else {
       var buf = new Uint8Array(this.length)
-      for (var i = 0, len = buf.length; i < len; i += 1)
+      for (var i = 0, len = buf.length; i < len; i += 1) {
         buf[i] = this[i]
+      }
       return buf.buffer
     }
   } else {
@@ -8810,17 +9718,12 @@ Buffer.prototype.toArrayBuffer = function () {
 // HELPER FUNCTIONS
 // ================
 
-function stringtrim (str) {
-  if (str.trim) return str.trim()
-  return str.replace(/^\s+|\s+$/g, '')
-}
-
 var BP = Buffer.prototype
 
 /**
- * Augment the Uint8Array *instance* (not the class!) with Buffer methods
+ * Augment a Uint8Array *instance* (not the Uint8Array class!) with Buffer methods
  */
-function augment (arr) {
+Buffer._augment = function (arr) {
   arr._isBuffer = true
 
   // save reference to original Uint8Array get/set methods before overwriting
@@ -8835,6 +9738,8 @@ function augment (arr) {
   arr.toString = BP.toString
   arr.toLocaleString = BP.toString
   arr.toJSON = BP.toJSON
+  arr.equals = BP.equals
+  arr.compare = BP.compare
   arr.copy = BP.copy
   arr.slice = BP.slice
   arr.readUInt8 = BP.readUInt8
@@ -8872,23 +9777,21 @@ function augment (arr) {
   return arr
 }
 
-// slice(start, end)
-function clamp (index, len, defaultValue) {
-  if (typeof index !== 'number') return defaultValue
-  index = ~~index;  // Coerce to integer.
-  if (index >= len) return len
-  if (index >= 0) return index
-  index += len
-  if (index >= 0) return index
-  return 0
+var INVALID_BASE64_RE = /[^+\/0-9A-z]/g
+
+function base64clean (str) {
+  // Node strips out invalid characters like \n and \t from the string, base64-js does not
+  str = stringtrim(str).replace(INVALID_BASE64_RE, '')
+  // Node allows for non-padded base64 strings (missing trailing ===), base64-js does not
+  while (str.length % 4 !== 0) {
+    str = str + '='
+  }
+  return str
 }
 
-function coerce (length) {
-  // Coerce length to a number (possibly NaN), round up
-  // in case it's fractional (e.g. 123.456) then do a
-  // double negate to coerce a NaN to 0. Easy, right?
-  length = ~~Math.ceil(+length)
-  return length < 0 ? 0 : length
+function stringtrim (str) {
+  if (str.trim) return str.trim()
+  return str.replace(/^\s+|\s+$/g, '')
 }
 
 function isArray (subject) {
@@ -8912,14 +9815,15 @@ function utf8ToBytes (str) {
   var byteArray = []
   for (var i = 0; i < str.length; i++) {
     var b = str.charCodeAt(i)
-    if (b <= 0x7F)
-      byteArray.push(str.charCodeAt(i))
-    else {
+    if (b <= 0x7F) {
+      byteArray.push(b)
+    } else {
       var start = i
       if (b >= 0xD800 && b <= 0xDFFF) i++
       var h = encodeURIComponent(str.slice(start, i+1)).substr(1).split('%')
-      for (var j = 0; j < h.length; j++)
+      for (var j = 0; j < h.length; j++) {
         byteArray.push(parseInt(h[j], 16))
+      }
     }
   }
   return byteArray
@@ -8953,7 +9857,6 @@ function base64ToBytes (str) {
 }
 
 function blitBuffer (src, dst, offset, length) {
-  var pos
   for (var i = 0; i < length; i++) {
     if ((i + offset >= dst.length) || (i >= src.length))
       break
@@ -8999,7 +9902,7 @@ function assert (test, message) {
   if (!test) throw new Error(message || 'Failed assertion')
 }
 
-},{"base64-js":72,"ieee754":73}],72:[function(require,module,exports){
+},{"base64-js":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/node_modules/base64-js/lib/b64.js","ieee754":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/node_modules/ieee754/index.js"}],"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/node_modules/base64-js/lib/b64.js":[function(require,module,exports){
 var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 ;(function (exports) {
@@ -9009,7 +9912,6 @@ var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
     ? Uint8Array
     : Array
 
-	var ZERO   = '0'.charCodeAt(0)
 	var PLUS   = '+'.charCodeAt(0)
 	var SLASH  = '/'.charCodeAt(0)
 	var NUMBER = '0'.charCodeAt(0)
@@ -9118,11 +10020,11 @@ var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 		return output
 	}
 
-	module.exports.toByteArray = b64ToByteArray
-	module.exports.fromByteArray = uint8ToBase64
-}())
+	exports.toByteArray = b64ToByteArray
+	exports.fromByteArray = uint8ToBase64
+}(typeof exports === 'undefined' ? (this.base64js = {}) : exports))
 
-},{}],73:[function(require,module,exports){
+},{}],"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/node_modules/ieee754/index.js":[function(require,module,exports){
 exports.read = function(buffer, offset, isLE, mLen, nBytes) {
   var e, m,
       eLen = nBytes * 8 - mLen - 1,
@@ -9208,7 +10110,7 @@ exports.write = function(buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128;
 };
 
-},{}],74:[function(require,module,exports){
+},{}],"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/events/events.js":[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -9356,7 +10258,10 @@ EventEmitter.prototype.addListener = function(type, listener) {
                     'leak detected. %d listeners added. ' +
                     'Use emitter.setMaxListeners() to increase limit.',
                     this._events[type].length);
-      console.trace();
+      if (typeof console.trace === 'function') {
+        // not supported in IE 10
+        console.trace();
+      }
     }
   }
 
@@ -9510,7 +10415,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],75:[function(require,module,exports){
+},{}],"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js":[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -9555,6 +10460,16 @@ process.browser = true;
 process.env = {};
 process.argv = [];
 
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+
 process.binding = function (name) {
     throw new Error('process.binding is not supported');
 }
@@ -9565,4 +10480,4 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}]},{},[70])
+},{}]},{},["/home/kory/dev/gaffa-select/test/index.js"]);
