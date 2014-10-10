@@ -785,14 +785,8 @@ module.exports = function(document){
 };
 },{}],"/home/kory/dev/gaffa-select/node_modules/doc-js/isList.js":[function(require,module,exports){
 module.exports = function isList(object){
-    return object !== window && (
-        object instanceof Array ||
-        (typeof HTMLCollection !== 'undefined' && object instanceof HTMLCollection) ||
-        (typeof NodeList !== 'undefined' && object instanceof NodeList) ||
-        Array.isArray(object)
-    );
+    return object != null && typeof object === 'object' && 'length' in object && !('nodeType' in object);
 }
-
 },{}],"/home/kory/dev/gaffa-select/node_modules/gaffa-formelement/formelement.js":[function(require,module,exports){
 var Gaffa = require('gaffa'),
     crel = require('crel'),
@@ -805,8 +799,7 @@ FormElement.prototype._type = 'formElement';
 FormElement.prototype.render = function(){
     var view = this,
         renderedElement = this.renderedElement = this.renderedElement || crel('input'),
-        formElement = this.formElement = this.formElement || renderedElement,
-        updateEventNames = (this.updateEventName || "change").split(' ');
+        formElement = this.formElement = this.formElement || renderedElement;
 
     doc.on(this.updateEventName || "change", formElement, function(){
         view.value.set(formElement.value);
@@ -887,7 +880,150 @@ FormElement.prototype.enabled = new Gaffa.Property({
 });
 
 module.exports = FormElement;
-},{"crel":"/home/kory/dev/gaffa-select/node_modules/crel/crel.js","doc-js":"/home/kory/dev/gaffa-select/node_modules/doc-js/fluent.js","gaffa":"/home/kory/dev/gaffa-select/node_modules/gaffa/gaffa.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa-text/text.js":[function(require,module,exports){
+},{"crel":"/home/kory/dev/gaffa-select/node_modules/gaffa-formelement/node_modules/crel/crel.js","doc-js":"/home/kory/dev/gaffa-select/node_modules/doc-js/fluent.js","gaffa":"/home/kory/dev/gaffa-select/node_modules/gaffa/gaffa.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa-formelement/node_modules/crel/crel.js":[function(require,module,exports){
+//Copyright (C) 2012 Kory Nunn
+
+//Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+//The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+/*
+
+    This code is not formatted for readability, but rather run-speed and to assist compilers.
+
+    However, the code's intention should be transparent.
+
+    *** IE SUPPORT ***
+
+    If you require this library to work in IE7, add the following after declaring crel.
+
+    var testDiv = document.createElement('div'),
+        testLabel = document.createElement('label');
+
+    testDiv.setAttribute('class', 'a');
+    testDiv['className'] !== 'a' ? crel.attrMap['class'] = 'className':undefined;
+    testDiv.setAttribute('name','a');
+    testDiv['name'] !== 'a' ? crel.attrMap['name'] = function(element, value){
+        element.id = value;
+    }:undefined;
+
+
+    testLabel.setAttribute('for', 'a');
+    testLabel['htmlFor'] !== 'a' ? crel.attrMap['for'] = 'htmlFor':undefined;
+
+
+
+*/
+
+(function (root, factory) {
+    if (typeof exports === 'object') {
+        module.exports = factory();
+    } else if (typeof define === 'function' && define.amd) {
+        define(factory);
+    } else {
+        root.crel = factory();
+    }
+}(this, function () {
+    var fn = 'function',
+        obj = 'object',
+        isType = function(a, type){
+            return typeof a === type;
+        },
+        isNode = typeof Node === fn ? function (object) {
+            return object instanceof Node;
+        } :
+        // in IE <= 8 Node is an object, obviously..
+        function(object){
+            return object &&
+                isType(object, obj) &&
+                ('nodeType' in object) &&
+                isType(object.ownerDocument,obj);
+        },
+        isElement = function (object) {
+            return crel.isNode(object) && object.nodeType === 1;
+        },
+        isArray = function(a){
+            return a instanceof Array;
+        },
+        appendChild = function(element, child) {
+          if(!isNode(child)){
+              child = document.createTextNode(child);
+          }
+          element.appendChild(child);
+        };
+
+
+    function crel(){
+        var args = arguments, //Note: assigned to a variable to assist compilers. Saves about 40 bytes in closure compiler. Has negligable effect on performance.
+            element = args[0],
+            child,
+            settings = args[1],
+            childIndex = 2,
+            argumentsLength = args.length,
+            attributeMap = crel.attrMap;
+
+        element = crel.isElement(element) ? element : document.createElement(element);
+        // shortcut
+        if(argumentsLength === 1){
+            return element;
+        }
+
+        if(!isType(settings,obj) || crel.isNode(settings) || isArray(settings)) {
+            --childIndex;
+            settings = null;
+        }
+
+        // shortcut if there is only one child that is a string
+        if((argumentsLength - childIndex) === 1 && isType(args[childIndex], 'string') && element.textContent !== undefined){
+            element.textContent = args[childIndex];
+        }else{
+            for(; childIndex < argumentsLength; ++childIndex){
+                child = args[childIndex];
+
+                if(child == null){
+                    continue;
+                }
+
+                if (isArray(child)) {
+                  for (var i=0; i < child.length; ++i) {
+                    appendChild(element, child[i]);
+                  }
+                } else {
+                  appendChild(element, child);
+                }
+            }
+        }
+
+        for(var key in settings){
+            if(!attributeMap[key]){
+                element.setAttribute(key, settings[key]);
+            }else{
+                var attr = crel.attrMap[key];
+                if(typeof attr === fn){
+                    attr(element, settings[key]);
+                }else{
+                    element.setAttribute(attr, settings[key]);
+                }
+            }
+        }
+
+        return element;
+    }
+
+    // Used for mapping one kind of attribute to the supported version of that in bad browsers.
+    // String referenced so that compilers maintain the property name.
+    crel['attrMap'] = {};
+
+    // String referenced so that compilers maintain the property name.
+    crel["isElement"] = isElement;
+    crel["isNode"] = isNode;
+
+    return crel;
+}));
+
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa-text/text.js":[function(require,module,exports){
 var Gaffa = require('gaffa'),
     crel = require('crel'),
     viewType = "text";
@@ -917,26 +1053,86 @@ module.exports = Text;
 },{"crel":"/home/kory/dev/gaffa-select/node_modules/crel/crel.js","gaffa":"/home/kory/dev/gaffa-select/node_modules/gaffa/gaffa.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/action.js":[function(require,module,exports){
 var createSpec = require('spec-js'),
     Property = require('./property'),
+    statham = require('statham'),
     ViewItem = require('./viewItem');
+
+function triggerAction(action, parent, scope, event) {
+    // clone
+    action = parent.gaffa.initialiseAction(statham.revive(JSON.parse(statham.stringify(action))));
+
+    action.bind(parent, scope);
+    action.path = action.getPath();
+
+    scope || (scope = {});
+
+    if(action.condition.value){
+        action.trigger(parent, scope, event);
+    }
+
+    if(!action._async){
+        action.complete();
+    }
+}
+
+function triggerActions(actions, parent, scope, event) {
+    if(Array.isArray(actions)){
+        for(var i = 0; i < actions.length; i++) {
+            triggerAction(actions[i], parent, scope, event);
+        }
+    }else if(actions instanceof Action){
+        triggerAction(actions, parent, scope, event);
+    }
+}
 
 function Action(actionDescription){
 }
 Action = createSpec(Action, ViewItem);
-Action.prototype.bind = function(parent, scope){
-    ViewItem.prototype.bind.call(this, parent, scope);
-};
+Action.trigger = triggerActions;
 Action.prototype.trigger = function(){
     throw 'Nothing is implemented for this action (' + this.constructor.name + ')';
 };
 Action.prototype.condition = new Property({
     value: true
 });
+
+// Because actions shouldn't neccisarily debind untill they are complete,
+// They have an odd debind impementation.
+Action.prototype.debind = function(){
+    if(!this._complete && !this._destroyed){
+        return;
+    }
+    this.complete();
+};
 Action.prototype.complete = function(){
-    this.debind();
+    if(this._complete){
+        return;
+    }
+
+    this._complete = true;
+    var action = this;
+    this.on('debind', function(){
+        action.destroy();
+    });
+    this.emit('complete');
+    ViewItem.prototype.debind.call(this);
+};
+
+// Only actually destroy if either the actions parent was not an Action,
+// Or if its Action parent was explicitly destroyed.
+Action.prototype.destroy = function(){
+    if(!this._complete && (this.parent instanceof Action ? this.parent._canceled : true)){
+        this._canceled = true;
+    }
+
+    if(!this._complete && !this._canceled){
+        return;
+    }
+
+    ViewItem.prototype.destroy.call(this);
 };
 
 module.exports = Action;
-},{"./property":"/home/kory/dev/gaffa-select/node_modules/gaffa/property.js","./viewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewItem.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/behaviour.js":[function(require,module,exports){
+},{"./property":"/home/kory/dev/gaffa-select/node_modules/gaffa/property.js","./viewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewItem.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js","statham":"/home/kory/dev/gaffa-select/node_modules/statham/statham.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/behaviour.js":[function(require,module,exports){
 var createSpec = require('spec-js'),
     ViewItem = require('./viewItem');
 
@@ -950,9 +1146,19 @@ module.exports = Behaviour;
 },{"./viewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewItem.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/bindable.js":[function(require,module,exports){
 var createSpec = require('spec-js'),
     EventEmitter = require('events').EventEmitter,
-    Consuela = require('consuela'),
-    jsonConverter = require('./jsonConverter'),
-    nextTick = require('next-tick');
+    jsonConverter = require('./jsonConverter');
+
+var stack = [];
+function eventually(fn){
+    stack.push(fn);
+    if(stack.length === 1){
+        setTimeout(function(){
+            while(stack.length){
+                stack.pop()();
+            }
+        },100);
+    }
+}
 
 function getItemPath(item){
     var gedi = item.gaffa.gedi,
@@ -979,15 +1185,17 @@ function getItemPath(item){
 }
 
 var iuid = 0;
+
 function Bindable(){
     this.setMaxListeners(1000);
-    var consuela = new Consuela();
-    this.consuela = consuela;
-
     // instance unique ID
     this.__iuid = iuid++;
 }
 Bindable = createSpec(Bindable, EventEmitter);
+Bindable.bindables = {};
+Bindable.getByIuid = function(id){
+    return this.bindables[id];
+};
 Bindable.prototype.getPath = function(){
     return getItemPath(this);
 };
@@ -1002,37 +1210,126 @@ Bindable.prototype.toJSON = function(){
 
     return tempObject;
 };
-Bindable.prototype.bind = function(){
+
+function setupCleanup(bindable, parent){
+    var onDebind = bindable.debind.bind(bindable);
+    parent.once('debind', onDebind);
+    bindable.once('debind', function(){
+        bindable.parent.removeListener('debind', onDebind);
+    });
+
+    var onDestroy = bindable.destroy.bind(bindable);
+    parent.once('destroy', onDestroy);
+    bindable.once('destroy', function(){
+        bindable.parent.removeListener('destroy', onDestroy);
+    });
+}
+
+Bindable.prototype.bind = function(parent){
+    if(parent && !parent._bound){
+        console.warn('Attempted to bind to a parent who was not bound.');
+        return;
+    }
     if(this._bound){
         this.debind();
+        console.warn('Attempted to bind an already bound item.');
     }
+
+    if(parent){
+        this.gaffa = parent.gaffa;
+        this.parent = parent;
+        this._parentId = parent.__iuid;
+
+        setupCleanup(this, parent);
+    }
+
+    this.updatePath();
+
     this._bound = true;
+    Bindable.bindables[this.__iuid] = this;
     this.emit('bind');
     this.removeAllListeners('bind');
 };
+Bindable.prototype.getSourcePath = function(){
+    return this.gaffa.gedi.paths.resolve(this.parent && this.parent.getPath(), this.sourcePath);
+}
+Bindable.prototype.updatePath = function(){
+    if(!this.pathBinding){
+        return;
+    }
+
+    var bindable = this,
+        absoluteSourcePath = this.getSourcePath(),
+        lastPath = this.path,
+        gaffa = this.gaffa;
+
+    function setPath(valueTokens){
+        if(valueTokens){
+            var valueToken = valueTokens[valueTokens.length - 1];
+            bindable.path = valueToken.sourcePathInfo && valueToken.sourcePathInfo.path;
+        }
+
+        if(lastPath !== bindable.path && bindable._bound){
+            bindable.debind();
+            bindable.bind(bindable.parent);
+        }
+    }
+
+    setPath(gaffa.gedi.get(this.pathBinding, absoluteSourcePath, bindable.scope, true));
+
+    function handlePathChange(event){
+        setPath(gaffa.model.get(bindable.pathBinding, bindable, bindable.scope, true));
+    }
+
+    gaffa.gedi.bind(this.pathBinding, handlePathChange, absoluteSourcePath);
+    this.on('debind', function(){
+        gaffa.gedi.debind(bindable.pathBinding, handlePathChange, absoluteSourcePath);
+    });
+};
 Bindable.prototype.debind = function(){
+    var bindable = this;
+
     if(!this._bound){
+        // ToDo: This happens with actions, resolve.
         return;
     }
     this._bound = false;
 
     this.emit('debind');
-    this.consuela.cleanup();
     this.removeAllListeners('debind');
+    delete Bindable.bindables[this.__iuid];
 };
 Bindable.prototype.destroy = function(){
     var bindable = this;
 
-    this.emit('destroy');
-    // Let any children bound to 'destroy' do their thing before actually destroying this.
-    nextTick(function(){
-        bindable.consuela.cleanup();
+    this._destroyed = true;
+
+    if(this._bound){
+        this.debind();
+    }
+
+    for(var key in this){
+        if(key !== 'parent' && this[key] instanceof Bindable && this[key]._bound){
+            console.log(key);
+        }
+    }
+
+    // Destroy bindables asynchonously.
+    eventually(function(){
+
+        bindable.emit('destroy');
         bindable.removeAllListeners('destroy');
+
+        // Let any children bound to 'destroy' do their thing before actually destroying this.
+        eventually(function(){
+            bindable.gaffa = null;
+            bindable.parent = null;
+        });
     });
 };
 
 module.exports = Bindable;
-},{"./jsonConverter":"/home/kory/dev/gaffa-select/node_modules/gaffa/jsonConverter.js","consuela":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/consuela/index.js","events":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/events/events.js","next-tick":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/next-tick/index.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/containerView.js":[function(require,module,exports){
+},{"./jsonConverter":"/home/kory/dev/gaffa-select/node_modules/gaffa/jsonConverter.js","events":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/events/events.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/containerView.js":[function(require,module,exports){
 /**
     ## ContainerView
 
@@ -1045,7 +1342,8 @@ module.exports = Bindable;
 
 var createSpec = require('spec-js'),
     View = require('./view'),
-    ViewContainer = require('./viewContainer');
+    ViewContainer = require('./viewContainer'),
+    Property = require('./property');
 
 function ContainerView(viewDescription){
     this.views = this.views || {};
@@ -1062,9 +1360,17 @@ ContainerView.prototype.bind = function(parent){
         }
     }
 };
+ContainerView.prototype.renderChildren = new Property({
+    update: function(view, value){
+        for(var key in view.views){
+            view.views[key][value ? 'render' : 'derender']();
+        }
+    },
+    value: true
+});
 
 module.exports = ContainerView;
-},{"./view":"/home/kory/dev/gaffa-select/node_modules/gaffa/view.js","./viewContainer":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewContainer.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/createModelScope.js":[function(require,module,exports){
+},{"./property":"/home/kory/dev/gaffa-select/node_modules/gaffa/property.js","./view":"/home/kory/dev/gaffa-select/node_modules/gaffa/view.js","./viewContainer":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewContainer.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/createModelScope.js":[function(require,module,exports){
 function createModelScope(parent, gediEvent){
     var possibleGroup = parent,
         groupKey,
@@ -1082,6 +1388,34 @@ function createModelScope(parent, gediEvent){
     return scope;
 }
 module.exports = createModelScope;
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/excludeProps.js":[function(require,module,exports){
+module.exports = ["_trackedListeners", "__iuid", "gaffa", "parent", "parentContainer", "renderedElement", "_removeHandlers", "gediCallbacks", "__super__", "_events", "consuela"];
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/flatMerge.js":[function(require,module,exports){
+function flatMerge(a,b){
+    if(!b || typeof b !== 'object'){
+        b = {};
+    }
+
+    if(!a || typeof a !== 'object'){
+        a = new b.constructor();
+    }
+    
+    var result = new a.constructor(),
+        aKeys = Object.keys(a),
+        bKeys = Object.keys(b);
+
+    for(var i = 0; i < aKeys.length; i++){
+        result[aKeys[i]] = a[aKeys[i]];
+    }
+
+    for(var i = 0; i < bKeys.length; i++){
+        result[bKeys[i]] = b[bKeys[i]];
+    }
+
+    return result;
+};
+
+module.exports = flatMerge;
 },{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/gaffa.js":[function(require,module,exports){
 //Copyright (C) 2012 Kory Nunn, Matt Ginty & Maurice Butler
 
@@ -1097,204 +1431,35 @@ module.exports = createModelScope;
 
 var Gedi = require('gedi'),
     doc = require('doc-js'),
-    crel = require('crel'),
     createSpec = require('spec-js'),
     EventEmitter = require('events').EventEmitter,
-    animationFrame = require('./raf.js'),
     merge = require('merge'),
     statham = require('statham'),
-    requestAnimationFrame = animationFrame.requestAnimationFrame,
-    cancelAnimationFrame = animationFrame.cancelAnimationFrame,
-    resolvePath = require('./resolvePath');
-
-// Storage for applications default styles.
-var defaultViewStyles;
-
-var removeViews = require('./removeViews'),
+    resolvePath = require('./resolvePath'),
+    removeViews = require('./removeViews'),
     getClosestItem = require('./getClosestItem'),
-    jsonConverter = require('./jsonConverter');
-
-var Property = require('./property'),
+    jsonConverter = require('./jsonConverter'),
+    Property = require('./property'),
     ViewContainer = require('./viewContainer'),
     ViewItem = require('./viewItem'),
     View = require('./view'),
     ContainerView = require('./containerView'),
     Action = require('./action'),
-    Behaviour = require('./behaviour');
-
-function parseQueryString(url){
-    var urlParts = url.split('?'),
-        result = {};
-
-    if(urlParts.length>1){
-
-        var queryStringData = urlParts.pop().split("&");
-
-        for(var i = 0; i < queryStringData.length; i++) {
-            var parts = queryStringData[i].split("="),
-                key = window.unescape(parts[0]),
-                value = window.unescape(parts[1]);
-
-            result[key] = value;
-        }
-    }
-
-    return result;
-}
-
-function toQueryString(data){
-    var queryString = '';
-
-    for(var key in data){
-        if(data.hasOwnProperty(key) && data[key] !== undefined){
-            queryString += (queryString.length ? '&' : '?') + key + '=' + data[key];
-        }
-    }
-
-    return queryString;
-}
+    Behaviour = require('./behaviour'),
+    initialiseViewItem = require('./initialiseViewItem'),
+    initialiseView = require('./initialiseView'),
+    initialiseAction = require('./initialiseAction'),
+    initialiseBehaviour = require('./initialiseBehaviour');
 
 function clone(value){
     return statham.revive(value);
 }
 
-function tryParseJson(data){
-    try{
-        return JSON.parse(data);
-    }catch(error){
-        return error;
-    }
-}
-
-function ajax(settings){
-    var queryStringData,
-        request = new XMLHttpRequest();
-    if(typeof settings !== 'object'){
-        settings = {};
-    }
-
-    if(settings.cors){
-        //http://www.html5rocks.com/en/tutorials/cors/
-
-        if ("withCredentials" in request) {
-
-            // all good.
-
-        } else if (typeof XDomainRequest != "undefined") {
-
-            // Otherwise, check if XDomainRequest.
-            // XDomainRequest only exists in IE, and is IE's way of making CORS requests.
-            request = new XDomainRequest();
-        } else {
-
-            // Otherwise, CORS is not supported by the browser.
-            throw "Cors is not supported by this browser";
-        }
-    }else{
-        request = new XMLHttpRequest();
-    }
-
-    if(settings.cache === false){
-        settings.data = settings.data || {};
-        settings.data['_'] = new Date().getTime();
-    }
-
-    if(settings.type.toLowerCase() === 'get' && typeof settings.data === 'object'){
-        queryStringData = parseQueryString(settings.url);
-        for(var key in settings.data){
-            if(settings.data.hasOwnProperty(key)){
-                queryStringData[key] = settings.data[key];
-            }
-        }
-
-        settings.url  = settings.url.split('?').shift() + toQueryString(queryStringData);
-        settings.data = null;
-    }
-
-    request.addEventListener("progress", settings.progress, false);
-    request.addEventListener("load", function(event){
-        var data = event.target.responseText;
-
-        if(settings.dataType === 'json'){
-            if(data === ''){
-                data = undefined;
-            }else{
-                data = tryParseJson(data);
-            }
-        }
-
-        if(event.target.status >= 400){
-            settings.error && settings.error(event, data instanceof Error ? undefined : data);
-        }else{
-            if(data instanceof Error){
-                settings.error && settings.error(event, data);
-            }else{
-                settings.success && settings.success(data, event);
-            }
-        }
-
-    }, false);
-    request.addEventListener("error", settings.error, false);
-    request.addEventListener("abort", settings.abort, false);
-    request.addEventListener("loadend", settings.complete, false);
-
-    request.open(settings.type || "get", settings.url, true);
-
-    // Set default headers
-    if(settings.contentType !== false){
-        request.setRequestHeader('Content-Type', settings.contentType || 'application/json; charset=utf-8');
-    }
-    request.setRequestHeader('X-Requested-With', settings.requestedWith || 'XMLHttpRequest');
-    request.setRequestHeader('x-gaffa', 'request');
-    if(settings.auth){
-        request.setRequestHeader('Authorization', settings.auth);
-    }
-
-    // Set custom headers
-    for(var key in settings.headers){
-        request.setRequestHeader(key, settings.headers[key]);
-    }
-
-    if(settings.processData !== false && settings.dataType === 'json'){
-        settings.data = JSON.stringify(settings.data);
-    }
-
-    request.send(settings.data && settings.data);
-
-    return request;
-}
-
-function triggerAction(action, parent, scope, event) {
-
-    action.bind(parent, scope);
-
-    scope || (scope = {});
-
-    if(action.condition.value){
-        action.trigger(parent, scope, event);
-    }
-
-    if(!action._async){
-        action.complete();
-    }
-}
-
-function triggerActions(actions, parent, scope, event) {
-    if(Array.isArray(actions)){
-        for(var i = 0; i < actions.length; i++) {
-            triggerAction(actions[i], parent, scope, event);
-        }
-    }
-}
-
-var initialiseViewItem = require('./initialiseViewItem');
-var initialiseView = require('./initialiseView');
-var initialiseAction = require('./initialiseAction');
-var initialiseBehaviour = require('./initialiseBehaviour');
-
 function Gaffa(){
     var gedi,
-        gaffa = Object.create(EventEmitter.prototype);
+        gaffa = this;
+
+    this.gaffa = this;
 
     // internal varaibles
 
@@ -1302,7 +1467,7 @@ function Gaffa(){
     var internalModel = {},
 
         // Storage for the applications view.
-        internalViewItems = [],
+        rootViewContainer = new ViewContainer(),
 
         // Storage for application actions.
         internalActions = {},
@@ -1313,156 +1478,21 @@ function Gaffa(){
         // Storage for interval based behaviours.
         internalIntervals = [];
 
+    rootViewContainer.gaffa = this;
+    rootViewContainer.renderTarget = 'body';
+
+    if(typeof window !== 'undefined'){
+        window.addEventListener('load', function(){
+            gaffa._bound = true;
+            rootViewContainer.bind(gaffa);
+        });
+    }
 
     // Gedi initialisation
     gedi = new Gedi(internalModel);
 
     // Add gedi instance to gaffa.
-    gaffa.gedi = gedi;
-
-    function addBehaviour(behaviour) {
-        //if the views isnt an array, make it one.
-        if (Array.isArray(behaviour)) {
-            for(var i = 0; i < behaviour.length; i++) {
-                addBehaviour(behaviour[i]);
-            }
-            return;
-        }
-
-        behaviour.gaffa = gaffa;
-        behaviour.parentContainer = internalBehaviours;
-
-        Behaviour.prototype.bind.call(behaviour);
-        behaviour.bind();
-
-        internalBehaviours.push(behaviour);
-    }
-
-
-    function load(app, target){
-
-        app = statham.revive(app);
-
-        var targetView = gaffa.views;
-
-        if(target){
-            var targetParts = target.split('.'),
-                targetName = targetParts[0],
-                targetViewContainer = targetParts[1];
-
-            targetView = gaffa.namedViews[targetName].views[targetViewContainer];
-        }
-
-        while(internalIntervals.length){
-            clearInterval(internalIntervals.pop());
-        }
-
-        //clear state first
-        if (app.views) {
-            targetView.empty();
-        }
-
-        //set up state
-        if (app.model) {
-            gedi.set({});
-            gaffa.model.set(app.model, null, null, false);
-        }
-        if (app.views) {
-            for(var i = 0; i < app.views.length; i++) {
-                app.views[i] = initialiseView(app.views[i], gaffa);
-            }
-            targetView.add(app.views);
-        }
-        if (app.behaviours) {
-            for(var i = 0; i < app.behaviours.length; i++) {
-                app.behaviours[i] = initialiseBehaviour(app.behaviours[i], gaffa);
-            }
-            gaffa.behaviours.add(app.behaviours);
-        }
-
-        gaffa.emit("load");
-    }
-
-
-    var pageCache = {};
-
-    function navigate(url, target, pushState, data) {
-
-        // Data will be passed to the route as a querystring
-        // but will not be displayed visually in the address bar.
-        // This is to help resolve caching issues.
-
-        // default target
-        if(target === undefined){
-            target = gaffa.navigateTarget;
-        }
-
-        function success (data) {
-            var title;
-
-            data.target = target;
-
-            if(data !== undefined && data !== null && data.title){
-                title = data.title;
-            }
-
-            // Always use pushstate unless triggered by onpopstate
-            if(pushState !== false) {
-                gaffa.pushState(data, title, url);
-            }
-
-            pageCache[url] = data;
-
-            gaffa.load(data, target);
-
-            gaffa.emit("navigate.success");
-
-            window.scrollTo(0,0);
-        }
-
-        function error(error){
-            gaffa.emit("navigate.error", error);
-        }
-
-        function complete(){
-            gaffa.emit("navigate.complete");
-        }
-
-        gaffa.emit("navigate");
-
-        if(gaffa.cacheNavigates !== false && pageCache[url]){
-            success(pageCache[url]);
-            complete();
-            return;
-        }
-
-        gaffa.ajax({
-            url: gaffa.createNavigateUrl(url),
-            type: "get",
-            data: data,
-            dataType: "json",
-            success: success,
-            error: error,
-            complete: complete
-        });
-    }
-
-    gaffa.createNavigateUrl = function(url){
-        return url;
-    };
-
-    gaffa.onpopstate = function(event){
-        if(event.state){
-            navigate(window.location.toString(), event.state.target, false);
-        }
-    };
-
-    // Overridable handler
-    window.onpopstate = gaffa.onpopstate;
-
-    function addDefaultsToScope(scope){
-        scope.windowLocation = window.location.toString();
-    }
+    this.gedi = gedi;
 
     function modelGet(path, viewItem, scope, asTokens) {
         if(!(viewItem instanceof ViewItem || viewItem instanceof Property)){
@@ -1472,7 +1502,6 @@ function Gaffa(){
 
         scope = scope || {};
 
-        addDefaultsToScope(scope);
         var parentPath = resolvePath(viewItem);
 
         return gedi.get(path, parentPath, scope, asTokens);
@@ -1534,354 +1563,243 @@ function Gaffa(){
         var gaffa = new Gaffa();
 */
 
-    var gaffaPublicObject = {
+    /**
+        ### .events
+
+        used throughout gaffa for binding DOM events.
+    */
+    this.events = {
 
         /**
-            ### .createSpec
+            ### .on
 
-                function myConstructor(){}
-                myConstructor = gaffa.createSpec(myConstructor, inheritedConstructor);
+            usage:
 
-            npm module: [spec-js](https://npmjs.org/package/spec-js)
+                gaffa.events.on('eventname', target, callback);
         */
-        createSpec: createSpec,
-
-        /**
-            ### .jsonConverter
-
-            default jsonification for ViewItems
-        */
-        jsonConverter: jsonConverter,
-
-        /**
-            ### .initialiseViewItem
-
-            takes the plain old object representation of a viewItem and returns an instance of ViewItem with all the settings applied.
-
-            Also recurses through the ViewItem's tree and inflates children.
-        */
-        initialiseViewItem: function(viewItem, specCollection, references){
-            return initialiseViewItem(viewItem, this, specCollection, references);
-        },
-
-        initialiseView: function(view, references){
-            return initialiseView(view, this, references);
-        },
-
-        initialiseAction: function(action, references){
-            return initialiseAction(action, this, references);
-        },
-
-        initialiseBehaviour: function(behaviour, references){
-            return initialiseBehaviour(behaviour, this, references);
-        },
-
-        /**
-            ### .initialiseViewItem
-
-            takes the plain old object representation of a viewItem and returns an instance of ViewItem with all the settings applied.
-
-            Also recurses through the ViewItem's tree and inflates children.
-        */
-        registerConstructor: function(constructor){
-            if(Array.isArray(constructor)){
-                for(var i = 0; i < constructor.length; i++){
-                    gaffa.registerConstructor(constructor[i]);
-                }
+        on: function(eventName, target, callback){
+            if('on' + eventName.toLowerCase() in target){
+                return doc.on(eventName, target, callback);
             }
-
-            var constructorType = constructor.prototype instanceof View && 'views' ||
-                constructor.prototype instanceof Action && 'actions' ||
-                constructor.prototype instanceof Behaviour && 'behaviours';
-
-            if(constructorType){
-                // ToDo: Deprecate .type
-                gaffa[constructorType]._constructors[constructor.prototype._type || constructor.prototype.type] = constructor;
-            }else{
-                throw "The provided constructor was not an instance of a View, Action, or Behaviour" +
-                    "\n This is likely due to having two version of Gaffa installed" +
-                    "\n Run 'npm ls gaffa' to check, and 'npm dedupe to fix'";
-            }
-        },
-
-        /**
-            ### .events
-
-            used throughout gaffa for binding DOM events.
-        */
-        events:{
-
-            /**
-                ### .on
-
-                usage:
-
-                    gaffa.events.on('eventname', target, callback);
-            */
-            on: function(eventName, target, callback){
-                if('on' + eventName.toLowerCase() in target){
-                    return doc.on(eventName, target, callback);
-                }
-            }
-        },
-
-        /**
-            ## .model
-
-            access to the applications model
-        */
-        model: {
-
-            /**
-                ### .get(path, viewItem, scope, asTokens)
-
-                used to get data from the model.
-                path is relative to the viewItems path.
-
-                    gaffa.model.get('[someProp]', parentViewItem);
-            */
-            get: modelGet,
-
-            /**
-                ### .set(path, value, viewItem, dirty)
-
-                used to set data into the model.
-                path is relative to the viewItems path.
-
-                    gaffa.model.set('[someProp]', 'hello', parentViewItem);
-            */
-            set: modelSet,
-
-            /**
-                ### .remove(path, viewItem, dirty)
-
-                used to remove data from the model.
-                path is relative to the viewItems path.
-
-                    gaffa.model.remove('[someProp]', parentViewItem);
-            */
-            remove: modelRemove,
-
-            /**
-                ### .isDirty(path, viewItem)
-
-                check if a part of the model is dirty.
-                path is relative to the viewItems path.
-
-                    gaffa.model.isDirty('[someProp]', viewItem); // true/false?
-            */
-            isDirty: modelIsDirty,
-
-            /**
-                ### .setDirtyState(path, value, viewItem)
-
-                set a part of the model to be dirty or not.
-                path is relative to the viewItems path.
-
-                    gaffa.model.setDirtyState('[someProp]', true, viewItem);
-            */
-            setDirtyState: modelSetDirtyState
-        },
-
-        /**
-            ## .views
-
-                gaffa.views //Object.
-
-            contains functions and properties for manipulating the application's views.
-        */
-        views: {
-
-            /**
-                ### .renderTarget
-
-                Overrideable DOM selector that top level view items will be inserted into.
-
-                    gaffa.views.renderTarget = 'body';
-            */
-            renderTarget: 'body',
-
-            /**
-                ### .add(View/viewModel, insertIndex)
-
-                Add a view or views to the root list of viewModels.
-                When a view is added, it will be rendered _bound, and inserted into the DOM.
-
-                    gaffa.views.add(myView);
-
-                Or:
-
-                    gaffa.views.add([
-                        myView1,
-                        myView1,
-                        myView1
-                    ]);
-            */
-            add: function(view, insertIndex){
-                if(Array.isArray(view)){
-                    for(var i = 0; i < view.length; i++) {
-                        gaffa.views.add(view[i]);
-                    }
-                    return;
-                }
-
-                if(view.name){
-                    gaffa.namedViews[view.name] = view;
-                }
-
-                view.gaffa = gaffa;
-                view.parentContainer = internalViewItems;
-                view.render();
-                view.renderedElement.viewModel = view;
-                view.bind();
-                view.insert(internalViewItems, insertIndex);
-            },
-
-            /**
-                ### .remove(view/views)
-
-                Remove a view or views from anywhere in the application.
-
-                    gaffa.views.remove(myView);
-            */
-            remove: removeViews,
-
-            /**
-                ### .empty()
-
-                empty the application of all views.
-
-                    gaffa.views.empty();
-            */
-            empty: function(){
-                removeViews(internalViewItems);
-            },
-
-            _constructors: {}
-        },
-
-        /**
-            ### .namedViews
-
-            Storage for named views.
-            Any views with a .name property will be put here, with the name as the key.
-
-            This is used for navigation, where you can specify a view to navigate into.
-
-            See gaffa.navitate();
-        */
-        namedViews: {},
-
-        /**
-            ## .actions
-
-                gaffa.actions //Object.
-
-            contains functions and properties for manipulating the application's actions.
-        */
-        actions: {
-
-            /**
-                ### .trigger(actions, parent, scope, event)
-
-                trigger a gaffa action where:
-
-                 - actions is an array of actions to trigger.
-                 - parent is an instance of ViewItem that the action is on.
-                 - scope is an arbitrary object to be passed in as scope to all expressions in the action
-                 - event is an arbitrary event object that may have triggered the action, such as a DOM event.
-            */
-            trigger: triggerActions,
-
-            _constructors: {}
-        },
-
-        /**
-            ## .behaviours
-
-                gaffa.behaviours //Object.
-
-            contains functions and properties for manipulating the application's behaviours.
-        */
-        behaviours: {
-
-            /**
-                ### .add(behaviour)
-
-                add a behaviour to the root of the appliaction
-
-                    gaffa.behaviours.add(someBehaviour);
-            */
-            add: addBehaviour,
-
-            _constructors: {}
-        },
-
-        utils: {
-            // Get a deep property on an object without doing if(obj && obj.prop && obj.prop.prop) etc...
-            getProp: function (object, propertiesString) {
-                var properties = propertiesString.split(Gaffa.pathSeparator).reverse();
-                while (properties.length) {
-                    var nextProp = properties.pop();
-                    if (object[nextProp] !== undefined && object[nextProp] !== null) {
-                        object = object[nextProp];
-                    } else {
-                        return;
-                    }
-                }
-                return object;
-            },
-            // See if a property exists on an object without doing if(obj && obj.prop && obj.prop.prop) etc...
-            propExists: function (object, propertiesString) {
-                var properties = propertiesString.split(".").reverse();
-                while (properties.length) {
-                    var nextProp = properties.pop();
-                    if (object[nextProp] !== undefined && object[nextProp] !== null) {
-                        object = object[nextProp];
-                    } else {
-                        return false;
-                    }
-                }
-                return true;
-            }
-        },
-
-        /**
-
-            ## Navigate
-
-            Navigates the app to a gaffa-app endpoint
-
-                gaffa.navigate(url);
-
-            To navigate into a named view:
-
-                gaffa.navigate(url, target);
-
-            Where target is: [viewName].[viewContainerName], eg:
-
-                gaffa.navigate('/someroute', 'myPageContainer.content');
-
-            myPageContainer would be a named ContainerView and content is the viewContainer on the view to target.
-        */
-        navigate: navigate,
-        load: load,
-        extend: merge, // DEPRICATED
-        merge: merge,
-        clone: clone,
-        ajax: ajax,
-        crel: crel,
-        doc: doc,
-        getClosestItem: getClosestItem,
-        pushState: function(state, title, location){
-            window.history.pushState(state, title, location);
         }
     };
 
-    merge(gaffa, gaffaPublicObject);
+    /**
+        ## .model
 
-    return gaffa;
+        access to the applications model
+    */
+    this.model = {
+
+        /**
+            ### .get(path, viewItem, scope, asTokens)
+
+            used to get data from the model.
+            path is relative to the viewItems path.
+
+                gaffa.model.get('[someProp]', parentViewItem);
+        */
+        get: modelGet,
+
+        /**
+            ### .set(path, value, viewItem, dirty)
+
+            used to set data into the model.
+            path is relative to the viewItems path.
+
+                gaffa.model.set('[someProp]', 'hello', parentViewItem);
+        */
+        set: modelSet,
+
+        /**
+            ### .remove(path, viewItem, dirty)
+
+            used to remove data from the model.
+            path is relative to the viewItems path.
+
+                gaffa.model.remove('[someProp]', parentViewItem);
+        */
+        remove: modelRemove,
+
+        /**
+            ### .isDirty(path, viewItem)
+
+            check if a part of the model is dirty.
+            path is relative to the viewItems path.
+
+                gaffa.model.isDirty('[someProp]', viewItem); // true/false?
+        */
+        isDirty: modelIsDirty,
+
+        /**
+            ### .setDirtyState(path, value, viewItem)
+
+            set a part of the model to be dirty or not.
+            path is relative to the viewItems path.
+
+                gaffa.model.setDirtyState('[someProp]', true, viewItem);
+        */
+        setDirtyState: modelSetDirtyState
+    };
+
+    /**
+        ## .views
+
+            gaffa.views // ViewContainer.
+
+        the Gaffa instances top viewContainer.
+    */
+    this.views = rootViewContainer;
+
+    /**
+        ## .actions
+
+            gaffa.actions // Object.
+
+        contains functions and properties for manipulating the application's actions.
+    */
+    this.actions = {
+
+        /**
+            ### .trigger(actions, parent, scope, event)
+
+            trigger a gaffa action where:
+
+             - actions is an array of actions to trigger.
+             - parent is an instance of ViewItem that the action is on.
+             - scope is an arbitrary object to be passed in as scope to all expressions in the action
+             - event is an arbitrary event object that may have triggered the action, such as a DOM event.
+        */
+        trigger: Action.trigger,
+
+    };
+    this._constructors = {
+        views: {},
+        actions: {},
+        behaviours: {}
+    };
 }
+Gaffa.prototype = Object.create(EventEmitter.prototype);
+Gaffa.prototype.constructor = Gaffa;
+Gaffa.prototype.merge = merge;
+Gaffa.prototype.clone = clone;
+Gaffa.prototype.getClosestItem = getClosestItem;
+Gaffa.prototype.browser = require('bowser');
+Gaffa.prototype.ajax = function(settings){
+    console.warn('Ajax: This API is depricated and will be removed in a later version. Use a standalone module for XHR.');
+
+    var ajax = new (require('simple-ajax'))(settings);
+
+    ajax.on('complete', function(event){
+        var data,
+            error;
+
+        try{
+            data = JSON.parse(event.target.responseText);
+        }catch(error){
+            error = error;
+        }
+
+        if(event.status <200 || event.status > 400){
+            error = data || error;
+        }
+
+        !error && settings.success && settings.success(data);
+        error && settings.error && settings.error(error);
+        settings.complete && settings.complete(event);
+    });
+
+    ajax.send();
+};
+Gaffa.prototype.utils = {
+    // Get a deep property on an object without doing if(obj && obj.prop && obj.prop.prop) etc...
+    getProp: function (object, propertiesString) {
+        var properties = propertiesString.split(Gaffa.pathSeparator).reverse();
+        while (properties.length) {
+            var nextProp = properties.pop();
+            if (object[nextProp] !== undefined && object[nextProp] !== null) {
+                object = object[nextProp];
+            } else {
+                return;
+            }
+        }
+        return object;
+    },
+    // See if a property exists on an object without doing if(obj && obj.prop && obj.prop.prop) etc...
+    propExists: function (object, propertiesString) {
+        var properties = propertiesString.split(".").reverse();
+        while (properties.length) {
+            var nextProp = properties.pop();
+            if (object[nextProp] !== undefined && object[nextProp] !== null) {
+                object = object[nextProp];
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+};
+
+/**
+    ### .initialiseViewItem
+
+    takes the plain old object representation of a viewItem and returns an instance of ViewItem with all the settings applied.
+
+    Also recurses through the ViewItem's tree and inflates children.
+*/
+Gaffa.prototype.initialiseViewItem = function(viewItem, specCollection, references){
+    return initialiseViewItem(viewItem, this, specCollection, references);
+};
+
+Gaffa.prototype.initialiseView = function(view, references){
+    return initialiseView(view, this, references);
+};
+
+Gaffa.prototype.initialiseAction = function(action, references){
+    return initialiseAction(action, this, references);
+};
+
+Gaffa.prototype.initialiseBehaviour = function(behaviour, references){
+    return initialiseBehaviour(behaviour, this, references);
+};
+
+Gaffa.prototype.registerConstructor = function(constructor){
+    if(Array.isArray(constructor)){
+        for(var i = 0; i < constructor.length; i++){
+            this.registerConstructor(constructor[i]);
+        }
+    }
+
+    var constructorType = constructor.prototype instanceof View && 'views' ||
+        constructor.prototype instanceof Action && 'actions' ||
+        constructor.prototype instanceof Behaviour && 'behaviours';
+
+    if(constructorType){
+        // ToDo: Deprecate .type
+        this._constructors[constructorType][constructor.prototype._type || constructor.prototype.type] = constructor;
+    }else{
+        throw "The provided constructor was not an instance of a View, Action, or Behaviour" +
+            "\n This is likely due to having two version of Gaffa installed" +
+            "\n Run 'npm ls gaffa' to check, and 'npm dedupe to fix'";
+    }
+};
+
+/**
+    ### .createSpec
+
+        function myConstructor(){}
+        myConstructor = gaffa.createSpec(myConstructor, inheritedConstructor);
+
+    npm module: [spec-js](https://npmjs.org/package/spec-js)
+*/
+Gaffa.prototype.createSpec = createSpec;
+
+/**
+    ### .jsonConverter
+
+    default jsonification for ViewItems
+*/
+Gaffa.prototype.jsonConverter = jsonConverter;
 
 
 // "constants"
@@ -1900,27 +1818,33 @@ module.exports = Gaffa;
 
 ///[license.md]
 
-},{"./action":"/home/kory/dev/gaffa-select/node_modules/gaffa/action.js","./behaviour":"/home/kory/dev/gaffa-select/node_modules/gaffa/behaviour.js","./containerView":"/home/kory/dev/gaffa-select/node_modules/gaffa/containerView.js","./getClosestItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/getClosestItem.js","./initialiseAction":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseAction.js","./initialiseBehaviour":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseBehaviour.js","./initialiseView":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseView.js","./initialiseViewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseViewItem.js","./jsonConverter":"/home/kory/dev/gaffa-select/node_modules/gaffa/jsonConverter.js","./property":"/home/kory/dev/gaffa-select/node_modules/gaffa/property.js","./raf.js":"/home/kory/dev/gaffa-select/node_modules/gaffa/raf.js","./removeViews":"/home/kory/dev/gaffa-select/node_modules/gaffa/removeViews.js","./resolvePath":"/home/kory/dev/gaffa-select/node_modules/gaffa/resolvePath.js","./view":"/home/kory/dev/gaffa-select/node_modules/gaffa/view.js","./viewContainer":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewContainer.js","./viewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewItem.js","crel":"/home/kory/dev/gaffa-select/node_modules/crel/crel.js","doc-js":"/home/kory/dev/gaffa-select/node_modules/doc-js/fluent.js","events":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/events/events.js","gedi":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/gedi.js","merge":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/merge/merge.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js","statham":"/home/kory/dev/gaffa-select/node_modules/statham/statham.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/getClosestItem.js":[function(require,module,exports){
+},{"./action":"/home/kory/dev/gaffa-select/node_modules/gaffa/action.js","./behaviour":"/home/kory/dev/gaffa-select/node_modules/gaffa/behaviour.js","./containerView":"/home/kory/dev/gaffa-select/node_modules/gaffa/containerView.js","./getClosestItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/getClosestItem.js","./initialiseAction":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseAction.js","./initialiseBehaviour":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseBehaviour.js","./initialiseView":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseView.js","./initialiseViewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseViewItem.js","./jsonConverter":"/home/kory/dev/gaffa-select/node_modules/gaffa/jsonConverter.js","./property":"/home/kory/dev/gaffa-select/node_modules/gaffa/property.js","./removeViews":"/home/kory/dev/gaffa-select/node_modules/gaffa/removeViews.js","./resolvePath":"/home/kory/dev/gaffa-select/node_modules/gaffa/resolvePath.js","./view":"/home/kory/dev/gaffa-select/node_modules/gaffa/view.js","./viewContainer":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewContainer.js","./viewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewItem.js","bowser":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/bowser/bowser.js","doc-js":"/home/kory/dev/gaffa-select/node_modules/doc-js/fluent.js","events":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/events/events.js","gedi":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/gedi.js","merge":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/merge/merge.js","simple-ajax":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/simple-ajax/index.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js","statham":"/home/kory/dev/gaffa-select/node_modules/statham/statham.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/getClosestItem.js":[function(require,module,exports){
 function getClosestItem(target){
-    var viewModel = target.viewModel;
+	if(!target){
+		return;
+	}
+	
+    var iuid = target.__iuid;
 
-    while(!viewModel && target){
+    while(!iuid && target){
         target = target.parentNode;
 
         if(target){
-            viewModel = target.viewModel;
+            iuid = target.__iuid;
         }
     }
 
-    return viewModel;
+    return require('./bindable').getByIuid(iuid);
 }
 
 module.exports = getClosestItem;
+},{"./bindable":"/home/kory/dev/gaffa-select/node_modules/gaffa/bindable.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/includeProps.js":[function(require,module,exports){
+module.exports = ["type", "_type"];
 },{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseAction.js":[function(require,module,exports){
 var initialiseViewItem = require('./initialiseViewItem');
 
 function initialiseAction(viewItem, gaffa, references) {
-    return initialiseViewItem(viewItem, gaffa, gaffa.actions._constructors, references);
+    return initialiseViewItem(viewItem, gaffa, gaffa._constructors.actions, references);
 }
 
 module.exports = initialiseAction;
@@ -1928,7 +1852,7 @@ module.exports = initialiseAction;
 var initialiseViewItem = require('./initialiseViewItem');
 
 function initialiseBehaviour(viewItem, gaffa, references) {
-    return initialiseViewItem(viewItem, gaffa, gaffa.behaviours._constructors, references);
+    return initialiseViewItem(viewItem, gaffa, gaffa._constructors.behaviours, references);
 }
 
 module.exports = initialiseBehaviour;
@@ -1936,7 +1860,7 @@ module.exports = initialiseBehaviour;
 var initialiseViewItem = require('./initialiseViewItem');
 
 function initialiseView(viewItem, gaffa, references) {
-    return initialiseViewItem(viewItem, gaffa, gaffa.views._constructors, references);
+    return initialiseViewItem(viewItem, gaffa, gaffa._constructors.views, references);
 }
 
 module.exports = initialiseView;
@@ -2005,13 +1929,13 @@ function initialiseViewItem(viewItem, gaffa, specCollection, references) {
 
 module.exports = initialiseViewItem;
 },{"./initialiseAction":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseAction.js","./initialiseBehaviour":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseBehaviour.js","./initialiseView":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseView.js","./viewContainer":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewContainer.js","./viewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewItem.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/jsonConverter.js":[function(require,module,exports){
-var deepEqual = require('deep-equal');
+var deepEqual = require('deep-equal'),
+    excludeProps = require('./excludeProps'),
+    includeProps = require('./includeProps');
 
 function jsonConverter(object, exclude, include){
     var plainInstance = new object.constructor(),
-        tempObject = Array.isArray(object) || object instanceof Array && [] || {},
-        excludeProps = ["_trackedListeners", "__iuid", "gaffa", "parent", "parentContainer", "renderedElement", "_removeHandlers", "gediCallbacks", "__super__", "_events"],
-        includeProps = ["type", "_type"];
+        tempObject = (Array.isArray(object) || object instanceof Array) ? [] : {};
 
     //console.log(object.constructor.name);
 
@@ -2045,7 +1969,299 @@ function jsonConverter(object, exclude, include){
 }
 
 module.exports = jsonConverter;
-},{"deep-equal":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/deep-equal/index.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/consuela/index.js":[function(require,module,exports){
+},{"./excludeProps":"/home/kory/dev/gaffa-select/node_modules/gaffa/excludeProps.js","./includeProps":"/home/kory/dev/gaffa-select/node_modules/gaffa/includeProps.js","deep-equal":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/deep-equal/index.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/bowser/bowser.js":[function(require,module,exports){
+/*!
+  * Bowser - a browser detector
+  * https://github.com/ded/bowser
+  * MIT License | (c) Dustin Diaz 2014
+  */
+
+!function (name, definition) {
+  if (typeof module != 'undefined' && module.exports) module.exports['browser'] = definition()
+  else if (typeof define == 'function' && define.amd) define(definition)
+  else this[name] = definition()
+}('bowser', function () {
+  /**
+    * See useragents.js for examples of navigator.userAgent
+    */
+
+  var t = true
+
+  function detect(ua) {
+
+    function getFirstMatch(regex) {
+      var match = ua.match(regex);
+      return (match && match.length > 1 && match[1]) || '';
+    }
+
+    var iosdevice = getFirstMatch(/(ipod|iphone|ipad)/i).toLowerCase()
+      , likeAndroid = /like android/i.test(ua)
+      , android = !likeAndroid && /android/i.test(ua)
+      , versionIdentifier = getFirstMatch(/version\/(\d+(\.\d+)?)/i)
+      , tablet = /tablet/i.test(ua)
+      , mobile = !tablet && /[^-]mobi/i.test(ua)
+      , result
+
+    if (/opera|opr/i.test(ua)) {
+      result = {
+        name: 'Opera'
+      , opera: t
+      , version: versionIdentifier || getFirstMatch(/(?:opera|opr)[\s\/](\d+(\.\d+)?)/i)
+      }
+    }
+    else if (/windows phone/i.test(ua)) {
+      result = {
+        name: 'Windows Phone'
+      , windowsphone: t
+      , msie: t
+      , version: getFirstMatch(/iemobile\/(\d+(\.\d+)?)/i)
+      }
+    }
+    else if (/msie|trident/i.test(ua)) {
+      result = {
+        name: 'Internet Explorer'
+      , msie: t
+      , version: getFirstMatch(/(?:msie |rv:)(\d+(\.\d+)?)/i)
+      }
+    }
+    else if (/chrome|crios|crmo/i.test(ua)) {
+      result = {
+        name: 'Chrome'
+      , chrome: t
+      , version: getFirstMatch(/(?:chrome|crios|crmo)\/(\d+(\.\d+)?)/i)
+      }
+    }
+    else if (iosdevice) {
+      result = {
+        name : iosdevice == 'iphone' ? 'iPhone' : iosdevice == 'ipad' ? 'iPad' : 'iPod'
+      }
+      // WTF: version is not part of user agent in web apps
+      if (versionIdentifier) {
+        result.version = versionIdentifier
+      }
+    }
+    else if (/sailfish/i.test(ua)) {
+      result = {
+        name: 'Sailfish'
+      , sailfish: t
+      , version: getFirstMatch(/sailfish\s?browser\/(\d+(\.\d+)?)/i)
+      }
+    }
+    else if (/seamonkey\//i.test(ua)) {
+      result = {
+        name: 'SeaMonkey'
+      , seamonkey: t
+      , version: getFirstMatch(/seamonkey\/(\d+(\.\d+)?)/i)
+      }
+    }
+    else if (/firefox|iceweasel/i.test(ua)) {
+      result = {
+        name: 'Firefox'
+      , firefox: t
+      , version: getFirstMatch(/(?:firefox|iceweasel)[ \/](\d+(\.\d+)?)/i)
+      }
+      if (/\((mobile|tablet);[^\)]*rv:[\d\.]+\)/i.test(ua)) {
+        result.firefoxos = t
+      }
+    }
+    else if (/silk/i.test(ua)) {
+      result =  {
+        name: 'Amazon Silk'
+      , silk: t
+      , version : getFirstMatch(/silk\/(\d+(\.\d+)?)/i)
+      }
+    }
+    else if (android) {
+      result = {
+        name: 'Android'
+      , version: versionIdentifier
+      }
+    }
+    else if (/phantom/i.test(ua)) {
+      result = {
+        name: 'PhantomJS'
+      , phantom: t
+      , version: getFirstMatch(/phantomjs\/(\d+(\.\d+)?)/i)
+      }
+    }
+    else if (/blackberry|\bbb\d+/i.test(ua) || /rim\stablet/i.test(ua)) {
+      result = {
+        name: 'BlackBerry'
+      , blackberry: t
+      , version: versionIdentifier || getFirstMatch(/blackberry[\d]+\/(\d+(\.\d+)?)/i)
+      }
+    }
+    else if (/(web|hpw)os/i.test(ua)) {
+      result = {
+        name: 'WebOS'
+      , webos: t
+      , version: versionIdentifier || getFirstMatch(/w(?:eb)?osbrowser\/(\d+(\.\d+)?)/i)
+      };
+      /touchpad\//i.test(ua) && (result.touchpad = t)
+    }
+    else if (/bada/i.test(ua)) {
+      result = {
+        name: 'Bada'
+      , bada: t
+      , version: getFirstMatch(/dolfin\/(\d+(\.\d+)?)/i)
+      };
+    }
+    else if (/tizen/i.test(ua)) {
+      result = {
+        name: 'Tizen'
+      , tizen: t
+      , version: getFirstMatch(/(?:tizen\s?)?browser\/(\d+(\.\d+)?)/i) || versionIdentifier
+      };
+    }
+    else if (/safari/i.test(ua)) {
+      result = {
+        name: 'Safari'
+      , safari: t
+      , version: versionIdentifier
+      }
+    }
+    else result = {}
+
+    // set webkit or gecko flag for browsers based on these engines
+    if (/(apple)?webkit/i.test(ua)) {
+      result.name = result.name || "Webkit"
+      result.webkit = t
+      if (!result.version && versionIdentifier) {
+        result.version = versionIdentifier
+      }
+    } else if (!result.opera && /gecko\//i.test(ua)) {
+      result.name = result.name || "Gecko"
+      result.gecko = t
+      result.version = result.version || getFirstMatch(/gecko\/(\d+(\.\d+)?)/i)
+    }
+
+    // set OS flags for platforms that have multiple browsers
+    if (android || result.silk) {
+      result.android = t
+    } else if (iosdevice) {
+      result[iosdevice] = t
+      result.ios = t
+    }
+
+    // OS version extraction
+    var osVersion = '';
+    if (iosdevice) {
+      osVersion = getFirstMatch(/os (\d+([_\s]\d+)*) like mac os x/i);
+      osVersion = osVersion.replace(/[_\s]/g, '.');
+    } else if (android) {
+      osVersion = getFirstMatch(/android[ \/-](\d+(\.\d+)*)/i);
+    } else if (result.windowsphone) {
+      osVersion = getFirstMatch(/windows phone (?:os)?\s?(\d+(\.\d+)*)/i);
+    } else if (result.webos) {
+      osVersion = getFirstMatch(/(?:web|hpw)os\/(\d+(\.\d+)*)/i);
+    } else if (result.blackberry) {
+      osVersion = getFirstMatch(/rim\stablet\sos\s(\d+(\.\d+)*)/i);
+    } else if (result.bada) {
+      osVersion = getFirstMatch(/bada\/(\d+(\.\d+)*)/i);
+    } else if (result.tizen) {
+      osVersion = getFirstMatch(/tizen[\/\s](\d+(\.\d+)*)/i);
+    }
+    if (osVersion) {
+      result.osversion = osVersion;
+    }
+
+    // device type extraction
+    var osMajorVersion = osVersion.split('.')[0];
+    if (tablet || iosdevice == 'ipad' || (android && (osMajorVersion == 3 || (osMajorVersion == 4 && !mobile))) || result.silk) {
+      result.tablet = t
+    } else if (mobile || iosdevice == 'iphone' || iosdevice == 'ipod' || android || result.blackberry || result.webos || result.bada) {
+      result.mobile = t
+    }
+
+    // Graded Browser Support
+    // http://developer.yahoo.com/yui/articles/gbs
+    if ((result.msie && result.version >= 10) ||
+        (result.chrome && result.version >= 20) ||
+        (result.firefox && result.version >= 20.0) ||
+        (result.safari && result.version >= 6) ||
+        (result.opera && result.version >= 10.0) ||
+        (result.ios && result.osversion && result.osversion.split(".")[0] >= 6) ||
+        (result.blackberry && result.version >= 10.1)
+        ) {
+      result.a = t;
+    }
+    else if ((result.msie && result.version < 10) ||
+        (result.chrome && result.version < 20) ||
+        (result.firefox && result.version < 20.0) ||
+        (result.safari && result.version < 6) ||
+        (result.opera && result.version < 10.0) ||
+        (result.ios && result.osversion && result.osversion.split(".")[0] < 6)
+        ) {
+      result.c = t
+    } else result.x = t
+
+    return result
+  }
+
+  var bowser = detect(typeof navigator !== 'undefined' ? navigator.userAgent : '')
+
+
+  /*
+   * Set our detect method to the main bowser object so we can
+   * reuse it to test other user agents.
+   * This is needed to implement future tests.
+   */
+  bowser._detect = detect;
+
+  return bowser
+});
+
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/clean-merge/index.js":[function(require,module,exports){
+function isValueLike(value){
+    return value == null || typeof value !== 'object' || value instanceof Date;
+}
+
+function valueClone(value){
+    return value instanceof Date ? new Date(value) : value;
+}
+
+function cleanMerge(target, source){
+
+    var isClone = arguments.length === 1;
+
+    if(isClone){
+        if(isValueLike(target)){
+            return valueClone(target);
+        }
+    }else{
+        if(isValueLike(target)){
+            return cleanMerge(source);
+        }
+        if(isValueLike(source)){
+            return valueClone(source);
+        }
+    }
+
+    var result = Array.isArray(target) ? [] : {},
+        keys = Object.keys(target).concat(source && typeof source === 'object' ? Object.keys(source) : []);
+
+    for(var i = 0; i < keys.length; i++){
+        var key = keys[i];
+
+        if(!(key in target)){
+            result[key] = cleanMerge(source[key]);
+            continue;
+        }
+
+        if(isClone || !(key in source)){
+            result[key] = cleanMerge(target[key]);
+            continue;
+        }
+
+        result[key] = cleanMerge(target[key], source[key]);
+    }
+
+
+    return result;
+}
+
+module.exports = cleanMerge;
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/consuela/index.js":[function(require,module,exports){
 function getListenerMethod(emitter, methodNames){
     if(typeof methodNames === 'string'){
         methodNames = methodNames.split(' ');
@@ -2155,6 +2371,149 @@ Consuela.prototype.watch = function(emitter, onName, offName){
 };
 
 module.exports = Consuela;
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/crel/crel.js":[function(require,module,exports){
+//Copyright (C) 2012 Kory Nunn
+
+//Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+//The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+/*
+
+    This code is not formatted for readability, but rather run-speed and to assist compilers.
+
+    However, the code's intention should be transparent.
+
+    *** IE SUPPORT ***
+
+    If you require this library to work in IE7, add the following after declaring crel.
+
+    var testDiv = document.createElement('div'),
+        testLabel = document.createElement('label');
+
+    testDiv.setAttribute('class', 'a');
+    testDiv['className'] !== 'a' ? crel.attrMap['class'] = 'className':undefined;
+    testDiv.setAttribute('name','a');
+    testDiv['name'] !== 'a' ? crel.attrMap['name'] = function(element, value){
+        element.id = value;
+    }:undefined;
+
+
+    testLabel.setAttribute('for', 'a');
+    testLabel['htmlFor'] !== 'a' ? crel.attrMap['for'] = 'htmlFor':undefined;
+
+
+
+*/
+
+(function (root, factory) {
+    if (typeof exports === 'object') {
+        module.exports = factory();
+    } else if (typeof define === 'function' && define.amd) {
+        define(factory);
+    } else {
+        root.crel = factory();
+    }
+}(this, function () {
+    var fn = 'function',
+        obj = 'object',
+        isType = function(a, type){
+            return typeof a === type;
+        },
+        isNode = typeof Node === fn ? function (object) {
+            return object instanceof Node;
+        } :
+        // in IE <= 8 Node is an object, obviously..
+        function(object){
+            return object &&
+                isType(object, obj) &&
+                ('nodeType' in object) &&
+                isType(object.ownerDocument,obj);
+        },
+        isElement = function (object) {
+            return crel.isNode(object) && object.nodeType === 1;
+        },
+        isArray = function(a){
+            return a instanceof Array;
+        },
+        appendChild = function(element, child) {
+          if(!isNode(child)){
+              child = document.createTextNode(child);
+          }
+          element.appendChild(child);
+        };
+
+
+    function crel(){
+        var args = arguments, //Note: assigned to a variable to assist compilers. Saves about 40 bytes in closure compiler. Has negligable effect on performance.
+            element = args[0],
+            child,
+            settings = args[1],
+            childIndex = 2,
+            argumentsLength = args.length,
+            attributeMap = crel.attrMap;
+
+        element = crel.isElement(element) ? element : document.createElement(element);
+        // shortcut
+        if(argumentsLength === 1){
+            return element;
+        }
+
+        if(!isType(settings,obj) || crel.isNode(settings) || isArray(settings)) {
+            --childIndex;
+            settings = null;
+        }
+
+        // shortcut if there is only one child that is a string
+        if((argumentsLength - childIndex) === 1 && isType(args[childIndex], 'string') && element.textContent !== undefined){
+            element.textContent = args[childIndex];
+        }else{
+            for(; childIndex < argumentsLength; ++childIndex){
+                child = args[childIndex];
+
+                if(child == null){
+                    continue;
+                }
+
+                if (isArray(child)) {
+                  for (var i=0; i < child.length; ++i) {
+                    appendChild(element, child[i]);
+                  }
+                } else {
+                  appendChild(element, child);
+                }
+            }
+        }
+
+        for(var key in settings){
+            if(!attributeMap[key]){
+                element.setAttribute(key, settings[key]);
+            }else{
+                var attr = crel.attrMap[key];
+                if(typeof attr === fn){
+                    attr(element, settings[key]);
+                }else{
+                    element.setAttribute(attr, settings[key]);
+                }
+            }
+        }
+
+        return element;
+    }
+
+    // Used for mapping one kind of attribute to the supported version of that in bad browsers.
+    // String referenced so that compilers maintain the property name.
+    crel['attrMap'] = {};
+
+    // String referenced so that compilers maintain the property name.
+    crel["isElement"] = isElement;
+    crel["isNode"] = isNode;
+
+    return crel;
+}));
+
 },{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/deep-equal/index.js":[function(require,module,exports){
 var pSlice = Array.prototype.slice;
 var Object_keys = typeof Object.keys === 'function'
@@ -2242,7 +2601,7 @@ function objEquiv(a, b) {
 }
 
 },{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/events.js":[function(require,module,exports){
-var WM = typeof WM !== 'undefined' ? WeakMap : require('weak-map'),
+var WeakMap = require('./weakmap'),
     paths = require('gedi-paths'),
     pathConstants = paths.constants
     modelOperations = require('./modelOperations'),
@@ -2259,9 +2618,9 @@ module.exports = function(modelGet, gel, PathToken){
 
     function resetEvents(){
         modelBindings = {};
-        modelBindingDetails = new WM();
-        callbackReferenceDetails = new WM();
-        modelReferences = new WM();
+        modelBindingDetails = new WeakMap();
+        callbackReferenceDetails = new WeakMap();
+        modelReferences = new WeakMap();
     }
 
     resetEvents();
@@ -2653,7 +3012,7 @@ module.exports = function(modelGet, gel, PathToken){
         removeModelReference: removeModelReference
     };
 };
-},{"./modelOperations":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/modelOperations.js","gedi-paths":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/paths.js","weak-map":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/weak-map/weak-map.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/gedi.js":[function(require,module,exports){
+},{"./modelOperations":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/modelOperations.js","./weakmap":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/weakmap.js","gedi-paths":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/paths.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/gedi.js":[function(require,module,exports){
 //Copyright (C) 2012 Kory Nunn
 
 //Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
@@ -3260,7 +3619,7 @@ function newGedi(model) {
 }
 
 module.exports = gediConstructor;
-},{"./events":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/events.js","./modelOperations":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/modelOperations.js","./pathToken":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/pathToken.js","gedi-paths":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/paths.js","gel-js":"/home/kory/dev/gaffa-select/node_modules/gel-js/gel.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/modelOperations.js":[function(require,module,exports){
+},{"./events":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/events.js","./modelOperations":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/modelOperations.js","./pathToken":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/pathToken.js","gedi-paths":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/paths.js","gel-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gel-js/gel.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/modelOperations.js":[function(require,module,exports){
 var paths = require('gedi-paths'),
     memoiseCache = {};
 
@@ -3316,6 +3675,9 @@ function get(path, model) {
 }
 
 function overwriteModel(replacement, model){
+    if(typeof replacement !== 'object' || replacement === null){
+        throw "The model must be an object";
+    } 
     if(replacement === model){
         return;
     }
@@ -3355,19 +3717,21 @@ function set(path, value, model) {
     }
 
     var reference = model,
-        keysChanged;
+        keysChanged,
+        previousReference,
+        previousKey;
 
     for(; index < pathLength; index++){
         var key = pathParts[index];
 
         // if we have hit a non-object property on the reference and we have more keys after this one
         // make an object (or array) here and move on.
-        if ((typeof reference[key] !== "object" || reference[key] === null) && index < pathLength - 1) {
+        if ((typeof reference !== "object" || reference === null) && index < pathLength) {
             if (!isNaN(key)) {
-                reference[key] = [];
+                reference = previousReference[previousKey] = [];
             }
             else {
-                reference[key] = {};
+                reference = previousReference[previousKey] = {};
             }
         }
         if (index === pathLength - 1) {
@@ -3379,6 +3743,8 @@ function set(path, value, model) {
         }
             //otherwise, dig deeper
         else {
+            previousReference = reference;
+            previousKey = key;
             reference = reference[key];
         }
     }
@@ -3441,7 +3807,10 @@ function resolvePath() {
         pathParts = [];
 
     for(var argumentIndex = arguments.length; argumentIndex--;){
-        pathParts.unshift.apply(pathParts, pathToParts(arguments[argumentIndex]));
+        var parts = pathToParts(arguments[argumentIndex]);
+        if(parts){
+            pathParts.unshift.apply(pathParts, parts);
+        }
         if(isPathAbsolute(arguments[argumentIndex])){
             break;
         }
@@ -3630,10 +3999,7 @@ function isPath(path) {
     if(!(typeof path === 'string' || (path instanceof String))){
         return;
     }
-    var match = path.match(/\[.*?(?:\\\])*(?:\\\[)*\]/g);
-    if(match && match.length === 1 && match[0] === path){
-        return true;
-    }
+    return !!path.match(/^\[(?:[^\[\]]|\\.)*\]$/);
 }
 
 function isPathAbsolute(path){
@@ -3680,7 +4046,1599 @@ module.exports = {
         wildcard: pathWildcard
     }
 };
-},{"./detectPath":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/detectPath.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/weak-map/weak-map.js":[function(require,module,exports){
+},{"./detectPath":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/detectPath.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gel-js/gel.js":[function(require,module,exports){
+var Lang = require('lang-js'),
+    paths = require('gedi-paths'),
+    merge = require('clean-merge'),
+    createNestingParser = Lang.createNestingParser,
+    detectString = Lang.detectString,
+    Token = Lang.Token,
+    Scope = Lang.Scope,
+    createSpec = require('spec-js');
+
+function fastEach(items, callback) {
+    for (var i = 0; i < items.length; i++) {
+        if (callback(items[i], i, items)) break;
+    }
+    return items;
+}
+
+function quickIndexOf(array, value){
+    var length = array.length
+    for(var i = 0; i < length && array[i] !== value;i++) {}
+    return i < length ? i : -1;
+}
+
+function stringFormat(string, values){
+    return string.replace(/{(\d+)}/g, function(match, number) {
+        return values[number] != null
+          ? values[number]
+          : ''
+        ;
+    });
+}
+
+function isIdentifier(substring){
+    var valid = /^[$A-Z_][0-9A-Z_$]*/i,
+        possibleIdentifier = substring.match(valid);
+
+    if (possibleIdentifier && possibleIdentifier.index === 0) {
+        return possibleIdentifier[0];
+    }
+}
+
+function tokeniseIdentifier(substring){
+    // searches for valid identifiers or operators
+    //operators
+    var operators = "!=<>/&|*%-^?+\\",
+        index = 0;
+
+    while (operators.indexOf(substring.charAt(index)||null) >= 0 && ++index) {}
+
+    if (index > 0) {
+        return substring.slice(0, index);
+    }
+
+    var identifier = isIdentifier(substring);
+
+    if(identifier != null){
+        return identifier;
+    }
+}
+
+function createKeywordTokeniser(Constructor, keyword){
+    return function(substring){
+        substring = isIdentifier(substring);
+        if (substring === keyword) {
+            return new Constructor(substring, substring.length);
+        }
+    };
+}
+
+function StringToken(){}
+StringToken = createSpec(StringToken, Token);
+StringToken.tokenPrecedence = 2;
+StringToken.prototype.parsePrecedence = 2;
+StringToken.prototype.stringTerminal = '"';
+StringToken.prototype.name = 'StringToken';
+StringToken.prototype.static = true;
+StringToken.tokenise = function (substring) {
+    if (substring.charAt(0) === this.prototype.stringTerminal) {
+        var index = 0,
+        escapes = 0;
+
+        while (substring.charAt(++index) !== this.prototype.stringTerminal)
+        {
+           if(index >= substring.length){
+                   throw "Unclosed " + this.name;
+           }
+           if (substring.charAt(index) === '\\' && substring.charAt(index+1) === this.prototype.stringTerminal) {
+                   substring = substring.slice(0, index) + substring.slice(index + 1);
+                   escapes++;
+           }
+        }
+
+        return new this(
+            substring.slice(0, index+1),
+            index + escapes + 1
+        );
+    }
+}
+StringToken.prototype.evaluate = function () {
+    this.result = this.original.slice(1,-1);
+}
+
+function String2Token(){}
+String2Token = createSpec(String2Token, StringToken);
+String2Token.tokenPrecedence = 1;
+String2Token.prototype.parsePrecedence = 1;
+String2Token.prototype.stringTerminal = "'";
+String2Token.prototype.name = 'String2Token';
+String2Token.tokenise = StringToken.tokenise;
+
+function ParenthesesToken(){
+}
+ParenthesesToken = createSpec(ParenthesesToken, Token);
+ParenthesesToken.tokenPrecedence = 1;
+ParenthesesToken.prototype.parsePrecedence = 4;
+ParenthesesToken.prototype.name = 'ParenthesesToken';
+ParenthesesToken.tokenise = function(substring) {
+    if(substring.charAt(0) === '('){
+        return new ParenthesesToken(substring.charAt(0), 1);
+    }
+}
+var parenthesisParser = createNestingParser(ParenthesesEndToken);
+ParenthesesToken.prototype.parse = function(tokens, index, parse){
+    parenthesisParser.apply(this, arguments);
+
+    this.hasFill = this.childTokens._hasFill;
+    this.partials = this.childTokens._partials;
+};
+
+function executeFunction(parenthesesToken, scope, fn){
+    var outerArgs = parenthesesToken.childTokens.slice(1);
+
+    if(parenthesesToken.partials || parenthesesToken.hasFill){
+        parenthesesToken.result = function(scope, args){
+            scope._innerArgs = args;
+
+            var appliedArgs = [];
+
+            for(var i = 0; i < outerArgs.length; i++){
+                if(outerArgs[i] instanceof FillToken){
+                    appliedArgs.push.apply(appliedArgs, args.sliceRaw(parenthesesToken.partials));
+                }else{
+                    appliedArgs.push(outerArgs[i]);
+                }
+            }
+
+            return scope.callWith(fn, appliedArgs, parenthesesToken);
+        };
+        return;
+    }
+    parenthesesToken.result = scope.callWith(fn, parenthesesToken.childTokens.slice(1), parenthesesToken);
+}
+ParenthesesToken.prototype.evaluate = function(scope){
+    scope = new Scope(scope);
+
+    var functionToken = this.childTokens[0];
+
+    if(!functionToken){
+        throw "Invalid function call. No function was provided to execute.";
+    }
+
+    functionToken.evaluate(scope);
+
+    if(typeof functionToken.result !== 'function'){
+        throw functionToken.original + " (" + functionToken.result + ")" + " is not a function";
+    }
+
+    executeFunction(this, scope, functionToken.result);
+};
+
+function ParenthesesEndToken(){}
+ParenthesesEndToken = createSpec(ParenthesesEndToken, Token);
+ParenthesesEndToken.tokenPrecedence = 1;
+ParenthesesEndToken.prototype.parsePrecedence = 4;
+ParenthesesEndToken.prototype.name = 'ParenthesesEndToken';
+ParenthesesEndToken.tokenise = function(substring) {
+    if(substring.charAt(0) === ')'){
+        return new ParenthesesEndToken(substring.charAt(0), 1);
+    }
+};
+
+function NumberToken(){}
+NumberToken = createSpec(NumberToken, Token);
+NumberToken.tokenPrecedence = 2;
+NumberToken.prototype.parsePrecedence = 2;
+NumberToken.prototype.name = 'NumberToken';
+NumberToken.tokenise = function(substring) {
+    var specials = {
+        "NaN": Number.NaN,
+        "-NaN": -Number.NaN,
+        "Infinity": Infinity,
+        "-Infinity": -Infinity
+    };
+    for (var key in specials) {
+        if (substring.slice(0, key.length) === key) {
+            return new NumberToken(key, key.length);
+        }
+    }
+
+    var valids = "0123456789-.Eex",
+        index = 0;
+
+    while (valids.indexOf(substring.charAt(index)||null) >= 0 && ++index) {}
+
+    if (index > 0) {
+        var result = substring.slice(0, index);
+        if(isNaN(parseFloat(result))){
+            return;
+        }
+        return new NumberToken(result, index);
+    }
+
+    return;
+};
+NumberToken.prototype.evaluate = function(scope){
+    this.result = parseFloat(this.original);
+};
+
+function ValueToken(value, sourcePathInfo, key){
+    this.original = 'Value';
+    this.length = this.original.length,
+    this.result = value;
+
+    if(sourcePathInfo){
+        this.sourcePathInfo = new SourcePathInfo();
+        this.sourcePathInfo.path = sourcePathInfo.path;
+        this.sourcePathInfo.subPaths = sourcePathInfo.subPaths && sourcePathInfo.subPaths.slice();
+    }
+
+    if(key != null){
+        this.sourcePathInfo.drillTo(key);
+    }
+}
+ValueToken = createSpec(ValueToken, Token);
+ValueToken.tokenPrecedence = 2;
+ValueToken.prototype.parsePrecedence = 2;
+ValueToken.prototype.name = 'ValueToken';
+ValueToken.prototype.evaluate = function(){};
+
+function NullToken(){}
+NullToken = createSpec(NullToken, Token);
+NullToken.tokenPrecedence = 2;
+NullToken.prototype.parsePrecedence = 2;
+NullToken.prototype.name = 'NullToken';
+NullToken.tokenise = createKeywordTokeniser(NullToken, "null");
+NullToken.prototype.evaluate = function(scope){
+    this.result = null;
+};
+
+function UndefinedToken(){}
+UndefinedToken = createSpec(UndefinedToken, Token);
+UndefinedToken.tokenPrecedence = 2;
+UndefinedToken.prototype.parsePrecedence = 2;
+UndefinedToken.prototype.name = 'UndefinedToken';
+UndefinedToken.tokenise = createKeywordTokeniser(UndefinedToken, 'undefined');
+UndefinedToken.prototype.evaluate = function(scope){
+    this.result = undefined;
+};
+
+function TrueToken(){}
+TrueToken = createSpec(TrueToken, Token);
+TrueToken.tokenPrecedence = 2;
+TrueToken.prototype.parsePrecedence = 2;
+TrueToken.prototype.name = 'TrueToken';
+TrueToken.tokenise = createKeywordTokeniser(TrueToken, 'true');
+TrueToken.prototype.evaluate = function(scope){
+    this.result = true;
+};
+
+function FalseToken(){}
+FalseToken = createSpec(FalseToken, Token);
+FalseToken.tokenPrecedence = 2;
+FalseToken.prototype.parsePrecedence = 2;
+FalseToken.prototype.name = 'FalseToken';
+FalseToken.tokenise = createKeywordTokeniser(FalseToken, 'false');
+FalseToken.prototype.evaluate = function(scope){
+    this.result = false;
+};
+
+function DelimiterToken(){}
+DelimiterToken = createSpec(DelimiterToken, Token);
+DelimiterToken.tokenPrecedence = 1;
+DelimiterToken.prototype.parsePrecedence = 1;
+DelimiterToken.prototype.name = 'DelimiterToken';
+DelimiterToken.tokenise = function(substring) {
+    var i = 0;
+    while(i < substring.length && substring.charAt(i).trim() === "") {
+        i++;
+    }
+
+    if(i){
+        return new DelimiterToken(substring.slice(0, i), i);
+    }
+};
+DelimiterToken.prototype.parse = function(tokens, position){
+    tokens.splice(position, 1);
+};
+
+function IdentifierToken(){}
+IdentifierToken = createSpec(IdentifierToken, Token);
+IdentifierToken.tokenPrecedence = 3;
+IdentifierToken.prototype.parsePrecedence = 3;
+IdentifierToken.prototype.name = 'IdentifierToken';
+IdentifierToken.tokenise = function(substring){
+    var result = tokeniseIdentifier(substring);
+
+    if(result != null){
+        return new IdentifierToken(result, result.length);
+    }
+};
+IdentifierToken.prototype.evaluate = function(scope){
+    var value = scope.get(this.original);
+    if(value instanceof Token){
+        this.result = value.result;
+        this.sourcePathInfo = value.sourcePathInfo;
+    }else{
+        this.result = value;
+    }
+};
+
+function PeriodToken(){}
+PeriodToken = createSpec(PeriodToken, Token);
+PeriodToken.prototype.name = 'PeriodToken';
+PeriodToken.tokenPrecedence = 2;
+PeriodToken.prototype.parsePrecedence = 5;
+PeriodToken.tokenise = function(substring){
+    var periodConst = ".";
+    return (substring.charAt(0) === periodConst) ? new PeriodToken(periodConst, 1) : undefined;
+};
+PeriodToken.prototype.parse = function(tokens, position){
+    this.targetToken = tokens.splice(position-1,1)[0];
+    this.identifierToken = tokens.splice(position,1)[0];
+};
+PeriodToken.prototype.evaluate = function(scope){
+    this.targetToken.evaluate(scope);
+    if(
+        this.targetToken.result &&
+        (typeof this.targetToken.result === 'object' || typeof this.targetToken.result === 'function')
+        && this.targetToken.result.hasOwnProperty(this.identifierToken.original)
+    ){
+        this.result = this.targetToken.result[this.identifierToken.original];
+    }else{
+        this.result = undefined;
+    }
+
+    var targetPath;
+
+    if(this.targetToken.sourcePathInfo){
+        targetPath = this.targetToken.sourcePathInfo.path
+    }
+
+    if(targetPath){
+        this.sourcePathInfo = {
+            path: paths.append(targetPath, paths.create(this.identifierToken.original))
+        };
+    }
+};
+
+function CommaToken(){}
+CommaToken = createSpec(CommaToken, Token);
+CommaToken.prototype.name = 'CommaToken';
+CommaToken.tokenPrecedence = 2;
+CommaToken.prototype.parsePrecedence = 6;
+CommaToken.tokenise = function(substring){
+    var characterConst = ",";
+    return (substring.charAt(0) === characterConst) ? new CommaToken(characterConst, 1) : undefined;
+};
+CommaToken.prototype.parse = function(tokens, position){
+    this.leftToken = tokens.splice(position-1,1)[0];
+    this.rightToken = tokens.splice(position,1)[0];
+    if(!this.leftToken){
+        throw "Invalid syntax, expected token before ,";
+    }
+    if(!this.rightToken){
+        throw "Invalid syntax, expected token after ,";
+    }
+};
+CommaToken.prototype.evaluate = function(scope){
+    this.leftToken.evaluate(scope);
+    this.rightToken.evaluate(scope);
+
+    var leftToken = this.leftToken,
+        rightToken = this.rightToken,
+        leftPath = leftToken.sourcePathInfo && leftToken.sourcePathInfo.path,
+        leftPaths = leftToken.sourcePathInfo && leftToken.sourcePathInfo.subPaths,
+        rightPath = rightToken.sourcePathInfo && rightToken.sourcePathInfo.path;
+
+    this.sourcePathInfo = {
+        subPaths: []
+    };
+
+    if(leftToken instanceof CommaToken){
+        // concat
+        this.result = leftToken.result.slice();
+        this.sourcePathInfo.subPaths = leftPaths;
+    }else{
+        this.result = [];
+
+        this.result.push(leftToken.result);
+        this.sourcePathInfo.subPaths.push(leftPath);
+    }
+
+    this.result.push(rightToken.result);
+    this.sourcePathInfo.subPaths.push(rightPath);
+};
+
+function PartialToken(){}
+PartialToken = createSpec(PartialToken, Token);
+PartialToken.prototype.name = 'PartialToken';
+PartialToken.tokenPrecedence = 1;
+PartialToken.prototype.parsePrecedence = 4;
+PartialToken.tokenise = function(substring){
+    var characterConst = "_";
+    return (substring.charAt(0) === characterConst) ? new PartialToken(characterConst, 1) : undefined;
+};
+PartialToken.prototype.parse = function(tokens){
+    if(tokens._hasFill){
+        throw "Partial tokens may only appear before a Fill token";
+    }
+    tokens._partials = tokens._partials || 0;
+    this._partialIndex = tokens._partials;
+    tokens._partials++;
+};
+PartialToken.prototype.evaluate = function(scope){
+    this.result = scope._innerArgs.get(this._partialIndex);
+};
+
+function FillToken(){}
+FillToken = createSpec(FillToken, Token);
+FillToken.prototype.name = 'FillToken';
+FillToken.tokenPrecedence = 1;
+FillToken.prototype.parsePrecedence = 4;
+FillToken.tokenise = function(substring){
+    var charactersConst = "...";
+    return (substring.slice(0,3) === charactersConst) ? new FillToken(charactersConst, 3) : undefined;
+};
+FillToken.prototype.parse = function(tokens){
+    if(tokens._hasFill){
+        throw "A function call may only have one fill token"
+    };
+    tokens._hasFill = true;
+};
+FillToken.prototype.evaluate = function(){
+    this.result = scope._innerArgs.rest();
+};
+
+function PipeToken(){}
+PipeToken = createSpec(PipeToken, Token);
+PipeToken.prototype.name = 'PipeToken';
+PipeToken.tokenPrecedence = 1;
+PipeToken.prototype.parsePrecedence = 6;
+PipeToken.tokenise = function(substring){
+    var pipeConst = "|>";
+    return (substring.slice(0,2) === pipeConst) ? new PipeToken(pipeConst, pipeConst.length) : undefined;
+};
+PipeToken.prototype.parse = function(tokens, position){
+    this.argumentToken = tokens.splice(position-1,1)[0];
+    this.functionToken = tokens.splice(position,1)[0];
+};
+PipeToken.prototype.evaluate = function(scope){
+    if(!this.functionToken){
+        throw "Invalid function call. No function was provided to execute.";
+    }
+
+    this.functionToken.evaluate(scope);
+
+    if(typeof this.functionToken.result !== 'function'){
+        throw this.functionToken.original + " (" + this.functionToken.result + ")" + " is not a function";
+    }
+
+    this.result = scope.callWith(this.functionToken.result, [this.argumentToken], this);
+};
+
+function PipeApplyToken(){}
+PipeApplyToken = createSpec(PipeApplyToken, Token);
+PipeApplyToken.prototype.name = 'PipeApplyToken';
+PipeApplyToken.tokenPrecedence = 1;
+PipeApplyToken.prototype.parsePrecedence = 6;
+PipeApplyToken.tokenise = function(substring){
+    var pipeConst = "~>";
+    return (substring.slice(0,2) === pipeConst) ? new PipeApplyToken(pipeConst, pipeConst.length) : undefined;
+};
+PipeApplyToken.prototype.parse = function(tokens, position){
+    this.argumentsToken = tokens.splice(position-1,1)[0];
+    this.functionToken = tokens.splice(position,1)[0];
+};
+PipeApplyToken.prototype.evaluate = function(scope){
+    if(!this.functionToken){
+        throw "Invalid function call. No function was provided to execute.";
+    }
+
+    if(!this.argumentsToken){
+        throw "Invalid function call. No arguments were provided to apply.";
+    }
+
+    this.functionToken.evaluate(scope);
+    this.argumentsToken.evaluate(scope);
+
+    if(typeof this.functionToken.result !== 'function'){
+        throw this.functionToken.original + " (" + this.functionToken.result + ")" + " is not a function";
+    }
+
+    if(!Array.isArray(this.argumentsToken.result)){
+        this.result = null;
+        return;
+    }
+
+    this.result = scope.callWith(this.functionToken.result, this.argumentsToken.result, this);
+};
+
+function BraceToken(){}
+BraceToken = createSpec(BraceToken, Token);
+BraceToken.tokenPrecedence = 1;
+BraceToken.prototype.parsePrecedence = 3;
+BraceToken.prototype.name = 'BraceToken';
+BraceToken.tokenise = function(substring) {
+    if(substring.charAt(0) === '{'){
+        return new BraceToken(substring.charAt(0), 1);
+    }
+};
+BraceToken.prototype.parse = createNestingParser(BraceEndToken);
+BraceToken.prototype.evaluate = function(scope){
+    var parameterNames = this.childTokens.slice();
+
+    // Object literal
+    if(parameterNames.length === 0 || parameterNames[0] instanceof TupleToken){
+        this.result = {};
+        this.sourcePathInfo = new SourcePathInfo(null, {}, true);
+
+        for(var i = 0; i < parameterNames.length; i++){
+            var token = parameterNames[i];
+            token.evaluate(scope);
+            this.result[token.keyToken.result] = token.valueToken.result;
+
+            if(token.valueToken.sourcePathInfo){
+                this.sourcePathInfo.subPaths[key] = token.valueToken.sourcePathInfo.path;
+            }
+        };
+
+        return;
+    }
+
+    // Function expression
+    var fnBody = parameterNames.pop();
+
+    this.result = function(scope, args){
+        scope = new Scope(scope);
+
+        for(var i = 0; i < parameterNames.length; i++){
+            var parameterToken = args.getRaw(i, true);
+            scope.set(parameterNames[i].original, parameterToken);
+        }
+
+        fnBody.evaluate(scope);
+
+        if(args.callee){
+            args.callee.sourcePathInfo = fnBody.sourcePathInfo;
+        }
+
+        return fnBody.result;
+    };
+};
+
+function BraceEndToken(){}
+BraceEndToken = createSpec(BraceEndToken, Token);
+BraceEndToken.tokenPrecedence = 1;
+BraceEndToken.prototype.parsePrecedence = 4;
+BraceEndToken.prototype.name = 'BraceEndToken';
+BraceEndToken.tokenise = function(substring) {
+    if(substring.charAt(0) === '}'){
+        return new BraceEndToken(substring.charAt(0), 1);
+    }
+};
+
+function Tuple(key, value){
+    this[key] = value;
+}
+
+function TupleToken(){}
+TupleToken = createSpec(TupleToken, Token);
+TupleToken.prototype.name = 'TupleToken';
+TupleToken.tokenPrecedence = 2;
+TupleToken.prototype.parsePrecedence = 6;
+TupleToken.tokenise = function(substring){
+    var tupleConst = ":";
+    return (substring.charAt(0) === tupleConst) ? new TupleToken(tupleConst, 1) : undefined;
+};
+TupleToken.prototype.parse = function(tokens, position){
+    this.keyToken = tokens.splice(position-1,1)[0];
+    this.valueToken = tokens.splice(position, 1)[0];
+};
+TupleToken.prototype.evaluate = function(scope){
+    this.keyToken.evaluate(scope);
+    this.valueToken.evaluate(scope);
+
+    this.result = new Tuple(this.keyToken.result, this.valueToken.result);
+};
+
+function SourcePathInfo(token, source, trackSubPaths){
+    var innerPathInfo;
+
+    if(trackSubPaths && source){
+        this.subPaths = typeof source === 'object' && new source.constructor();
+    }
+
+    if(token){
+        innerPathInfo = token.sourcePathInfo;
+
+        if(token instanceof Token && token.path){
+            originPath = token.original;
+            this.original = source;
+        }
+    }
+
+    this.innerPathInfo = innerPathInfo;
+
+
+    this.original = innerPathInfo && innerPathInfo.original || source;
+    this.path = innerPathInfo && innerPathInfo.path;
+}
+SourcePathInfo.prototype.setSubPath = function(to, key){
+    if(!this.subPaths){
+        return;
+    }
+    this.subPaths[to] = this.innerPathInfo && this.innerPathInfo.subPaths && this.innerPathInfo.subPaths[key] || paths.append(this.path, paths.create(key));
+};
+SourcePathInfo.prototype.pushSubPath = function(key){
+    if(!this.subPaths){
+        return;
+    }
+    this.setSubPath(this.subPaths.length, key);
+};
+SourcePathInfo.prototype.setSubPaths = function(paths){
+    if(!this.subPaths){
+        return;
+    }
+    this.subPaths = paths;
+};
+SourcePathInfo.prototype.mapSubPaths = function(object){
+    for(var key in object){
+        if(object.hasOwnProperty(key)){
+            this.setSubPath(key, key);
+        }
+    }
+};
+SourcePathInfo.prototype.drillTo = function(key){
+    if(this.subPaths){
+        this.path = this.subPaths[key];
+    }else if(this.path){
+        this.path = paths.append(this.path, paths.create(key));
+    }
+};
+
+function addFilterResult(filteredItems, item, key, sourcePathInfo, isArray){
+    if(isArray){
+        filteredItems.push(item);
+        sourcePathInfo.pushSubPath(key);
+    }else{
+        filteredItems[key] = item;
+        sourcePathInfo.setSubPath(key, key);
+    }
+}
+
+function gelFilter(scope, args) {
+    var source = args.get(0),
+        sourcePathInfo = new SourcePathInfo(args.getRaw(0), source, true),
+        filteredItems = source && typeof source === 'object' && new source.constructor();
+
+    var functionToCompare = args.get(1);
+
+    if(!filteredItems){
+        return undefined;
+    }
+
+    var isArray = Array.isArray(source),
+        item;
+
+    for(var key in source){
+        if(isArray && isNaN(key)){
+            continue;
+        }
+        item = source[key];
+        if(typeof functionToCompare === "function"){
+            if(scope.callWith(functionToCompare, [item])){
+                addFilterResult(filteredItems, item, key, sourcePathInfo, isArray);
+            }
+        }else{
+            if(item === functionToCompare){
+                addFilterResult(filteredItems, item, key, sourcePathInfo, isArray);
+            }
+        }
+    }
+
+    args.callee.sourcePathInfo = sourcePathInfo;
+
+    return filteredItems;
+}
+
+function gelMerge(scope, args){
+    var result = {};
+    while(args.hasNext()){
+        var nextObject = args.next();
+        result = merge(result, nextObject);
+    }
+    return result;
+}
+
+var tokenConverters = [
+        StringToken,
+        String2Token,
+        ParenthesesToken,
+        ParenthesesEndToken,
+        NumberToken,
+        NullToken,
+        UndefinedToken,
+        TrueToken,
+        FalseToken,
+        DelimiterToken,
+        IdentifierToken,
+        CommaToken,
+        PeriodToken,
+        PartialToken,
+        FillToken,
+        PipeToken,
+        PipeApplyToken,
+        BraceToken,
+        BraceEndToken,
+        TupleToken
+    ],
+    scope = {
+        "parseInt":function(scope, args){
+            return parseInt(args.next());
+        },
+        "parseFloat":function(scope, args){
+            return parseFloat(args.next());
+        },
+        "toFixed": function(scope, args){
+            var num = args.next(),
+                decimals = args.get(1) || 2;
+
+            if(isNaN(num)){
+                return;
+            }
+
+            return num.toFixed(decimals);
+        },
+        "toString":function(scope, args){
+            return "" + args.next();
+        },
+        "+":function(scope, args){
+            return args.next() + args.next();
+        },
+        "-":function(scope, args){
+            return args.next() - args.next();
+        },
+        "/":function(scope, args){
+            return args.next() / args.next();
+        },
+        "*":function(scope, args){
+            return args.next() * args.next();
+        },
+        "%":function(scope, args){
+            return args.next() % args.next();
+        },
+        "isNaN":function(scope, args){
+            return isNaN(args.get(0));
+        },
+        "max":function(scope, args){
+            var result = args.next();
+            while(args.hasNext()){
+                result = Math.max(result, args.next());
+            }
+            return result;
+        },
+        "min":function(scope, args){
+            var result = args.next();
+            while(args.hasNext()){
+                result = Math.min(result, args.next());
+            }
+            return result;
+        },
+        ">":function(scope, args){
+            return args.next() > args.next();
+        },
+        "<":function(scope, args){
+            return args.next() < args.next();
+        },
+        ">=":function(scope, args){
+            return args.next() >= args.next();
+        },
+        "<=":function(scope, args){
+            return args.next() <= args.next();
+        },
+        "?":function(scope, args){
+            var result,
+                resultToken;
+            if(args.next()){
+                result = args.get(1);
+                resultToken = args.getRaw(1);
+            }else{
+                result = args.get(2);
+                resultToken = args.getRaw(2);
+            }
+
+            args.callee.sourcePathInfo = resultToken && resultToken.sourcePathInfo;
+
+            return result;
+        },
+        "!":function(scope, args){
+            return !args.next();
+        },
+        "=":function(scope, args){
+            return args.next() == args.next();
+        },
+        "==":function(scope, args){
+            return args.next() === args.next();
+        },
+        "!=":function(scope, args){
+            return args.next() != args.next();
+        },
+        "!==":function(scope, args){
+            return args.next() !== args.next();
+        },
+        "||":function(scope, args){
+            var nextArg,
+                rawResult,
+                argIndex = -1;
+
+            while(args.hasNext()){
+                argIndex++;
+                nextArg = args.next();
+                if(nextArg){
+                    break;
+                }
+            }
+
+            rawResult = args.getRaw(argIndex);
+            args.callee.sourcePathInfo = rawResult && rawResult.sourcePathInfo;
+            return nextArg;
+        },
+        "|":function(scope, args){
+            var nextArg,
+                rawResult,
+                argIndex = -1;
+
+            while(args.hasNext()){
+                argIndex++;
+                nextArg = args.next();
+                if(nextArg === true){
+                    break;
+                }
+            }
+
+            rawResult = args.getRaw(argIndex);
+            args.callee.sourcePathInfo = rawResult && rawResult.sourcePathInfo;
+            return nextArg;
+        },
+        "&&":function(scope, args){
+            var nextArg,
+                rawResult,
+                argIndex = -1;
+
+            while(args.hasNext()){
+                argIndex++;
+                nextArg = args.next();
+                if(!nextArg){
+                    break;
+                }
+            }
+
+            rawResult = args.getRaw(argIndex);
+            args.callee.sourcePathInfo = rawResult && rawResult.sourcePathInfo;
+            return nextArg;
+        },
+        "keys":function(scope, args){
+            var object = args.next();
+            return typeof object === 'object' ? Object.keys(object) : undefined;
+        },
+        "values":function(scope, args){
+            var target = args.next(),
+                callee = args.callee,
+                sourcePathInfo = new SourcePathInfo(args.getRaw(0), target, true),
+                result = [];
+
+            for(var key in target){
+                result.push(target[key]);
+
+                sourcePathInfo.setSubPath(result.length - 1, key);
+            }
+
+            callee.sourcePathInfo = sourcePathInfo;
+
+            return result;
+        },
+        "invert":function(scope, args){
+            var target = args.next(),
+                result = {};
+            for(var key in target){
+                result[target[key]] = key;
+            }
+            return result;
+        },
+        "extend": gelMerge,
+        "merge": gelMerge,
+        "array":function(scope, args){
+            var argTokens = args.raw(),
+                argValues = args.all(),
+                result = [],
+                callee = args.callee,
+                sourcePathInfo = new SourcePathInfo(null, [], true);
+
+            for(var i = 0; i < argValues.length; i++) {
+                result.push(argValues[i]);
+                if(argTokens[i] instanceof Token && argTokens[i].sourcePathInfo){
+                    sourcePathInfo.subPaths[i] = argTokens[i].sourcePathInfo.path;
+                }
+            }
+
+            callee.sourcePathInfo = sourcePathInfo;
+
+            return result;
+        },
+        "object":function(scope, args){
+            var result = {},
+                callee = args.callee,
+                sourcePathInfo = new SourcePathInfo(null, {}, true);
+
+            for(var i = 0; i < args.length; i+=2){
+                var key = args.get(i),
+                    valueToken = args.getRaw(i+1),
+                    value = args.get(i+1);
+
+                result[key] = value;
+
+                if(valueToken instanceof Token && valueToken.sourcePathInfo){
+                    sourcePathInfo.subPaths[key] = valueToken.sourcePathInfo.path;
+                }
+            }
+
+            callee.sourcePathInfo = sourcePathInfo;
+
+            return result;
+        },
+        "pairs": function(scope, args){
+            var target = args.next(),
+                result = [];
+
+            for(var key in target){
+                if(target.hasOwnProperty(key)){
+                    result.push([key, target[key]]);
+                }
+            }
+
+            return result;
+        },
+        "flatten":function(scope, args){
+            var target = args.next(),
+                shallow = args.hasNext() && args.next();
+
+            function flatten(target){
+                var result = [],
+                    source;
+
+                for(var i = 0; i < target.length; i++){
+                    source = target[i];
+
+                    for(var j = 0; j < source.length; j++){
+                        if(!shallow && Array.isArray(source[j])){
+                            result.push(flatten(source));
+                        }else{
+                            result.push(target[i][j]);
+                        }
+                    }
+                }
+                return result;
+            }
+            return flatten(target);
+        },
+        "sort": function(scope, args) {
+            var source = args.next(),
+                sourcePathInfo = new SourcePathInfo(args.getRaw(0), source, true),
+                sortFunction = args.next(),
+                result,
+                sourceArrayKeys,
+                caller = args.callee;
+
+            if(!Array.isArray(source)){
+                return;
+            }
+
+            // no subpaths, just do a normal sort.
+            if(!sourcePathInfo.path){
+                return source.slice().sort(function(value1, value2){
+                    return scope.callWith(sortFunction, [value1,value2], caller);
+                });
+            }
+
+            for(var i = 0; i < source.length; i++){
+                sourcePathInfo.setSubPath(i, i);
+            }
+
+            result = [];
+            sortedPaths = sourcePathInfo.subPaths.slice();
+            sortedPaths.sort(function(path1, path2){
+                var value1 = source[quickIndexOf(sourcePathInfo.subPaths, path1)],
+                    value2 = source[quickIndexOf(sourcePathInfo.subPaths, path2)];
+
+                return scope.callWith(sortFunction, [value1,value2], caller);
+            });
+
+            for(var i = 0; i < sortedPaths.length; i++) {
+                result[i] = sourcePathInfo.original[paths.toParts(sortedPaths[i]).pop()];
+            }
+
+            sourcePathInfo.setSubPaths(sortedPaths);
+
+            args.callee.sourcePathInfo = sourcePathInfo;
+
+            return result;
+        },
+        "filter": gelFilter,
+        "findOne": function(scope, args) {
+            var source = args.next(),
+                functionToCompare = args.next(),
+                sourcePathInfo = new SourcePathInfo(args.getRaw(0), source),
+                result,
+                caller = args.callee;
+
+            if (Array.isArray(source)) {
+
+                fastEach(source, function(item, index){
+                    if(scope.callWith(functionToCompare, [item], caller)){
+                        result = item;
+                        sourcePathInfo.drillTo(index);
+                        args.callee.sourcePathInfo = sourcePathInfo;
+                        return true;
+                    }
+                });
+                return result;
+            }
+        },
+        "concat":function(scope, args){
+            var result = [],
+                argCount = 0,
+                sourcePathInfo = new SourcePathInfo(),
+                sourcePaths = [];
+
+            var addPaths = function(argToken){
+                var argSourcePathInfo = argToken.sourcePathInfo;
+
+                if(argSourcePathInfo){
+                    if(Array.isArray(argSourcePathInfo.subPaths)){
+                        sourcePaths = sourcePaths.concat(argSourcePathInfo.subPaths);
+                    }else if(argSourcePathInfo.path){
+                        for(var i = 0; i < argToken.result.length; i++){
+                            sourcePaths.push(paths.append(argSourcePathInfo.path, paths.create(i)));
+                        }
+                    }
+                }else{
+                    // Non-path-tracked array
+                    var nullPaths = [];
+                    for(var i = 0; i < argToken.result.length; i++) {
+                        nullPaths.push(null);
+                    };
+                    sourcePaths = sourcePaths.concat(nullPaths);
+                }
+            };
+
+            while(argCount < args.length){
+                if(result == null || !result.concat){
+                    return undefined;
+                }
+                var nextRaw = args.getRaw(argCount, true);
+                if(Array.isArray(nextRaw.result)){
+                    result = result.concat(nextRaw.result);
+                    addPaths(nextRaw);
+                }
+                argCount++;
+            }
+            sourcePathInfo.subPaths = sourcePaths;
+            args.callee.sourcePathInfo = sourcePathInfo;
+            return result;
+        },
+        "join":function(scope, args){
+            args = args.all();
+
+            return args.slice(1).join(args[0]);
+        },
+        "slice":function(scope, args){
+            var sourceTokenIndex = 0,
+                source = args.next(),
+                start,
+                end,
+                sourcePathInfo;
+
+            if(args.hasNext()){
+                start = source;
+                source = args.next();
+                sourceTokenIndex++;
+            }
+            if(args.hasNext()){
+                end = source;
+                source = args.next();
+                sourceTokenIndex++;
+            }
+
+            if(!source || !source.slice){
+                return;
+            }
+
+            if(typeof source !== 'string'){
+
+                // clone source
+                source = source.slice();
+
+                sourcePathInfo = new SourcePathInfo(args.getRaw(sourceTokenIndex), source, true);
+
+                if(sourcePathInfo.path){
+                    if(sourcePathInfo.innerPathInfo && sourcePathInfo.innerPathInfo.subPaths){
+                        sourcePathInfo.setSubPaths(sourcePathInfo.innerPathInfo.subPaths.slice(start, end));
+                    }else{
+                        sourcePathInfo.mapSubPaths(source);
+                        sourcePathInfo.setSubPaths(sourcePathInfo.subPaths.slice(start, end));
+                    }
+                }
+            }
+
+            var result = source.slice(start, end);
+
+            args.callee.sourcePathInfo = sourcePathInfo;
+
+            return result;
+        },
+        "split":function(scope, args){
+            var target = args.next();
+            return target ? target.split(args.hasNext() && args.next()) : undefined;
+        },
+        "last":function(scope, args){
+            var source = args.next(),
+                sourcePathInfo = new SourcePathInfo(args.getRaw(0), source),
+                lastIndex;
+
+            if(!Array.isArray(source)){
+                return;
+            }
+
+            lastIndex = Math.max(0, source.length - 1);
+
+            sourcePathInfo.drillTo(lastIndex);
+
+            args.callee.sourcePathInfo = sourcePathInfo;
+
+            return source[lastIndex];
+        },
+        "first":function(scope, args){
+            var source = args.next(),
+                sourcePathInfo = new SourcePathInfo(args.getRaw(0), source);
+
+            sourcePathInfo.drillTo(0);
+
+            args.callee.sourcePathInfo = sourcePathInfo;
+
+            if(!Array.isArray(source)){
+                return;
+            }
+            return source[0];
+        },
+        "length":function(scope, args){
+            var value = args.next();
+            return value != null ? value.length : undefined;
+        },
+        "getValue":function(scope, args){
+            var source = args.next(),
+                key = args.next(),
+                sourcePathInfo = new SourcePathInfo(args.getRaw(0), source);
+
+            sourcePathInfo.drillTo(key);
+
+            args.callee.sourcePathInfo = sourcePathInfo;
+
+            if(!source || typeof source !== 'object'){
+                return;
+            }
+
+            return source[key];
+        },
+        "compare":function(scope, args){
+            var args = args.all(),
+                comparitor = args.pop(),
+                reference = args.pop(),
+                result = true,
+                objectToCompare;
+
+            while(args.length){
+                objectToCompare = args.pop();
+                for(var key in objectToCompare){
+                    if(!scope.callWith(comparitor, [objectToCompare[key], reference[key]], this)){
+                        result = false;
+                    }
+                }
+            }
+
+            return result;
+        },
+        "contains": function(scope, args){
+            var args = args.all(),
+                target = args.shift(),
+                success = false,
+                strict = false,
+                arg;
+
+            if(target == null){
+                return;
+            }
+
+            if(typeof target === 'boolean'){
+                strict = target;
+                target = args.shift();
+            }
+
+            arg = args.pop();
+
+            if(target == null || !target.indexOf){
+                return;
+            }
+
+            if(typeof arg === "string" && !strict){
+                arg = arg.toLowerCase();
+
+                if(Array.isArray(target)){
+                    fastEach(target, function(targetItem){
+                        if(typeof targetItem === 'string' && targetItem.toLowerCase() === arg.toLowerCase()){
+                            return success = true;
+                        }
+                    });
+                }else{
+                    if(typeof target === 'string' && target.toLowerCase().indexOf(arg)>=0){
+                        return success = true;
+                    }
+                }
+                return success;
+            }else{
+                return target.indexOf(arg)>=0;
+            }
+        },
+        "charAt":function(scope, args){
+            var target = args.next(),
+                position;
+
+            if(args.hasNext()){
+                position = args.next();
+            }
+
+            if(typeof target !== 'string'){
+                return;
+            }
+
+            return target.charAt(position);
+        },
+        "toLowerCase":function(scope, args){
+            var target = args.next();
+
+            if(typeof target !== 'string'){
+                return undefined;
+            }
+
+            return target.toLowerCase();
+        },
+        "toUpperCase":function(scope, args){
+            var target = args.next();
+
+            if(typeof target !== 'string'){
+                return undefined;
+            }
+
+            return target.toUpperCase();
+        },
+        "format": function format(scope, args) {
+            var args = args.all();
+
+            if(!args[0]){
+                return;
+            }
+
+            return stringFormat(args.shift(), args);
+        },
+        "refine": function(scope, args){
+            var allArgs = args.all(),
+                exclude = typeof allArgs[0] === "boolean" && allArgs.shift(),
+                original = allArgs.shift(),
+                refined = {},
+                sourcePathInfo = new SourcePathInfo(args.getRaw(exclude ? 1 : 0), original, true);
+
+            for(var i = 0; i < allArgs.length; i++){
+                allArgs[i] = allArgs[i].toString();
+            }
+
+
+            for(var key in original){
+                if(allArgs.indexOf(key)>=0){
+                    if(!exclude){
+                        refined[key] = original[key];
+                        sourcePathInfo.setSubPath(key, key);
+                    }
+                }else if(exclude){
+                    refined[key] = original[key];
+                    sourcePathInfo.setSubPath(key, key);
+                }
+            }
+
+            args.callee.sourcePathInfo = sourcePathInfo;
+
+            return refined;
+        },
+        "date": (function(){
+            var date = function(scope, args) {
+                return args.length ? new Date(args.length > 1 ? args.all() : args.next()) : new Date();
+            };
+
+            date.addDays = function(scope, args){
+                var baseDate = args.next();
+
+                return new Date(baseDate.setDate(baseDate.getDate() + args.next()));
+            };
+
+            return date;
+        })(),
+        "toJSON":function(scope, args){
+            return JSON.stringify(args.next());
+        },
+        "fromJSON":function(scope, args){
+            return JSON.parse(args.next());
+        },
+        "map":function(scope, args){
+            var source = args.next(),
+                sourcePathInfo = new SourcePathInfo(args.getRaw(0), source, true),
+                isArray = Array.isArray(source),
+                isObject = typeof source === 'object' && source !== null,
+                result = isArray ? [] : {},
+                functionToken = args.next();
+
+            if(isArray){
+                fastEach(source, function(item, index){
+                    var callee = {};
+                    result[index] = scope.callWith(functionToken, [
+                        new ValueToken(item, new SourcePathInfo(args.getRaw(0), source), index)
+                    ], callee);
+                    if(callee.sourcePathInfo){
+                        sourcePathInfo.subPaths[index] = callee.sourcePathInfo.path;
+                    }
+                });
+            }else if(isObject){
+                for(var key in source){
+                    var callee = {};
+                    result[key] = scope.callWith(functionToken, [
+                        new ValueToken(source[key], new SourcePathInfo(args.getRaw(0), source), key)
+                    ], callee);
+                    if(callee.sourcePathInfo){
+                        sourcePathInfo.subPaths[key] = callee.sourcePathInfo.path;
+                    }
+                }
+            }else{
+                return null;
+            }
+
+            args.callee.sourcePathInfo = sourcePathInfo;
+
+            return result;
+        },
+        "fold": function(scope, args){
+            var fn = args.get(2),
+                seedToken = args.getRaw(1, true),
+                seed = args.get(1),
+                sourceToken = args.getRaw(0, true),
+                source = args.get(0),
+                result = seed;
+
+
+            var sourcePathInfo = new SourcePathInfo(sourceToken, source, true);
+            sourcePathInfo.mapSubPaths(source);
+
+            if(!source || !source.length){
+                return result;
+            }
+
+            var resultPathInfo = seedToken.sourcePathInfo;
+
+            for(var i = 0; i < source.length; i++){
+                var callee = {};
+                result = scope.callWith(
+                    fn,
+                    [
+                        new ValueToken(result, resultPathInfo),
+                        new ValueToken(source[i], sourcePathInfo, i),
+                        i
+                    ],
+                    callee
+                );
+
+                resultPathInfo = callee.sourcePathInfo;
+            }
+
+            args.callee.sourcePathInfo = resultPathInfo;
+
+            return result;
+        },
+        "partial": function(scope, outerArgs){
+            var fn = outerArgs.get(0),
+                caller = outerArgs.callee;
+
+            return function(scope, innerArgs){
+                var result = scope.callWith(fn, outerArgs.raw().slice(1).concat(innerArgs.raw()), caller);
+
+                innerArgs.callee.sourcePathInfo = outerArgs.callee.sourcePathInfo;
+
+                return result;
+            };
+        },
+        "flip": function(scope, args){
+            var outerArgs = args.all().reverse(),
+                fn = outerArgs.pop(),
+                caller = args.callee;
+
+            return function(scope, args){
+                return scope.callWith(fn, outerArgs, caller);
+            };
+        },
+        "compose": function(scope, args){
+            var outerArgs = args.all().reverse(),
+                caller = args.callee;
+
+            return function(scope, args){
+                var result = scope.callWith(outerArgs[0], args.all(),caller);
+
+                for(var i = 1; i < outerArgs.length; i++){
+                    result = scope.callWith(outerArgs[i], [result],caller);
+                }
+
+                return result;
+            };
+        },
+        "apply": function(scope, args){
+            var fn = args.next(),
+                outerArgs = args.next();
+
+            return scope.callWith(fn, outerArgs, args.callee);
+        },
+        "zip": function(scope, args){
+            var allArgs = args.all(),
+                result = [],
+                maxLength = 0;
+
+            for(var i = 0; i < allArgs.length; i++){
+                if(!Array.isArray(allArgs[i])){
+                    allArgs.splice(i,1);
+                    i--;
+                    continue;
+                }
+                maxLength = Math.max(maxLength, allArgs[i].length);
+            }
+
+            for (var itemIndex = 0; itemIndex < maxLength; itemIndex++) {
+                for(var i = 0; i < allArgs.length; i++){
+                    if(allArgs[i].length >= itemIndex){
+                        result.push(allArgs[i][itemIndex]);
+                    }
+                }
+            }
+
+            return result;
+        },
+        "keyFor": function(scope, args){
+            var value = args.next(),
+                target = args.next();
+
+            for(var key in target){
+                if(!target.hasOwnProperty(key)){
+                    continue;
+                }
+
+                if(target[key] === value){
+                    return key;
+                }
+            }
+        },
+        "regex": function(scope, args){
+            var all = args.all();
+
+            return new RegExp(all[0], all[1]);
+        },
+        "match": function(scope, args){
+            var string = args.next();
+
+            if(typeof string !== 'string'){
+                return false;
+            }
+
+            return string.match(args.next());
+        }
+    };
+
+function createMathFunction(key){
+    return function(scope, args){
+        var all = args.all();
+        return Math[key].apply(Math, all);
+    };
+}
+
+scope.math = {};
+
+var mathFunctionNames = ['abs','acos','asin','atan','atan2','ceil','cos','exp','floor','imul','log','max','min','pow','random','round','sin','sqrt','tan'];
+
+for(var i = 0; i < mathFunctionNames.length; i++){
+    var key = mathFunctionNames[i];
+    scope.math[key] = createMathFunction(key);
+}
+
+
+Gel = function(){
+    var gel = {},
+        lang = new Lang();
+
+    gel.lang = lang;
+    gel.tokenise = function(expression){
+        return gel.lang.tokenise(expression, this.tokenConverters);
+    };
+    gel.evaluate = function(expression, injectedScope, returnAsTokens){
+        var scope = new Scope(this.scope);
+
+        scope.add(injectedScope);
+
+        return lang.evaluate(expression, scope, this.tokenConverters, returnAsTokens);
+    };
+    gel.tokenConverters = tokenConverters.slice();
+    gel.scope = merge({}, scope);
+
+    return gel;
+};
+
+for (var i = 0; i < tokenConverters.length; i++) {
+    Gel[tokenConverters[i].prototype.name] = tokenConverters[i];
+};
+
+Gel.Token = Token;
+Gel.Scope = Scope;
+module.exports = Gel;
+},{"clean-merge":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/clean-merge/index.js","gedi-paths":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/paths.js","lang-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/lang-js/lang.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/leak-map/index.js":[function(require,module,exports){
+function validateKey(key){
+    if(!key || !(typeof key === 'object' || typeof key === 'function')){
+        throw key + " is not a valid WeakMap key.";
+    }
+}
+
+function LeakMap(){
+    this.clear();
+}
+LeakMap.prototype.clear = function(){
+    this._keys = [];
+    this._values = [];
+};
+LeakMap.prototype.delete = function(key){
+    validateKey(key);
+    var keyIndex = this._keys.indexOf(key);
+    if(keyIndex>=0){
+        this._keys.splice(keyIndex, 1);
+        this._values.splice(keyIndex, 1);
+    }
+    return false;
+};
+LeakMap.prototype.get = function(key){
+    validateKey(key);
+    return this._values[this._keys.indexOf(key)];
+};
+LeakMap.prototype.has = function(key){
+    validateKey(key);
+    return !!~this._keys.indexOf(key);
+};
+LeakMap.prototype.set = function(key, value){
+    validateKey(key);
+
+    // Favorite piece of koed evor.
+    // IE devs would be prowde
+    var keyIndex = (~this._keys.indexOf(key) || (this._keys.push(key), this._keys.length)) - 1;
+
+    this._values[keyIndex] = value;
+    return this;
+};
+LeakMap.prototype.toString = function(){
+    return '[object WeakMap]';
+};
+
+module.exports = LeakMap;
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/weak-map/weak-map.js":[function(require,module,exports){
 // Copyright (C) 2011 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -4400,7 +6358,25 @@ module.exports = function(get, model){
 
     return PathToken;
 }
-},{"gedi-paths":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/paths.js","gedi-paths/detectPath":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/detectPath.js","lang-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/lang-js/lang.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/laidout/index.js":[function(require,module,exports){
+},{"gedi-paths":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/paths.js","gedi-paths/detectPath":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/gedi-paths/detectPath.js","lang-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/lang-js/lang.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/weakmap.js":[function(require,module,exports){
+var WM;
+
+if(typeof WeakMap !== 'undefined'){
+    WM = WeakMap;
+}else if(typeof window !== 'undefined'){
+    var rv = -1; // Return value assumes failure.
+    if (navigator.appName == 'Microsoft Internet Explorer'){
+        var match = navigator.userAgent.match(/MSIE ([0-9]{1,}[\.0-9]{0,})/);
+        if (match && match[1] <= 9){
+            WM = require('leak-map');
+        }
+    }
+}
+
+WM || (WM = require('weak-map'));
+
+module.exports = WM;
+},{"leak-map":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/leak-map/index.js","weak-map":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/gedi/node_modules/weak-map/weak-map.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/laidout/index.js":[function(require,module,exports){
 function checkElement(element){
     if(!element){
         return false;
@@ -4515,13 +6491,50 @@ function callWith(fn, fnArguments, calledToken){
                 return fnArguments[argIndex++];
             },
             all: function(){
+                var allArgs = fnArguments.slice();
+                for(var i = 0; i < allArgs.length; i++){
+                    if(allArgs[i] instanceof Token){
+                        allArgs[i].evaluate(scope)
+                        allArgs[i] = allArgs[i].result;
+                    }
+                }
+                return allArgs;
+            },
+            rest: function(){
                 var allArgs = [];
                 while(this.hasNext()){
                     allArgs.push(this.next());
                 }
                 return allArgs;
+            },
+            restRaw: function(evaluated){
+                var rawArgs = fnArguments.slice();
+                if(evaluated){
+                    for(var i = argIndex; i < rawArgs.length; i++){
+                        if(rawArgs[i] instanceof Token){
+                            rawArgs[i].evaluate(scope);
+                        }
+                    }
+                }
+                return rawArgs;
+            },
+            slice: function(start, end){
+                return this.all().slice(start, end);
+            },
+            sliceRaw: function(start, end, evaluated){
+                var rawArgs = fnArguments.slice(start, end);
+                if(evaluated){
+                    fastEach(rawArgs, function(arg){
+                        if(arg instanceof Token){
+                            arg.evaluate(scope);
+                        }
+                    });
+                }
+                return rawArgs;
             }
         };
+
+    scope._args = args;
 
     return fn(scope, args);
 }
@@ -4807,7 +6820,7 @@ Token.prototype.valueOf = function(){
 module.exports = Token;
 },{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/merge/merge.js":[function(require,module,exports){
 /*!
- * @name JavaScript/NodeJS Merge v1.1.3
+ * @name JavaScript/NodeJS Merge v1.2.0
  * @author yeikos
  * @repository https://github.com/yeikos/js.merge
 
@@ -4817,31 +6830,39 @@ module.exports = Token;
 
 ;(function(isNode) {
 
-	function merge() {
+	/**
+	 * Merge one or more objects 
+	 * @param bool? clone
+	 * @param mixed,... arguments
+	 * @return object
+	 */
 
-		var items = Array.prototype.slice.call(arguments),
-			result = items.shift(),
-			deep = (result === true),
-			size = items.length,
-			item, index, key;
+	var Public = function(clone) {
 
-		if (deep || typeOf(result) !== 'object')
+		return merge(clone === true, false, arguments);
 
-			result = {};
+	}, publicName = 'merge';
 
-		for (index=0;index<size;++index)
+	/**
+	 * Merge two or more objects recursively 
+	 * @param bool? clone
+	 * @param mixed,... arguments
+	 * @return object
+	 */
 
-			if (typeOf(item = items[index]) === 'object')
+	Public.recursive = function(clone) {
 
-				for (key in item)
+		return merge(clone === true, true, arguments);
 
-					result[key] = deep ? clone(item[key]) : item[key];
+	};
 
-		return result;
+	/**
+	 * Clone the input removing any reference
+	 * @param mixed input
+	 * @return mixed
+	 */
 
-	}
-
-	function clone(input) {
+	Public.clone = function(input) {
 
 		var output = input,
 			type = typeOf(input),
@@ -4854,7 +6875,7 @@ module.exports = Token;
 
 			for (index=0;index<size;++index)
 
-				output[index] = clone(input[index]);
+				output[index] = Public.clone(input[index]);
 
 		} else if (type === 'object') {
 
@@ -4862,109 +6883,275 @@ module.exports = Token;
 
 			for (index in input)
 
-				output[index] = clone(input[index]);
+				output[index] = Public.clone(input[index]);
 
 		}
 
 		return output;
 
+	};
+
+	/**
+	 * Merge two objects recursively
+	 * @param mixed input
+	 * @param mixed extend
+	 * @return mixed
+	 */
+
+	function merge_recursive(base, extend) {
+
+		if (typeOf(base) !== 'object')
+
+			return extend;
+
+		for (var key in extend) {
+
+			if (typeOf(base[key]) === 'object' && typeOf(extend[key]) === 'object') {
+
+				base[key] = merge_recursive(base[key], extend[key]);
+
+			} else {
+
+				base[key] = extend[key];
+
+			}
+
+		}
+
+		return base;
+
 	}
+
+	/**
+	 * Merge two or more objects
+	 * @param bool clone
+	 * @param bool recursive
+	 * @param array argv
+	 * @return object
+	 */
+
+	function merge(clone, recursive, argv) {
+
+		var result = argv[0],
+			size = argv.length;
+
+		if (clone || typeOf(result) !== 'object')
+
+			result = {};
+
+		for (var index=0;index<size;++index) {
+
+			var item = argv[index],
+
+				type = typeOf(item);
+
+			if (type !== 'object') continue;
+
+			for (var key in item) {
+
+				var sitem = clone ? Public.clone(item[key]) : item[key];
+
+				if (recursive) {
+
+					result[key] = merge_recursive(result[key], sitem);
+
+				} else {
+
+					result[key] = sitem;
+
+				}
+
+			}
+
+		}
+
+		return result;
+
+	}
+
+	/**
+	 * Get type of variable
+	 * @param mixed input
+	 * @return string
+	 *
+	 * @see http://jsperf.com/typeofvar
+	 */
 
 	function typeOf(input) {
 
-		return ({}).toString.call(input).match(/\s([\w]+)/)[1].toLowerCase();
+		return ({}).toString.call(input).slice(8, -1).toLowerCase();
 
 	}
 
 	if (isNode) {
 
-		module.exports = merge;
+		module.exports = Public;
 
 	} else {
 
-		window.merge = merge;
+		window[publicName] = Public;
 
 	}
 
 })(typeof module === 'object' && module && typeof module.exports === 'object' && module.exports);
-},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/next-tick/index.js":[function(require,module,exports){
-(function (process){
-'use strict';
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/simple-ajax/index.js":[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
 
-var callable, byObserver;
-
-callable = function (fn) {
-	if (typeof fn !== 'function') throw new TypeError(fn + " is not a function");
-	return fn;
-};
-
-byObserver = function (Observer) {
-	var node = document.createTextNode(''), queue, i = 0;
-	new Observer(function () {
-		var data;
-		if (!queue) return;
-		data = queue;
-		queue = null;
-		if (typeof data === 'function') {
-			data();
-			return;
-		}
-		data.forEach(function (fn) { fn(); });
-	}).observe(node, { characterData: true });
-	return function (fn) {
-		callable(fn);
-		if (queue) {
-			if (typeof queue === 'function') queue = [queue, fn];
-			else queue.push(fn);
-			return;
-		}
-		queue = fn;
-		node.data = (i = ++i % 2);
-	};
-};
-
-module.exports = (function () {
-	// Node.js
-	if ((typeof process !== 'undefined') && process &&
-			(typeof process.nextTick === 'function')) {
-		return process.nextTick;
-	}
-
-	// MutationObserver=
-	if ((typeof document === 'object') && document) {
-		if (typeof MutationObserver === 'function') {
-			return byObserver(MutationObserver);
-		}
-		if (typeof WebKitMutationObserver === 'function') {
-			return byObserver(WebKitMutationObserver);
-		}
-	}
-
-	// W3C Draft
-	// http://dvcs.w3.org/hg/webperf/raw-file/tip/specs/setImmediate/Overview.html
-	if (typeof setImmediate === 'function') {
-		return function (cb) { setImmediate(callable(cb)); };
-	}
-
-	// Wide available standard
-	if (typeof setTimeout === 'function') {
-		return function (cb) { setTimeout(callable(cb), 0); };
-	}
-
-	return null;
-}());
-
-}).call(this,require('_process'))
-},{"_process":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js":[function(require,module,exports){
-Object.create = Object.create || function (o) {
-    if (arguments.length > 1) {
-        throw new Error('Object.create implementation only accepts the first parameter.');
+function tryParseJson(data){
+    try{
+        return JSON.parse(data);
+    }catch(error){
+        return error;
     }
-    function F() {}
-    F.prototype = o;
-    return new F();
+}
+
+function parseQueryString(url){
+    var urlParts = url.split('?'),
+        result = {};
+
+    if(urlParts.length>1){
+
+        var queryStringData = urlParts.pop().split("&");
+
+        for(var i = 0; i < queryStringData.length; i++) {
+            var parts = queryStringData[i].split("="),
+                key = window.unescape(parts[0]),
+                value = window.unescape(parts[1]);
+
+            result[key] = value;
+        }
+    }
+
+    return result;
+}
+
+function toQueryString(data){
+    var queryString = '';
+
+    for(var key in data){
+        if(data.hasOwnProperty(key) && data[key] !== undefined){
+            queryString += (queryString.length ? '&' : '?') + key + '=' + data[key];
+        }
+    }
+
+    return queryString;
+}
+
+function Ajax(settings){
+    var queryStringData,
+        ajax = this;
+
+    if(typeof settings === 'string'){
+        settings = {
+            url: settings
+        };
+    }
+
+    if(typeof settings !== 'object'){
+        settings = {};
+    }
+
+    ajax.settings = settings;
+    ajax.request = new window.XMLHttpRequest();
+    ajax.settings.method = ajax.settings.method || "get";
+
+    if(ajax.settings.cors){
+        //http://www.html5rocks.com/en/tutorials/cors/
+        if ("withCredentials" in ajax.request) {
+            // all good.
+
+        } else if (typeof XDomainRequest != "undefined") {
+            // Otherwise, check if XDomainRequest.
+            // XDomainRequest only exists in IE, and is IE's way of making CORS requests.
+            ajax.request = new window.XDomainRequest();
+        } else {
+            // Otherwise, CORS is not supported by the browser.
+            ajax.emit('error', new Error('Cors is not supported by this browser'));
+        }
+    }else{
+        ajax.request = new window.XMLHttpRequest();
+    }
+
+    if(ajax.settings.cache === false){
+        ajax.settings.data = ajax.settings.data || {};
+        ajax.settings.data._ = new Date().getTime();
+    }
+
+    if(ajax.settings.method.toLowerCase() === 'get' && typeof ajax.settings.data === 'object'){
+        queryStringData = parseQueryString(ajax.settings.url);
+        for(var key in ajax.settings.data){
+            if(ajax.settings.data.hasOwnProperty(key)){
+                queryStringData[key] = ajax.settings.data[key];
+            }
+        }
+
+        ajax.settings.url  = ajax.settings.url.split('?').shift() + toQueryString(queryStringData);
+        ajax.settings.data = null;
+    }
+
+    ajax.request.addEventListener("progress", function(event){
+        ajax.emit('progress', event);
+    }, false);
+
+    ajax.request.addEventListener("load", function(event){
+        var data = event.target.responseText;
+
+        if(ajax.settings.dataType && ajax.settings.dataType.toLowerCase() === 'json'){
+            if(data === ''){
+                data = undefined;
+            }else{
+                data = tryParseJson(data);
+            }
+        }
+
+        if(event.target.status >= 400){
+            ajax.emit('error', event, data);
+        } else {
+            ajax.emit('success', event, data);
+        }
+
+    }, false);
+
+    ajax.request.addEventListener("error", function(event){
+        ajax.emit('error', event);
+    }, false);
+
+    ajax.request.addEventListener("abort", function(event){
+        ajax.emit('abort', event);
+    }, false);
+
+    ajax.request.addEventListener("loadend", function(event){
+        ajax.emit('complete', event);
+    }, false);
+
+    ajax.request.open(ajax.settings.method || "get", ajax.settings.url, true);
+
+    // Set default headers
+    if(ajax.settings.contentType !== false){
+        ajax.request.setRequestHeader('Content-Type', ajax.settings.contentType || 'application/json; charset=utf-8');
+    }
+    ajax.request.setRequestHeader('X-Requested-With', ajax.settings.requestedWith || 'XMLHttpRequest');
+    if(ajax.settings.auth){
+        ajax.request.setRequestHeader('Authorization', ajax.settings.auth);
+    }
+
+    // Set custom headers
+    for(var headerKey in ajax.settings.headers){
+        ajax.request.setRequestHeader(headerKey, ajax.settings.headers[headerKey]);
+    }
+
+    if(ajax.settings.processData !== false && ajax.settings.dataType === 'json'){
+        ajax.settings.data = JSON.stringify(ajax.settings.data);
+    }
+}
+
+Ajax.prototype = Object.create(EventEmitter.prototype);
+Ajax.prototype.send = function(){
+    this.request.send(this.settings.data && this.settings.data);
 };
 
+module.exports = Ajax;
+},{"events":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/events/events.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js":[function(require,module,exports){
 function createSpec(child, parent){
     var parentPrototype;
 
@@ -5321,25 +7508,37 @@ var createSpec = require('spec-js'),
     IdentifierToken = require('gel-js').IdentifierToken,
     jsonConverter = require('./jsonConverter'),
     createModelScope = require('./createModelScope'),
-    Consuela = require('consuela'),
     WhatChanged = require('what-changed'),
-    merge = require('merge'),
+    merge = require('./flatMerge'),
+    animationFrame = require('./raf.js'),
+    requestAnimationFrame = animationFrame.requestAnimationFrame,
+    cancelAnimationFrame = animationFrame.cancelAnimationFrame,
     resolvePath = require('./resolvePath'),
-    nextTick = require('next-tick');
+    excludeProps = require('./excludeProps'),
+    includeProps = require('./includeProps');
 
 var nextFrame;
+
+function callPropertyUpdate(property){
+    if(property._bound){
+        property.update(property.parent, property.value);
+    }
+    property._queuedForUpdate = false;
+}
+
 function updateFrame() {
     while(nextFrame.length){
-        var property = nextFrame.pop();
-        if(property._bound){
-            property.update(property.parent, property.value);
-        }
-        property._queuedForUpdate = false;
+        callPropertyUpdate(nextFrame.pop());
     }
     nextFrame = null;
 }
 
 function requestUpdate(property){
+    if(property._immediate){
+        callPropertyUpdate(property);
+        return;
+    }
+
     if(!nextFrame){
         nextFrame = [];
 
@@ -5383,22 +7582,15 @@ function updateProperty(property, firstUpdate){
     //  the element is inserted into the DOM
     if(firstUpdate){
         property.update(property.parent, property.value);
+        property.hasChanged();
+        return;
     }
 
     if(!property._bound){
         return;
     }
 
-    // Still run the _lastValue.update(),
-    // because it sets up the state of the last value,
-    // and it will be false anyway.
-
     if(property.hasChanged()){
-        if(property.gaffa.debug){
-            property.update(property.parent, property.value);
-            return;
-        }
-
         requestUpdate(property);
     }
 }
@@ -5410,35 +7602,32 @@ function createPropertyCallback(property){
             scope,
             valueTokens;
 
-        if(event){
+        scope = createModelScope(property.parent, event);
 
-            scope = createModelScope(property.parent, event);
+        if(event === true || event === false){ // Non-model update.
 
-            if(event === true){ // Initial update.
+            valueTokens = property.get(scope, true);
 
-                valueTokens = property.get(scope, true);
+        }else if(event.captureType === 'bubble' && property.ignoreBubbledEvents){
 
-            }else if(event.captureType === 'bubble' && property.ignoreBubbledEvents){
+            return;
 
+        }else if(property.binding){ // Model change update.
+
+            if(property.ignoreTargets && event.target.match(property.ignoreTargets)){
                 return;
-
-            }else if(property.binding){ // Model change update.
-
-                if(property.ignoreTargets && event.target.match(property.ignoreTargets)){
-                    return;
-                }
-
-                valueTokens = property.get(scope, true);
             }
 
-            if(valueTokens){
-                var valueToken = valueTokens[valueTokens.length - 1];
-                value = valueToken.result;
-                property._sourcePathInfo = valueToken.sourcePathInfo;
-            }
-
-            property.value = value;
+            valueTokens = property.get(scope, true);
         }
+
+        if(valueTokens){
+            var valueToken = valueTokens[valueTokens.length - 1];
+            value = valueToken.result;
+            property._sourcePathInfo = valueToken.sourcePathInfo;
+        }
+
+        property.value = value;
 
         // Call the properties update function, if it has one.
         // Only call if the changed value is an object, or if it actually changed.
@@ -5452,10 +7641,23 @@ function createPropertyCallback(property){
 
 
 function Property(propertyDescription){
+    if(!propertyDescription){
+        return this;
+    }
+
     if(typeof propertyDescription === 'function'){
         this.update = propertyDescription;
     }else{
         for(var key in propertyDescription){
+            if(
+                !propertyDescription.hasOwnProperty(key) ||
+                propertyDescription instanceof Property && (
+                    ~propertyDescription.__serialiseExclude__.indexOf(key) || 
+                    ~excludeProps.indexOf(key)
+                )
+            ){
+                continue;
+            }
             this[key] = propertyDescription[key];
         }
     }
@@ -5472,16 +7674,29 @@ Property.prototype.hasChanged = function(){
         }
     }
 };
-Property.prototype.set = function(value, isDirty){
-    var gaffa = this.gaffa;
+Property.prototype.set = function(value, isDirty, scope){
+    if(!this._bound){
+        this.value = value;
+        return;
+    }
+
+    scope = merge(this.scope, scope);
+
+    var gaffa = this.gaffa,
+        dirty = isDirty;
+
+    if(this.cleans != null){
+        dirty = (this.cleans === 'string' ? gaffa.model.get(this.cleans, this) :  this.cleans) === false ;
+    }
 
     if(this.binding){
-        var setValue = this.setTransform ? gaffa.model.get(this.setTransform, this, {value: value}) : value;
+        var setValue = this.setTransform ? gaffa.model.get(this.setTransform, this, merge(this.scope, {value: value})) : value;
         gaffa.model.set(
             this.binding,
             setValue,
             this,
-            isDirty
+            dirty,
+            scope
         );
     }else{
         this.value = value;
@@ -5492,7 +7707,11 @@ Property.prototype.set = function(value, isDirty){
 
 };
 Property.prototype.get = function(scope, asTokens){
-    scope = merge(false, this.scope, scope);
+    if(!this._bound){
+        return this.value;
+    }
+
+    scope = merge(this.scope, scope);
 
     if(this.binding){
         var value = this.gaffa.model.get(this.binding, this, scope, asTokens);
@@ -5506,19 +7725,11 @@ Property.prototype.get = function(scope, asTokens){
     }
 };
 Property.prototype.bind = function(parent, scope) {
-    if(this._bound){
-        return;
-    }
+    this.scope = merge(scope, this.scope);
 
-    Bindable.prototype.bind.call(this);
+    Bindable.prototype.bind.apply(this, arguments);
 
     this._lastValue = new WhatChanged();
-    this.parent = parent;
-    this.scope = merge(false, scope, this.scope);
-    this.gaffa = parent.gaffa;
-
-    parent.once('destroy', this.destroy.bind(this));
-    parent.once('debind', this.debind.bind(this));
 
     // Shortcut for properties that have no binding.
     // This has a significant impact on performance.
@@ -5535,34 +7746,46 @@ Property.prototype.bind = function(parent, scope) {
     this._currentBinding = [this.binding, propertyCallback, parentPath];
     this.gaffa.gedi.bind(this.binding, propertyCallback, parentPath);
     propertyCallback(true, scope);
+
+    if(this.interval){
+        function intervalUpdate(){
+            if(!property._bound){
+                return true;
+            }
+            propertyCallback(false, property.scope);
+        }
+        var property = this;
+        if(!isNaN(this.interval)){
+            function timeoutUpdate(){
+                if(!intervalUpdate()){
+                    setTimeout(timeoutUpdate,property.interval);
+                }
+            };
+            timeoutUpdate();
+        }else if(this.interval === 'frame'){
+            function frameUpdate(){
+                if(!intervalUpdate()){
+                    requestAnimationFrame(frameUpdate);
+                }
+            };
+            frameUpdate();
+        }
+    }
 };
 Property.prototype.debind = function(){
     if(this._currentBinding){
-        this.gaffa.gedi.debind.apply(null, this._currentBinding);
+        this.gaffa.gedi.debind.apply(this.gaffa.gedi, this._currentBinding);
         this._currentBinding = null;
     }
 
-    Bindable.prototype.debind.call(this);
     this._lastValue = null;
-};
-Property.prototype.destroy = function(){
-    if(this._bound){
-        this.debind();
-    }
-    Bindable.prototype.destroy.call(this);
 
-    var property = this;
-
-    // Let any children bound to 'destroy' do their thing before actually destroying this.
-    nextTick(function(){
-        property.gaffa = null;
-        property.parent = null;
-    });
+    Bindable.prototype.debind.call(this);
 };
 Property.prototype.__serialiseExclude__ = ['_lastValue'];
 
 module.exports = Property;
-},{"./bindable":"/home/kory/dev/gaffa-select/node_modules/gaffa/bindable.js","./createModelScope":"/home/kory/dev/gaffa-select/node_modules/gaffa/createModelScope.js","./jsonConverter":"/home/kory/dev/gaffa-select/node_modules/gaffa/jsonConverter.js","./resolvePath":"/home/kory/dev/gaffa-select/node_modules/gaffa/resolvePath.js","consuela":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/consuela/index.js","gel-js":"/home/kory/dev/gaffa-select/node_modules/gel-js/gel.js","merge":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/merge/merge.js","next-tick":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/next-tick/index.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js","what-changed":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/what-changed/index.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/raf.js":[function(require,module,exports){
+},{"./bindable":"/home/kory/dev/gaffa-select/node_modules/gaffa/bindable.js","./createModelScope":"/home/kory/dev/gaffa-select/node_modules/gaffa/createModelScope.js","./excludeProps":"/home/kory/dev/gaffa-select/node_modules/gaffa/excludeProps.js","./flatMerge":"/home/kory/dev/gaffa-select/node_modules/gaffa/flatMerge.js","./includeProps":"/home/kory/dev/gaffa-select/node_modules/gaffa/includeProps.js","./jsonConverter":"/home/kory/dev/gaffa-select/node_modules/gaffa/jsonConverter.js","./raf.js":"/home/kory/dev/gaffa-select/node_modules/gaffa/raf.js","./resolvePath":"/home/kory/dev/gaffa-select/node_modules/gaffa/resolvePath.js","gel-js":"/home/kory/dev/gaffa-select/node_modules/gel-js/gel.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js","what-changed":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/what-changed/index.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/raf.js":[function(require,module,exports){
 /*
  * raf.js
  * https://github.com/ngryman/raf.js
@@ -5629,6 +7852,61 @@ function removeViews(views){
 }
 
 module.exports = removeViews;
+},{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/requestInsersion.js":[function(require,module,exports){
+var insertionRequests,
+    insertionWindow = 1000/480; // Only insert for part of a frame, allow time for other opperations.
+
+var now = typeof performance !== 'undefined' ? performance.now.bind(performance): Date.now.bind(Date);
+
+function updateFrame() {
+    if(!insertionRequests){
+        return;
+    }
+
+    var insertionRequest = insertionRequests[insertionRequests.length-1],
+        startTime = now();
+
+    do{
+        if(!insertionRequests.length){
+            break;
+        }
+
+        if(!insertionRequest.opperations.length){
+            insertionRequests.pop();
+            insertionRequest = insertionRequests[insertionRequests.length-1];
+            continue;
+        }
+
+        var nextOpperation = insertionRequest.opperations.shift();
+        insertionRequest.viewContainer.add(nextOpperation[0], nextOpperation[1]);
+
+    } while((now() - startTime) < insertionWindow);
+
+    if(!insertionRequests.length){
+        insertionRequests = null;
+    }else{
+        requestAnimationFrame(updateFrame);
+    }
+}
+
+function requestInsersion(viewContainer, opperations){
+    var callUpdate;
+    if(!insertionRequests){
+        insertionRequests = [];
+        callUpdate = true;
+    }
+
+    insertionRequests.push({
+        viewContainer: viewContainer,
+        opperations: opperations
+    });
+
+    if(callUpdate){
+        requestAnimationFrame(updateFrame);
+    }
+};
+
+module.exports = requestInsersion;
 },{}],"/home/kory/dev/gaffa-select/node_modules/gaffa/resolvePath.js":[function(require,module,exports){
 module.exports = function resolvePath(viewItem){
     if(viewItem && viewItem.getPath){
@@ -5654,6 +7932,7 @@ var createSpec = require('spec-js'),
     Property = require('./property'),
     createModelScope = require('./createModelScope'),
     getClosestItem = require('./getClosestItem'),
+    Consuela = require('consuela'),
     Behaviour = require('./behaviour');
 
 function insertFunction(selector, renderedElement, insertIndex){
@@ -5663,9 +7942,13 @@ function insertFunction(selector, renderedElement, insertIndex){
     if(target && target.childNodes){
         referenceSibling = target.childNodes[insertIndex];
     }
-    if (referenceSibling){
+    if(referenceSibling){
+        if(referenceSibling === renderedElement){
+            // don't do anything, element is already in the correct location.
+            return;
+        }
         target.insertBefore(renderedElement, referenceSibling);
-    }  else {
+    }else{
         target.appendChild(renderedElement);
     }
 }
@@ -5704,47 +7987,80 @@ function View(viewDescription){
     var view = this;
 
     view.behaviours = view.behaviours || [];
+    this.consuela = new Consuela();
 }
 View = createSpec(View, ViewItem);
 
-View.prototype.bind = function(parent, scope){
-    ViewItem.prototype.bind.apply(this, arguments);
-
-    for(var key in this){
-        if(crel.isNode(this[key])){
-            this.consuela.watch(this[key]);
+function watchElements(view){
+    for(var key in view){
+        if(!view.hasOwnProperty(key)){
+            return;
+        }
+        if(crel.isElement(view[key])){
+            view.consuela.watch(view[key]);
         }
     }
+}
 
-    for(var key in this.actions){
-        var actions = this.actions[key],
+function bindViewEvents(view){
+    for(var key in view.actions){
+        var actions = view.actions[key],
             off;
 
-        if(actions.__bound){
+        if(actions._bound){
             continue;
         }
 
-        actions.__bound = true;
+        actions._bound = true;
 
-        bindViewEvent(this, key);
+        bindViewEvent(view, key);
     }
+}
 
-    this.triggerActions('load');
-
-    for(var i = 0; i < this.behaviours.length; i++){
-        Behaviour.prototype.bind.call(this.behaviours[i], this, scope);
-        if(this.behaviours[i].bind !== Behaviour.prototype.bind){
-            this.behaviours[i].bind(this, scope);
+function bindBehaviours(view, scope){
+    for(var i = 0; i < view.behaviours.length; i++){
+        Behaviour.prototype.bind.call(view.behaviours[i], view, scope);
+        if(view.behaviours[i].bind !== Behaviour.prototype.bind){
+            view.behaviours[i].bind(view, scope);
         }
     }
-};
+}
 
+View.prototype.bind = function(parent, scope){
+    var isRebind = this._rebind;
+    if(isRebind){
+        this.debind();
+    }
+    ViewItem.prototype.bind.apply(this, arguments);
+    watchElements(this);
+    bindViewEvents(this);
+    if(!isRebind){
+        this.triggerActions('load');
+
+        var view = this,
+            onDetach = this.detach.bind(this);
+
+        parent.once('detach', onDetach);
+        this.once('destroy', function(){
+            view.parent.removeListener('detach', onDetach);
+        });
+    }
+    bindBehaviours(this, scope);
+};
+View.prototype.rebind = function(parent, scope){
+    parent = parent || this.parent;
+    scope = scope || this.scope;
+    this._rebind = true;
+    this.bind(parent, scope);
+    this._rebind = null;
+};
 View.prototype.detach = function(){
     this.renderedElement && this.renderedElement.parentNode && this.renderedElement.parentNode.removeChild(this.renderedElement);
 };
 
 View.prototype.remove = function(){
     this.detach();
+    this.emit('detach');
     ViewItem.prototype.remove.call(this);
 }
 
@@ -5754,16 +8070,22 @@ View.prototype.debind = function () {
     }
     this.triggerActions('unload');
 
+    this.consuela.cleanup();
+
     for(var key in this.actions){
-        this.actions[key].__bound = false;
+        this.actions[key]._bound = false;
     }
-    this.renderedElement.viewModel = null;
+    ViewItem.prototype.debind.call(this);
+};
+
+View.prototype.destroy = function() {
+    ViewItem.prototype.destroy.call(this);
+
     for(var key in this){
-        if(crel.isNode(this[key])){
+        if(crel.isElement(this[key])){
             this[key] = null;
         }
     }
-    ViewItem.prototype.debind.call(this);
 };
 
 View.prototype.render = function(){};
@@ -5776,10 +8098,6 @@ function insert(view, viewContainer, insertIndex){
         laidout(view.renderedElement, function(){
             view.afterInsert();
         });
-    }
-
-    if(viewContainer.indexOf(view) !== insertIndex){
-        viewContainer.splice(insertIndex, 1, view);
     }
 
     view.insertFunction(view.insertSelector || renderTarget, view.renderedElement, insertIndex);
@@ -5827,13 +8145,13 @@ View.prototype.title = new Title();
 View.prototype.insertFunction = insertFunction;
 
 module.exports = View;
-},{"./behaviour":"/home/kory/dev/gaffa-select/node_modules/gaffa/behaviour.js","./createModelScope":"/home/kory/dev/gaffa-select/node_modules/gaffa/createModelScope.js","./getClosestItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/getClosestItem.js","./property":"/home/kory/dev/gaffa-select/node_modules/gaffa/property.js","./viewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewItem.js","crel":"/home/kory/dev/gaffa-select/node_modules/crel/crel.js","doc-js":"/home/kory/dev/gaffa-select/node_modules/doc-js/fluent.js","laidout":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/laidout/index.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/viewContainer.js":[function(require,module,exports){
+},{"./behaviour":"/home/kory/dev/gaffa-select/node_modules/gaffa/behaviour.js","./createModelScope":"/home/kory/dev/gaffa-select/node_modules/gaffa/createModelScope.js","./getClosestItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/getClosestItem.js","./property":"/home/kory/dev/gaffa-select/node_modules/gaffa/property.js","./viewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewItem.js","consuela":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/consuela/index.js","crel":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/crel/crel.js","doc-js":"/home/kory/dev/gaffa-select/node_modules/doc-js/fluent.js","laidout":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/laidout/index.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/viewContainer.js":[function(require,module,exports){
 var createSpec = require('spec-js'),
     Bindable = require('./bindable'),
     View = require('./view'),
     initialiseViewItem = require('./initialiseViewItem'),
-    Consuela = require('consuela'),
     removeViews = require('./removeViews'),
+    requestInsersion = require('./requestInsersion'),
     arrayProto = Array.prototype;
 
 function ViewContainer(viewContainerDescription){
@@ -5851,26 +8169,15 @@ for(var key in Bindable.prototype){
     ViewContainer.prototype[key] = Bindable.prototype[key];
 }
 ViewContainer.prototype.constructor = ViewContainer;
+ViewContainer.prototype._render = true;
 ViewContainer.prototype.bind = function(parent){
-    Bindable.prototype.bind.call(this);
-
-    this.parent = parent;
-    this.gaffa = parent.gaffa;
-
-    parent.once('debind', this.debind.bind(this));
-    parent.once('destroy', this.destroy.bind(this));
+    Bindable.prototype.bind.apply(this, arguments);
 
     for(var i = 0; i < this.length; i++){
         this.add(this[i], i);
     }
 
     return this;
-};
-ViewContainer.prototype.debind = function(){
-    for (var i = 0; i < this.length; i++) {
-        this[i].detach();
-    }
-    Bindable.prototype.debind.call(this);
 };
 ViewContainer.prototype.getPath = function(){
     return getItemPath(this);
@@ -5893,31 +8200,33 @@ ViewContainer.prototype.add = function(view, insertIndex){
         return this;
     }
 
-    // Is already in the tree somewhere? remove it.
-    if(view.parentContainer instanceof ViewContainer){
-        view.parentContainer.splice(view.parentContainer.indexOf(view),1);
-    }
+    if(view.parentContainer !== this || this.indexOf(view) !== insertIndex){
+        if(view.parentContainer instanceof ViewContainer){
+            view.parentContainer.splice(view.parentContainer.indexOf(view),1);
+        }
 
-    this.splice(insertIndex >= 0 ? insertIndex : this.length,0,view);
+        this.splice(insertIndex >= 0 ? insertIndex : this.length,0,view);
+    }
 
     view.parentContainer = this;
 
-    if(this._bound){
-        if(view._bound){
-            view.debind();
-        }
+    if(this._bound && this._render){
         if(!(view instanceof View)){
-            view = this[this.indexOf(view)] = initialiseViewItem(view, this.gaffa, this.gaffa.views._constructors);
+            view = this[this.indexOf(view)] = this.gaffa.initialiseView(view);
         }
-        view.gaffa = this.gaffa;
+        if(!view._bound){
 
-        this.gaffa.namedViews[view.name] = view;
+            view.gaffa = this.parent.gaffa;
 
-        if(!view.renderedElement){
-            view.render();
-            view.renderedElement.viewModel = view;
+            if(!view.renderedElement){
+                view.render();
+                view.renderedElement.__iuid = view.__iuid;
+                if(view.gaffa.debug && !(view.gaffa.browser.msie && view.gaffa.browser.version <9)){
+                    view.renderedElement.viewModel = view;
+                }
+            }
+            view.bind(this.parent, this.parent.scope);
         }
-        view.bind(this.parent, this.parent.scope);
         view.insert(this, insertIndex);
     }
 
@@ -5925,45 +8234,37 @@ ViewContainer.prototype.add = function(view, insertIndex){
 };
 
 /*
-    adds 5 (5 is arbitrary) views at a time to the target viewContainer,
-    then queues up another add.
-*/
-function executeDeferredAdd(viewContainer){
-    var currentOpperation = viewContainer._deferredViews.splice(0,5);
-
-    if(!currentOpperation.length){
-        return;
-    }
-
-    for (var i = 0; i < currentOpperation.length; i++) {
-        viewContainer.add(currentOpperation[i][0], currentOpperation[i][1]);
-    };
-    requestAnimationFrame(function(time){
-        executeDeferredAdd(viewContainer);
-    });
-}
-
-/*
-    Adds children to the view container over time, via RAF.
-    Will only begin the render cycle if there are no _deferredViews,
-    because if _deferredViews.length is > 0, the render loop will
-    already be going.
+    Adds children to the view container over time.
 */
 ViewContainer.prototype.deferredAdd = function(view, insertIndex){
-    var viewContainer = this,
-        shouldStart = !this._deferredViews.length;
-
     this._deferredViews.push([view, insertIndex]);
-
-    if(shouldStart){
-        requestAnimationFrame(function(){
-            executeDeferredAdd(viewContainer);
-        });
-    }
+    requestInsersion(this, this._deferredViews);
 };
 
 ViewContainer.prototype.abortDeferredAdd = function(){
-    this._deferredViews = [];
+    while(this._deferredViews.length){
+        var view = this._deferredViews.pop()[0];
+        if(view instanceof View && !view._bound){
+            view.destroy();
+        }
+    }
+};
+ViewContainer.prototype.render = function(){
+    this._render = true;
+    for(var i = 0; i < this.length; i++){
+        this.deferredAdd(this[i], i);
+    }
+};
+ViewContainer.prototype.derender = function(){
+    this._render = false;
+    for(var i = 0; i < this.length; i++){
+        var childView = this[i];
+
+        if(childView._bound){
+            childView.detach();
+            childView.debind();
+        }
+    }
 };
 ViewContainer.prototype.remove = function(view){
     view.remove();
@@ -5974,13 +8275,12 @@ ViewContainer.prototype.empty = function(){
 ViewContainer.prototype.__serialiseExclude__ = ['element'];
 
 module.exports = ViewContainer;
-},{"./bindable":"/home/kory/dev/gaffa-select/node_modules/gaffa/bindable.js","./initialiseViewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseViewItem.js","./removeViews":"/home/kory/dev/gaffa-select/node_modules/gaffa/removeViews.js","./view":"/home/kory/dev/gaffa-select/node_modules/gaffa/view.js","consuela":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/consuela/index.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/viewItem.js":[function(require,module,exports){
+},{"./bindable":"/home/kory/dev/gaffa-select/node_modules/gaffa/bindable.js","./initialiseViewItem":"/home/kory/dev/gaffa-select/node_modules/gaffa/initialiseViewItem.js","./removeViews":"/home/kory/dev/gaffa-select/node_modules/gaffa/removeViews.js","./requestInsersion":"/home/kory/dev/gaffa-select/node_modules/gaffa/requestInsersion.js","./view":"/home/kory/dev/gaffa-select/node_modules/gaffa/view.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gaffa/viewItem.js":[function(require,module,exports){
 var createSpec = require('spec-js'),
     Bindable = require('./bindable'),
     jsonConverter = require('./jsonConverter'),
     Property = require('./property'),
-    merge = require('merge'),
-    nextTick = require('next-tick');
+    merge = require('./flatMerge');
 
 function copyProperties(source, target){
     if(
@@ -6033,7 +8333,7 @@ function inflateViewItem(viewItem, description){
                 // actions to trigger when a 'click' event is raised by the views renderedElement
             ];
     */
-    viewItem.actions = viewItem.actions ? clone(viewItem.actions) : {};
+    viewItem.actions = merge(viewItem.actions);
 
     for(var key in description){
         var prop = viewItem[key];
@@ -6086,28 +8386,22 @@ ViewItem = createSpec(ViewItem, Bindable);
     */
 ViewItem.prototype.path = '[]';
 ViewItem.prototype.bind = function(parent, scope){
-    Bindable.prototype.bind.call(this);
 
-    var viewItem = this,
-        property;
+    var viewItem = this;
 
-    if(parent){
-        parent.once('debind', this.debind.bind(this));
-        parent.once('destroy', this.destroy.bind(this));
+    this.scope = merge(scope, this.scope);
+
+    Bindable.prototype.bind.apply(this, arguments);
+
+    for(var key in this.scopeBindings){
+        this.scope[key] = this.gaffa.model.get(this.scopeBindings[key], this, this.scope);
     }
-
-
-    this.parent = parent;
-    this.scope = merge(false, scope, this.scope);
-    this.gaffa = parent && parent.gaffa || this.gaffa;
-
 
     // Only set up properties that were on the prototype.
     // Faster and 'safer'
     for(var propertyKey in this.constructor.prototype){
-        property = this[propertyKey];
-        if(property instanceof Property){
-            property.bind(this, this.scope);
+        if(this[propertyKey] instanceof Property){
+            this[propertyKey].bind(this, this.scope);
         }
     }
 
@@ -6128,29 +8422,22 @@ ViewItem.prototype.remove = function(){
 
     this.destroy();
 };
-ViewItem.prototype.destroy = function(){
-    Bindable.prototype.destroy.call(this);
-
-    var viewItem = this;
-
-    // Let any children bound to 'destroy' do their thing before actually destroying this.
-    nextTick(function(){
-        viewItem.gaffa = null;
-    });
-};
 ViewItem.prototype.triggerActions = function(actionName, scope, event){
-    if(!this.gaffa){
+    if(!this._bound){
         return;
     }
-    scope = merge(false, this.scope, scope);
+    if(!this.actions[actionName] || !this.actions[actionName].length){
+        return;
+    }
+    scope = merge(this.scope, scope);
     this.gaffa.actions.trigger(this.actions[actionName], this, scope, event);
 };
 
 module.exports = ViewItem;
-},{"./bindable":"/home/kory/dev/gaffa-select/node_modules/gaffa/bindable.js","./jsonConverter":"/home/kory/dev/gaffa-select/node_modules/gaffa/jsonConverter.js","./property":"/home/kory/dev/gaffa-select/node_modules/gaffa/property.js","./viewContainer":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewContainer.js","merge":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/merge/merge.js","next-tick":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/next-tick/index.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gel-js/gel.js":[function(require,module,exports){
+},{"./bindable":"/home/kory/dev/gaffa-select/node_modules/gaffa/bindable.js","./flatMerge":"/home/kory/dev/gaffa-select/node_modules/gaffa/flatMerge.js","./jsonConverter":"/home/kory/dev/gaffa-select/node_modules/gaffa/jsonConverter.js","./property":"/home/kory/dev/gaffa-select/node_modules/gaffa/property.js","./viewContainer":"/home/kory/dev/gaffa-select/node_modules/gaffa/viewContainer.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gaffa/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gel-js/gel.js":[function(require,module,exports){
 var Lang = require('lang-js'),
     paths = require('gedi-paths'),
-    merge = require('merge'),
+    merge = require('clean-merge'),
     createNestingParser = Lang.createNestingParser,
     detectString = Lang.detectString,
     Token = Lang.Token,
@@ -6222,6 +8509,7 @@ StringToken.tokenPrecedence = 2;
 StringToken.prototype.parsePrecedence = 2;
 StringToken.prototype.stringTerminal = '"';
 StringToken.prototype.name = 'StringToken';
+StringToken.prototype.static = true;
 StringToken.tokenise = function (substring) {
     if (substring.charAt(0) === this.prototype.stringTerminal) {
         var index = 0,
@@ -6267,7 +8555,37 @@ ParenthesesToken.tokenise = function(substring) {
         return new ParenthesesToken(substring.charAt(0), 1);
     }
 }
-ParenthesesToken.prototype.parse = createNestingParser(ParenthesesEndToken);
+var parenthesisParser = createNestingParser(ParenthesesEndToken);
+ParenthesesToken.prototype.parse = function(tokens, index, parse){
+    parenthesisParser.apply(this, arguments);
+
+    this.hasFill = this.childTokens._hasFill;
+    this.partials = this.childTokens._partials;
+};
+
+function executeFunction(parenthesesToken, scope, fn){
+    var outerArgs = parenthesesToken.childTokens.slice(1);
+
+    if(parenthesesToken.partials || parenthesesToken.hasFill){
+        parenthesesToken.result = function(scope, args){
+            scope._innerArgs = args;
+
+            var appliedArgs = [];
+
+            for(var i = 0; i < outerArgs.length; i++){
+                if(outerArgs[i] instanceof FillToken){
+                    appliedArgs.push.apply(appliedArgs, args.sliceRaw(parenthesesToken.partials));
+                }else{
+                    appliedArgs.push(outerArgs[i]);
+                }
+            }
+
+            return scope.callWith(fn, appliedArgs, parenthesesToken);
+        };
+        return;
+    }
+    parenthesesToken.result = scope.callWith(fn, parenthesesToken.childTokens.slice(1), parenthesesToken);
+}
 ParenthesesToken.prototype.evaluate = function(scope){
     scope = new Scope(scope);
 
@@ -6283,7 +8601,7 @@ ParenthesesToken.prototype.evaluate = function(scope){
         throw functionToken.original + " (" + functionToken.result + ")" + " is not a function";
     }
 
-    this.result = scope.callWith(functionToken.result, this.childTokens.slice(1), this);
+    executeFunction(this, scope, functionToken.result);
 };
 
 function ParenthesesEndToken(){}
@@ -6522,6 +8840,46 @@ CommaToken.prototype.evaluate = function(scope){
     this.sourcePathInfo.subPaths.push(rightPath);
 };
 
+function PartialToken(){}
+PartialToken = createSpec(PartialToken, Token);
+PartialToken.prototype.name = 'PartialToken';
+PartialToken.tokenPrecedence = 1;
+PartialToken.prototype.parsePrecedence = 4;
+PartialToken.tokenise = function(substring){
+    var characterConst = "_";
+    return (substring.charAt(0) === characterConst) ? new PartialToken(characterConst, 1) : undefined;
+};
+PartialToken.prototype.parse = function(tokens){
+    if(tokens._hasFill){
+        throw "Partial tokens may only appear before a Fill token";
+    }
+    tokens._partials = tokens._partials || 0;
+    this._partialIndex = tokens._partials;
+    tokens._partials++;
+};
+PartialToken.prototype.evaluate = function(scope){
+    this.result = scope._innerArgs.get(this._partialIndex);
+};
+
+function FillToken(){}
+FillToken = createSpec(FillToken, Token);
+FillToken.prototype.name = 'FillToken';
+FillToken.tokenPrecedence = 1;
+FillToken.prototype.parsePrecedence = 4;
+FillToken.tokenise = function(substring){
+    var charactersConst = "...";
+    return (substring.slice(0,3) === charactersConst) ? new FillToken(charactersConst, 3) : undefined;
+};
+FillToken.prototype.parse = function(tokens){
+    if(tokens._hasFill){
+        throw "A function call may only have one fill token"
+    };
+    tokens._hasFill = true;
+};
+FillToken.prototype.evaluate = function(){
+    this.result = scope._innerArgs.rest();
+};
+
 function PipeToken(){}
 PipeToken = createSpec(PipeToken, Token);
 PipeToken.prototype.name = 'PipeToken';
@@ -6536,8 +8894,6 @@ PipeToken.prototype.parse = function(tokens, position){
     this.functionToken = tokens.splice(position,1)[0];
 };
 PipeToken.prototype.evaluate = function(scope){
-    scope = new Scope(scope);
-
     if(!this.functionToken){
         throw "Invalid function call. No function was provided to execute.";
     }
@@ -6565,8 +8921,6 @@ PipeApplyToken.prototype.parse = function(tokens, position){
     this.functionToken = tokens.splice(position,1)[0];
 };
 PipeApplyToken.prototype.evaluate = function(scope){
-    scope = new Scope(scope);
-
     if(!this.functionToken){
         throw "Invalid function call. No function was provided to execute.";
     }
@@ -6580,6 +8934,11 @@ PipeApplyToken.prototype.evaluate = function(scope){
 
     if(typeof this.functionToken.result !== 'function'){
         throw this.functionToken.original + " (" + this.functionToken.result + ")" + " is not a function";
+    }
+
+    if(!Array.isArray(this.argumentsToken.result)){
+        this.result = null;
+        return;
     }
 
     this.result = scope.callWith(this.functionToken.result, this.argumentsToken.result, this);
@@ -6731,10 +9090,11 @@ SourcePathInfo.prototype.drillTo = function(key){
 function addFilterResult(filteredItems, item, key, sourcePathInfo, isArray){
     if(isArray){
         filteredItems.push(item);
+        sourcePathInfo.pushSubPath(key);
     }else{
         filteredItems[key] = item;
+        sourcePathInfo.setSubPath(key, key);
     }
-    sourcePathInfo.pushSubPath(key);
 }
 
 function gelFilter(scope, args) {
@@ -6795,6 +9155,8 @@ var tokenConverters = [
         IdentifierToken,
         CommaToken,
         PeriodToken,
+        PartialToken,
+        FillToken,
         PipeToken,
         PipeApplyToken,
         BraceToken,
@@ -6930,14 +9292,19 @@ var tokenConverters = [
             return nextArg;
         },
         "&&":function(scope, args){
-            var nextArg;
+            var nextArg,
+                rawResult,
+                argIndex = -1;
+
             while(args.hasNext()){
+                argIndex++;
                 nextArg = args.next();
                 if(!nextArg){
                     break;
                 }
             }
-            var rawResult = args.getRaw(args.length-1);
+
+            rawResult = args.getRaw(argIndex);
             args.callee.sourcePathInfo = rawResult && rawResult.sourcePathInfo;
             return nextArg;
         },
@@ -7404,6 +9771,7 @@ var tokenConverters = [
             var source = args.next(),
                 sourcePathInfo = new SourcePathInfo(args.getRaw(0), source, true),
                 isArray = Array.isArray(source),
+                isObject = typeof source === 'object' && source !== null,
                 result = isArray ? [] : {},
                 functionToken = args.next();
 
@@ -7417,7 +9785,7 @@ var tokenConverters = [
                         sourcePathInfo.subPaths[index] = callee.sourcePathInfo.path;
                     }
                 });
-            }else{
+            }else if(isObject){
                 for(var key in source){
                     var callee = {};
                     result[key] = scope.callWith(functionToken, [
@@ -7427,6 +9795,8 @@ var tokenConverters = [
                         sourcePathInfo.subPaths[key] = callee.sourcePathInfo.path;
                     }
                 }
+            }else{
+                return null;
             }
 
             args.callee.sourcePathInfo = sourcePathInfo;
@@ -7436,10 +9806,11 @@ var tokenConverters = [
         "fold": function(scope, args){
             var fn = args.get(2),
                 seedToken = args.getRaw(1, true),
-                seed = seedToken.result,
+                seed = args.get(1),
                 sourceToken = args.getRaw(0, true),
-                source = sourceToken.result,
+                source = args.get(0),
                 result = seed;
+
 
             var sourcePathInfo = new SourcePathInfo(sourceToken, source, true);
             sourcePathInfo.mapSubPaths(source);
@@ -7609,7 +9980,57 @@ for (var i = 0; i < tokenConverters.length; i++) {
 Gel.Token = Token;
 Gel.Scope = Scope;
 module.exports = Gel;
-},{"gedi-paths":"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/gedi-paths/paths.js","lang-js":"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/lang-js/lang.js","merge":"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/merge/merge.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/gedi-paths/detectPath.js":[function(require,module,exports){
+},{"clean-merge":"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/clean-merge/index.js","gedi-paths":"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/gedi-paths/paths.js","lang-js":"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/lang-js/lang.js","spec-js":"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/spec-js/spec.js"}],"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/clean-merge/index.js":[function(require,module,exports){
+function isValueLike(value){
+    return value == null || typeof value !== 'object' || value instanceof Date;
+}
+
+function valueClone(value){
+    return value instanceof Date ? new Date(value) : value;
+}
+
+function cleanMerge(target, source){
+
+    var isClone = arguments.length === 1;
+
+    if(isClone){
+        if(isValueLike(target)){
+            return valueClone(target);
+        }
+    }else{
+        if(isValueLike(target)){
+            return cleanMerge(source);
+        }
+        if(isValueLike(source)){
+            return valueClone(source);
+        }
+    }
+
+    var result = Array.isArray(target) ? [] : {},
+        keys = Object.keys(target).concat(source && typeof source === 'object' ? Object.keys(source) : []);
+
+    for(var i = 0; i < keys.length; i++){
+        var key = keys[i];
+
+        if(!(key in target)){
+            result[key] = cleanMerge(source[key]);
+            continue;
+        }
+
+        if(isClone || !(key in source)){
+            result[key] = cleanMerge(target[key]);
+            continue;
+        }
+
+        result[key] = cleanMerge(target[key], source[key]);
+    }
+
+
+    return result;
+}
+
+module.exports = cleanMerge;
+},{}],"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/gedi-paths/detectPath.js":[function(require,module,exports){
 module.exports = function detectPath(substring){
     if (substring.charAt(0) === '[') {
         var index = 1;
@@ -7660,7 +10081,10 @@ function resolvePath() {
         pathParts = [];
 
     for(var argumentIndex = arguments.length; argumentIndex--;){
-        pathParts.unshift.apply(pathParts, pathToParts(arguments[argumentIndex]));
+        var parts = pathToParts(arguments[argumentIndex]);
+        if(parts){
+            pathParts.unshift.apply(pathParts, parts);
+        }
         if(isPathAbsolute(arguments[argumentIndex])){
             break;
         }
@@ -7849,10 +10273,7 @@ function isPath(path) {
     if(!(typeof path === 'string' || (path instanceof String))){
         return;
     }
-    var match = path.match(/\[.*?(?:\\\])*(?:\\\[)*\]/g);
-    if(match && match.length === 1 && match[0] === path){
-        return true;
-    }
+    return !!path.match(/^\[(?:[^\[\]]|\\.)*\]$/);
 }
 
 function isPathAbsolute(path){
@@ -7985,13 +10406,50 @@ function callWith(fn, fnArguments, calledToken){
                 return fnArguments[argIndex++];
             },
             all: function(){
+                var allArgs = fnArguments.slice();
+                for(var i = 0; i < allArgs.length; i++){
+                    if(allArgs[i] instanceof Token){
+                        allArgs[i].evaluate(scope)
+                        allArgs[i] = allArgs[i].result;
+                    }
+                }
+                return allArgs;
+            },
+            rest: function(){
                 var allArgs = [];
                 while(this.hasNext()){
                     allArgs.push(this.next());
                 }
                 return allArgs;
+            },
+            restRaw: function(evaluated){
+                var rawArgs = fnArguments.slice();
+                if(evaluated){
+                    for(var i = argIndex; i < rawArgs.length; i++){
+                        if(rawArgs[i] instanceof Token){
+                            rawArgs[i].evaluate(scope);
+                        }
+                    }
+                }
+                return rawArgs;
+            },
+            slice: function(start, end){
+                return this.all().slice(start, end);
+            },
+            sliceRaw: function(start, end, evaluated){
+                var rawArgs = fnArguments.slice(start, end);
+                if(evaluated){
+                    fastEach(rawArgs, function(arg){
+                        if(arg instanceof Token){
+                            arg.evaluate(scope);
+                        }
+                    });
+                }
+                return rawArgs;
             }
         };
+
+    scope._args = args;
 
     return fn(scope, args);
 }
@@ -8275,98 +10733,7 @@ Token.prototype.valueOf = function(){
 }
 
 module.exports = Token;
-},{}],"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/merge/merge.js":[function(require,module,exports){
-/*!
- * @name JavaScript/NodeJS Merge v1.1.3
- * @author yeikos
- * @repository https://github.com/yeikos/js.merge
-
- * Copyright 2014 yeikos - MIT license
- * https://raw.github.com/yeikos/js.merge/master/LICENSE
- */
-
-;(function(isNode) {
-
-	function merge() {
-
-		var items = Array.prototype.slice.call(arguments),
-			result = items.shift(),
-			deep = (result === true),
-			size = items.length,
-			item, index, key;
-
-		if (deep || typeOf(result) !== 'object')
-
-			result = {};
-
-		for (index=0;index<size;++index)
-
-			if (typeOf(item = items[index]) === 'object')
-
-				for (key in item)
-
-					result[key] = deep ? clone(item[key]) : item[key];
-
-		return result;
-
-	}
-
-	function clone(input) {
-
-		var output = input,
-			type = typeOf(input),
-			index, size;
-
-		if (type === 'array') {
-
-			output = [];
-			size = input.length;
-
-			for (index=0;index<size;++index)
-
-				output[index] = clone(input[index]);
-
-		} else if (type === 'object') {
-
-			output = {};
-
-			for (index in input)
-
-				output[index] = clone(input[index]);
-
-		}
-
-		return output;
-
-	}
-
-	function typeOf(input) {
-
-		return ({}).toString.call(input).match(/\s([\w]+)/)[1].toLowerCase();
-
-	}
-
-	if (isNode) {
-
-		module.exports = merge;
-
-	} else {
-
-		window.merge = merge;
-
-	}
-
-})(typeof module === 'object' && module && typeof module.exports === 'object' && module.exports);
 },{}],"/home/kory/dev/gaffa-select/node_modules/gel-js/node_modules/spec-js/spec.js":[function(require,module,exports){
-Object.create = Object.create || function (o) {
-    if (arguments.length > 1) {
-        throw new Error('Object.create implementation only accepts the first parameter.');
-    }
-    function F() {}
-    F.prototype = o;
-    return new F();
-};
-
 function createSpec(child, parent){
     var parentPrototype;
 
@@ -8567,7 +10934,9 @@ Select.prototype.render = function(){
             }
         }
 
-        data = option && option.data || undefined;
+        if('data' in option){
+            data = option.data;
+        }
 
         view.value.set(data);
     });
@@ -8665,9 +11034,11 @@ var Gaffa = require('gaffa'),
 gaffa.registerConstructor(Select);
 gaffa.registerConstructor(Text);
 
-// create a button to test with
 var text = new Text();
 text.text.binding = '(join " " "Current value of [value]:" [value])';
+
+var text2 = new Text();
+text2.text.binding = '(join " " "Current value of [value2]:" [value2])';
 
 var select1 = new Select();
 select1.value.binding = '[value]';
@@ -8704,6 +11075,12 @@ select7.value.binding = '[value]';
 select7.options.binding = '[options]';
 select7.validity.binding = '(? [value] null "custom required")';
 
+var select8 = new Select();
+select8.value.binding = '[value2]';
+select8.options.binding = '{"label":"True" "value":true},{"label":"False" "value":false}';
+select8.options.textBinding = 'option.label';
+select8.options.valueBinding = 'option.value';
+
 // An example model
 gaffa.model.set({
     value:'',
@@ -8732,7 +11109,9 @@ window.onload = function(){
         select4,
         select5,
         select6,
-        select7
+        select7,
+        text2,
+        select8
     ]);
 };
 
@@ -8748,14 +11127,17 @@ window.gaffa = gaffa;
 
 var base64 = require('base64-js')
 var ieee754 = require('ieee754')
+var isArray = require('is-array')
 
 exports.Buffer = Buffer
 exports.SlowBuffer = Buffer
 exports.INSPECT_MAX_BYTES = 50
-Buffer.poolSize = 8192
+Buffer.poolSize = 8192 // not used by this implementation
+
+var kMaxLength = 0x3fffffff
 
 /**
- * If `TYPED_ARRAY_SUPPORT`:
+ * If `Buffer.TYPED_ARRAY_SUPPORT`:
  *   === true    Use Uint8Array implementation (fastest)
  *   === false   Use Object implementation (most compatible, even IE6)
  *
@@ -8773,10 +11155,10 @@ Buffer.poolSize = 8192
  *  - IE10 has a broken `TypedArray.prototype.subarray` function which returns arrays of
  *    incorrect length in some situations.
  *
- * We detect these buggy browsers and set `TYPED_ARRAY_SUPPORT` to `false` so they will
+ * We detect these buggy browsers and set `Buffer.TYPED_ARRAY_SUPPORT` to `false` so they will
  * get the Object implementation, which is slower but will work correctly.
  */
-var TYPED_ARRAY_SUPPORT = (function () {
+Buffer.TYPED_ARRAY_SUPPORT = (function () {
   try {
     var buf = new ArrayBuffer(0)
     var arr = new Uint8Array(buf)
@@ -8820,10 +11202,14 @@ function Buffer (subject, encoding, noZero) {
       subject = subject.data
     length = +subject.length > 0 ? Math.floor(+subject.length) : 0
   } else
-    throw new Error('First argument needs to be a number, array or string.')
+    throw new TypeError('must start with number, buffer, array or string')
+
+  if (this.length > kMaxLength)
+    throw new RangeError('Attempt to allocate Buffer larger than maximum ' +
+      'size: 0x' + kMaxLength.toString(16) + ' bytes')
 
   var buf
-  if (TYPED_ARRAY_SUPPORT) {
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
     // Preferred: Return an augmented `Uint8Array` instance for best performance
     buf = Buffer._augment(new Uint8Array(length))
   } else {
@@ -8834,7 +11220,7 @@ function Buffer (subject, encoding, noZero) {
   }
 
   var i
-  if (TYPED_ARRAY_SUPPORT && typeof subject.byteLength === 'number') {
+  if (Buffer.TYPED_ARRAY_SUPPORT && typeof subject.byteLength === 'number') {
     // Speed optimization -- use set if we're copying from a typed array
     buf._set(subject)
   } else if (isArrayish(subject)) {
@@ -8848,7 +11234,7 @@ function Buffer (subject, encoding, noZero) {
     }
   } else if (type === 'string') {
     buf.write(subject, 0, encoding)
-  } else if (type === 'number' && !TYPED_ARRAY_SUPPORT && !noZero) {
+  } else if (type === 'number' && !Buffer.TYPED_ARRAY_SUPPORT && !noZero) {
     for (i = 0; i < length; i++) {
       buf[i] = 0
     }
@@ -8857,8 +11243,25 @@ function Buffer (subject, encoding, noZero) {
   return buf
 }
 
-// STATIC METHODS
-// ==============
+Buffer.isBuffer = function (b) {
+  return !!(b != null && b._isBuffer)
+}
+
+Buffer.compare = function (a, b) {
+  if (!Buffer.isBuffer(a) || !Buffer.isBuffer(b))
+    throw new TypeError('Arguments must be Buffers')
+
+  var x = a.length
+  var y = b.length
+  for (var i = 0, len = Math.min(x, y); i < len && a[i] === b[i]; i++) {}
+  if (i !== len) {
+    x = a[i]
+    y = b[i]
+  }
+  if (x < y) return -1
+  if (y < x) return 1
+  return 0
+}
 
 Buffer.isEncoding = function (encoding) {
   switch (String(encoding).toLowerCase()) {
@@ -8879,43 +11282,8 @@ Buffer.isEncoding = function (encoding) {
   }
 }
 
-Buffer.isBuffer = function (b) {
-  return !!(b != null && b._isBuffer)
-}
-
-Buffer.byteLength = function (str, encoding) {
-  var ret
-  str = str.toString()
-  switch (encoding || 'utf8') {
-    case 'hex':
-      ret = str.length / 2
-      break
-    case 'utf8':
-    case 'utf-8':
-      ret = utf8ToBytes(str).length
-      break
-    case 'ascii':
-    case 'binary':
-    case 'raw':
-      ret = str.length
-      break
-    case 'base64':
-      ret = base64ToBytes(str).length
-      break
-    case 'ucs2':
-    case 'ucs-2':
-    case 'utf16le':
-    case 'utf-16le':
-      ret = str.length * 2
-      break
-    default:
-      throw new Error('Unknown encoding')
-  }
-  return ret
-}
-
 Buffer.concat = function (list, totalLength) {
-  assert(isArray(list), 'Usage: Buffer.concat(list[, length])')
+  if (!isArray(list)) throw new TypeError('Usage: Buffer.concat(list[, length])')
 
   if (list.length === 0) {
     return new Buffer(0)
@@ -8941,26 +11309,118 @@ Buffer.concat = function (list, totalLength) {
   return buf
 }
 
-Buffer.compare = function (a, b) {
-  assert(Buffer.isBuffer(a) && Buffer.isBuffer(b), 'Arguments must be Buffers')
-  var x = a.length
-  var y = b.length
-  for (var i = 0, len = Math.min(x, y); i < len && a[i] === b[i]; i++) {}
-  if (i !== len) {
-    x = a[i]
-    y = b[i]
+Buffer.byteLength = function (str, encoding) {
+  var ret
+  str = str + ''
+  switch (encoding || 'utf8') {
+    case 'ascii':
+    case 'binary':
+    case 'raw':
+      ret = str.length
+      break
+    case 'ucs2':
+    case 'ucs-2':
+    case 'utf16le':
+    case 'utf-16le':
+      ret = str.length * 2
+      break
+    case 'hex':
+      ret = str.length >>> 1
+      break
+    case 'utf8':
+    case 'utf-8':
+      ret = utf8ToBytes(str).length
+      break
+    case 'base64':
+      ret = base64ToBytes(str).length
+      break
+    default:
+      ret = str.length
   }
-  if (x < y) {
-    return -1
-  }
-  if (y < x) {
-    return 1
-  }
-  return 0
+  return ret
 }
 
-// BUFFER INSTANCE METHODS
-// =======================
+// pre-set for values that may exist in the future
+Buffer.prototype.length = undefined
+Buffer.prototype.parent = undefined
+
+// toString(encoding, start=0, end=buffer.length)
+Buffer.prototype.toString = function (encoding, start, end) {
+  var loweredCase = false
+
+  start = start >>> 0
+  end = end === undefined || end === Infinity ? this.length : end >>> 0
+
+  if (!encoding) encoding = 'utf8'
+  if (start < 0) start = 0
+  if (end > this.length) end = this.length
+  if (end <= start) return ''
+
+  while (true) {
+    switch (encoding) {
+      case 'hex':
+        return hexSlice(this, start, end)
+
+      case 'utf8':
+      case 'utf-8':
+        return utf8Slice(this, start, end)
+
+      case 'ascii':
+        return asciiSlice(this, start, end)
+
+      case 'binary':
+        return binarySlice(this, start, end)
+
+      case 'base64':
+        return base64Slice(this, start, end)
+
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return utf16leSlice(this, start, end)
+
+      default:
+        if (loweredCase)
+          throw new TypeError('Unknown encoding: ' + encoding)
+        encoding = (encoding + '').toLowerCase()
+        loweredCase = true
+    }
+  }
+}
+
+Buffer.prototype.equals = function (b) {
+  if(!Buffer.isBuffer(b)) throw new TypeError('Argument must be a Buffer')
+  return Buffer.compare(this, b) === 0
+}
+
+Buffer.prototype.inspect = function () {
+  var str = ''
+  var max = exports.INSPECT_MAX_BYTES
+  if (this.length > 0) {
+    str = this.toString('hex', 0, max).match(/.{2}/g).join(' ')
+    if (this.length > max)
+      str += ' ... '
+  }
+  return '<Buffer ' + str + '>'
+}
+
+Buffer.prototype.compare = function (b) {
+  if (!Buffer.isBuffer(b)) throw new TypeError('Argument must be a Buffer')
+  return Buffer.compare(this, b)
+}
+
+// `get` will be removed in Node 0.13+
+Buffer.prototype.get = function (offset) {
+  console.log('.get() is deprecated. Access using array indexes instead.')
+  return this.readUInt8(offset)
+}
+
+// `set` will be removed in Node 0.13+
+Buffer.prototype.set = function (v, offset) {
+  console.log('.set() is deprecated. Access using array indexes instead.')
+  return this.writeUInt8(v, offset)
+}
 
 function hexWrite (buf, string, offset, length) {
   offset = Number(offset) || 0
@@ -8976,14 +11436,14 @@ function hexWrite (buf, string, offset, length) {
 
   // must be an even number of digits
   var strLen = string.length
-  assert(strLen % 2 === 0, 'Invalid hex string')
+  if (strLen % 2 !== 0) throw new Error('Invalid hex string')
 
   if (length > strLen / 2) {
     length = strLen / 2
   }
   for (var i = 0; i < length; i++) {
     var byte = parseInt(string.substr(i * 2, 2), 16)
-    assert(!isNaN(byte), 'Invalid hex string')
+    if (isNaN(byte)) throw new Error('Invalid hex string')
     buf[offset + i] = byte
   }
   return i
@@ -9065,48 +11525,7 @@ Buffer.prototype.write = function (string, offset, length, encoding) {
       ret = utf16leWrite(this, string, offset, length)
       break
     default:
-      throw new Error('Unknown encoding')
-  }
-  return ret
-}
-
-Buffer.prototype.toString = function (encoding, start, end) {
-  var self = this
-
-  encoding = String(encoding || 'utf8').toLowerCase()
-  start = Number(start) || 0
-  end = (end === undefined) ? self.length : Number(end)
-
-  // Fastpath empty strings
-  if (end === start)
-    return ''
-
-  var ret
-  switch (encoding) {
-    case 'hex':
-      ret = hexSlice(self, start, end)
-      break
-    case 'utf8':
-    case 'utf-8':
-      ret = utf8Slice(self, start, end)
-      break
-    case 'ascii':
-      ret = asciiSlice(self, start, end)
-      break
-    case 'binary':
-      ret = binarySlice(self, start, end)
-      break
-    case 'base64':
-      ret = base64Slice(self, start, end)
-      break
-    case 'ucs2':
-    case 'ucs-2':
-    case 'utf16le':
-    case 'utf-16le':
-      ret = utf16leSlice(self, start, end)
-      break
-    default:
-      throw new Error('Unknown encoding')
+      throw new TypeError('Unknown encoding: ' + encoding)
   }
   return ret
 }
@@ -9115,52 +11534,6 @@ Buffer.prototype.toJSON = function () {
   return {
     type: 'Buffer',
     data: Array.prototype.slice.call(this._arr || this, 0)
-  }
-}
-
-Buffer.prototype.equals = function (b) {
-  assert(Buffer.isBuffer(b), 'Argument must be a Buffer')
-  return Buffer.compare(this, b) === 0
-}
-
-Buffer.prototype.compare = function (b) {
-  assert(Buffer.isBuffer(b), 'Argument must be a Buffer')
-  return Buffer.compare(this, b)
-}
-
-// copy(targetBuffer, targetStart=0, sourceStart=0, sourceEnd=buffer.length)
-Buffer.prototype.copy = function (target, target_start, start, end) {
-  var source = this
-
-  if (!start) start = 0
-  if (!end && end !== 0) end = this.length
-  if (!target_start) target_start = 0
-
-  // Copy 0 bytes; we're done
-  if (end === start) return
-  if (target.length === 0 || source.length === 0) return
-
-  // Fatal error conditions
-  assert(end >= start, 'sourceEnd < sourceStart')
-  assert(target_start >= 0 && target_start < target.length,
-      'targetStart out of bounds')
-  assert(start >= 0 && start < source.length, 'sourceStart out of bounds')
-  assert(end >= 0 && end <= source.length, 'sourceEnd out of bounds')
-
-  // Are we oob?
-  if (end > this.length)
-    end = this.length
-  if (target.length - target_start < end - start)
-    end = target.length - target_start + start
-
-  var len = end - start
-
-  if (len < 100 || !TYPED_ARRAY_SUPPORT) {
-    for (var i = 0; i < len; i++) {
-      target[i + target_start] = this[i + start]
-    }
-  } else {
-    target._set(this.subarray(start, start + len), target_start)
   }
 }
 
@@ -9249,7 +11622,7 @@ Buffer.prototype.slice = function (start, end) {
   if (end < start)
     end = start
 
-  if (TYPED_ARRAY_SUPPORT) {
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
     return Buffer._augment(this.subarray(start, end))
   } else {
     var sliceLen = end - start
@@ -9261,365 +11634,275 @@ Buffer.prototype.slice = function (start, end) {
   }
 }
 
-// `get` will be removed in Node 0.13+
-Buffer.prototype.get = function (offset) {
-  console.log('.get() is deprecated. Access using array indexes instead.')
-  return this.readUInt8(offset)
-}
-
-// `set` will be removed in Node 0.13+
-Buffer.prototype.set = function (v, offset) {
-  console.log('.set() is deprecated. Access using array indexes instead.')
-  return this.writeUInt8(v, offset)
+/*
+ * Need to make sure that buffer isn't trying to write out of bounds.
+ */
+function checkOffset (offset, ext, length) {
+  if ((offset % 1) !== 0 || offset < 0)
+    throw new RangeError('offset is not uint')
+  if (offset + ext > length)
+    throw new RangeError('Trying to access beyond buffer length')
 }
 
 Buffer.prototype.readUInt8 = function (offset, noAssert) {
-  if (!noAssert) {
-    assert(offset !== undefined && offset !== null, 'missing offset')
-    assert(offset < this.length, 'Trying to read beyond buffer length')
-  }
-
-  if (offset >= this.length)
-    return
-
+  if (!noAssert)
+    checkOffset(offset, 1, this.length)
   return this[offset]
 }
 
-function readUInt16 (buf, offset, littleEndian, noAssert) {
-  if (!noAssert) {
-    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
-    assert(offset !== undefined && offset !== null, 'missing offset')
-    assert(offset + 1 < buf.length, 'Trying to read beyond buffer length')
-  }
-
-  var len = buf.length
-  if (offset >= len)
-    return
-
-  var val
-  if (littleEndian) {
-    val = buf[offset]
-    if (offset + 1 < len)
-      val |= buf[offset + 1] << 8
-  } else {
-    val = buf[offset] << 8
-    if (offset + 1 < len)
-      val |= buf[offset + 1]
-  }
-  return val
-}
-
 Buffer.prototype.readUInt16LE = function (offset, noAssert) {
-  return readUInt16(this, offset, true, noAssert)
+  if (!noAssert)
+    checkOffset(offset, 2, this.length)
+  return this[offset] | (this[offset + 1] << 8)
 }
 
 Buffer.prototype.readUInt16BE = function (offset, noAssert) {
-  return readUInt16(this, offset, false, noAssert)
-}
-
-function readUInt32 (buf, offset, littleEndian, noAssert) {
-  if (!noAssert) {
-    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
-    assert(offset !== undefined && offset !== null, 'missing offset')
-    assert(offset + 3 < buf.length, 'Trying to read beyond buffer length')
-  }
-
-  var len = buf.length
-  if (offset >= len)
-    return
-
-  var val
-  if (littleEndian) {
-    if (offset + 2 < len)
-      val = buf[offset + 2] << 16
-    if (offset + 1 < len)
-      val |= buf[offset + 1] << 8
-    val |= buf[offset]
-    if (offset + 3 < len)
-      val = val + (buf[offset + 3] << 24 >>> 0)
-  } else {
-    if (offset + 1 < len)
-      val = buf[offset + 1] << 16
-    if (offset + 2 < len)
-      val |= buf[offset + 2] << 8
-    if (offset + 3 < len)
-      val |= buf[offset + 3]
-    val = val + (buf[offset] << 24 >>> 0)
-  }
-  return val
+  if (!noAssert)
+    checkOffset(offset, 2, this.length)
+  return (this[offset] << 8) | this[offset + 1]
 }
 
 Buffer.prototype.readUInt32LE = function (offset, noAssert) {
-  return readUInt32(this, offset, true, noAssert)
+  if (!noAssert)
+    checkOffset(offset, 4, this.length)
+
+  return ((this[offset]) |
+      (this[offset + 1] << 8) |
+      (this[offset + 2] << 16)) +
+      (this[offset + 3] * 0x1000000)
 }
 
 Buffer.prototype.readUInt32BE = function (offset, noAssert) {
-  return readUInt32(this, offset, false, noAssert)
+  if (!noAssert)
+    checkOffset(offset, 4, this.length)
+
+  return (this[offset] * 0x1000000) +
+      ((this[offset + 1] << 16) |
+      (this[offset + 2] << 8) |
+      this[offset + 3])
 }
 
 Buffer.prototype.readInt8 = function (offset, noAssert) {
-  if (!noAssert) {
-    assert(offset !== undefined && offset !== null,
-        'missing offset')
-    assert(offset < this.length, 'Trying to read beyond buffer length')
-  }
-
-  if (offset >= this.length)
-    return
-
-  var neg = this[offset] & 0x80
-  if (neg)
-    return (0xff - this[offset] + 1) * -1
-  else
-    return this[offset]
-}
-
-function readInt16 (buf, offset, littleEndian, noAssert) {
-  if (!noAssert) {
-    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
-    assert(offset !== undefined && offset !== null, 'missing offset')
-    assert(offset + 1 < buf.length, 'Trying to read beyond buffer length')
-  }
-
-  var len = buf.length
-  if (offset >= len)
-    return
-
-  var val = readUInt16(buf, offset, littleEndian, true)
-  var neg = val & 0x8000
-  if (neg)
-    return (0xffff - val + 1) * -1
-  else
-    return val
+  if (!noAssert)
+    checkOffset(offset, 1, this.length)
+  if (!(this[offset] & 0x80))
+    return (this[offset])
+  return ((0xff - this[offset] + 1) * -1)
 }
 
 Buffer.prototype.readInt16LE = function (offset, noAssert) {
-  return readInt16(this, offset, true, noAssert)
+  if (!noAssert)
+    checkOffset(offset, 2, this.length)
+  var val = this[offset] | (this[offset + 1] << 8)
+  return (val & 0x8000) ? val | 0xFFFF0000 : val
 }
 
 Buffer.prototype.readInt16BE = function (offset, noAssert) {
-  return readInt16(this, offset, false, noAssert)
-}
-
-function readInt32 (buf, offset, littleEndian, noAssert) {
-  if (!noAssert) {
-    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
-    assert(offset !== undefined && offset !== null, 'missing offset')
-    assert(offset + 3 < buf.length, 'Trying to read beyond buffer length')
-  }
-
-  var len = buf.length
-  if (offset >= len)
-    return
-
-  var val = readUInt32(buf, offset, littleEndian, true)
-  var neg = val & 0x80000000
-  if (neg)
-    return (0xffffffff - val + 1) * -1
-  else
-    return val
+  if (!noAssert)
+    checkOffset(offset, 2, this.length)
+  var val = this[offset + 1] | (this[offset] << 8)
+  return (val & 0x8000) ? val | 0xFFFF0000 : val
 }
 
 Buffer.prototype.readInt32LE = function (offset, noAssert) {
-  return readInt32(this, offset, true, noAssert)
+  if (!noAssert)
+    checkOffset(offset, 4, this.length)
+
+  return (this[offset]) |
+      (this[offset + 1] << 8) |
+      (this[offset + 2] << 16) |
+      (this[offset + 3] << 24)
 }
 
 Buffer.prototype.readInt32BE = function (offset, noAssert) {
-  return readInt32(this, offset, false, noAssert)
-}
+  if (!noAssert)
+    checkOffset(offset, 4, this.length)
 
-function readFloat (buf, offset, littleEndian, noAssert) {
-  if (!noAssert) {
-    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
-    assert(offset + 3 < buf.length, 'Trying to read beyond buffer length')
-  }
-
-  return ieee754.read(buf, offset, littleEndian, 23, 4)
+  return (this[offset] << 24) |
+      (this[offset + 1] << 16) |
+      (this[offset + 2] << 8) |
+      (this[offset + 3])
 }
 
 Buffer.prototype.readFloatLE = function (offset, noAssert) {
-  return readFloat(this, offset, true, noAssert)
+  if (!noAssert)
+    checkOffset(offset, 4, this.length)
+  return ieee754.read(this, offset, true, 23, 4)
 }
 
 Buffer.prototype.readFloatBE = function (offset, noAssert) {
-  return readFloat(this, offset, false, noAssert)
-}
-
-function readDouble (buf, offset, littleEndian, noAssert) {
-  if (!noAssert) {
-    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
-    assert(offset + 7 < buf.length, 'Trying to read beyond buffer length')
-  }
-
-  return ieee754.read(buf, offset, littleEndian, 52, 8)
+  if (!noAssert)
+    checkOffset(offset, 4, this.length)
+  return ieee754.read(this, offset, false, 23, 4)
 }
 
 Buffer.prototype.readDoubleLE = function (offset, noAssert) {
-  return readDouble(this, offset, true, noAssert)
+  if (!noAssert)
+    checkOffset(offset, 8, this.length)
+  return ieee754.read(this, offset, true, 52, 8)
 }
 
 Buffer.prototype.readDoubleBE = function (offset, noAssert) {
-  return readDouble(this, offset, false, noAssert)
+  if (!noAssert)
+    checkOffset(offset, 8, this.length)
+  return ieee754.read(this, offset, false, 52, 8)
+}
+
+function checkInt (buf, value, offset, ext, max, min) {
+  if (!Buffer.isBuffer(buf)) throw new TypeError('buffer must be a Buffer instance')
+  if (value > max || value < min) throw new TypeError('value is out of bounds')
+  if (offset + ext > buf.length) throw new TypeError('index out of range')
 }
 
 Buffer.prototype.writeUInt8 = function (value, offset, noAssert) {
-  if (!noAssert) {
-    assert(value !== undefined && value !== null, 'missing value')
-    assert(offset !== undefined && offset !== null, 'missing offset')
-    assert(offset < this.length, 'trying to write beyond buffer length')
-    verifuint(value, 0xff)
-  }
-
-  if (offset >= this.length) return
-
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert)
+    checkInt(this, value, offset, 1, 0xff, 0)
+  if (!Buffer.TYPED_ARRAY_SUPPORT) value = Math.floor(value)
   this[offset] = value
   return offset + 1
 }
 
-function writeUInt16 (buf, value, offset, littleEndian, noAssert) {
-  if (!noAssert) {
-    assert(value !== undefined && value !== null, 'missing value')
-    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
-    assert(offset !== undefined && offset !== null, 'missing offset')
-    assert(offset + 1 < buf.length, 'trying to write beyond buffer length')
-    verifuint(value, 0xffff)
+function objectWriteUInt16 (buf, value, offset, littleEndian) {
+  if (value < 0) value = 0xffff + value + 1
+  for (var i = 0, j = Math.min(buf.length - offset, 2); i < j; i++) {
+    buf[offset + i] = (value & (0xff << (8 * (littleEndian ? i : 1 - i)))) >>>
+      (littleEndian ? i : 1 - i) * 8
   }
-
-  var len = buf.length
-  if (offset >= len)
-    return
-
-  for (var i = 0, j = Math.min(len - offset, 2); i < j; i++) {
-    buf[offset + i] =
-        (value & (0xff << (8 * (littleEndian ? i : 1 - i)))) >>>
-            (littleEndian ? i : 1 - i) * 8
-  }
-  return offset + 2
 }
 
 Buffer.prototype.writeUInt16LE = function (value, offset, noAssert) {
-  return writeUInt16(this, value, offset, true, noAssert)
-}
-
-Buffer.prototype.writeUInt16BE = function (value, offset, noAssert) {
-  return writeUInt16(this, value, offset, false, noAssert)
-}
-
-function writeUInt32 (buf, value, offset, littleEndian, noAssert) {
-  if (!noAssert) {
-    assert(value !== undefined && value !== null, 'missing value')
-    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
-    assert(offset !== undefined && offset !== null, 'missing offset')
-    assert(offset + 3 < buf.length, 'trying to write beyond buffer length')
-    verifuint(value, 0xffffffff)
-  }
-
-  var len = buf.length
-  if (offset >= len)
-    return
-
-  for (var i = 0, j = Math.min(len - offset, 4); i < j; i++) {
-    buf[offset + i] =
-        (value >>> (littleEndian ? i : 3 - i) * 8) & 0xff
-  }
-  return offset + 4
-}
-
-Buffer.prototype.writeUInt32LE = function (value, offset, noAssert) {
-  return writeUInt32(this, value, offset, true, noAssert)
-}
-
-Buffer.prototype.writeUInt32BE = function (value, offset, noAssert) {
-  return writeUInt32(this, value, offset, false, noAssert)
-}
-
-Buffer.prototype.writeInt8 = function (value, offset, noAssert) {
-  if (!noAssert) {
-    assert(value !== undefined && value !== null, 'missing value')
-    assert(offset !== undefined && offset !== null, 'missing offset')
-    assert(offset < this.length, 'Trying to write beyond buffer length')
-    verifsint(value, 0x7f, -0x80)
-  }
-
-  if (offset >= this.length)
-    return
-
-  if (value >= 0)
-    this.writeUInt8(value, offset, noAssert)
-  else
-    this.writeUInt8(0xff + value + 1, offset, noAssert)
-  return offset + 1
-}
-
-function writeInt16 (buf, value, offset, littleEndian, noAssert) {
-  if (!noAssert) {
-    assert(value !== undefined && value !== null, 'missing value')
-    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
-    assert(offset !== undefined && offset !== null, 'missing offset')
-    assert(offset + 1 < buf.length, 'Trying to write beyond buffer length')
-    verifsint(value, 0x7fff, -0x8000)
-  }
-
-  var len = buf.length
-  if (offset >= len)
-    return
-
-  if (value >= 0)
-    writeUInt16(buf, value, offset, littleEndian, noAssert)
-  else
-    writeUInt16(buf, 0xffff + value + 1, offset, littleEndian, noAssert)
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert)
+    checkInt(this, value, offset, 2, 0xffff, 0)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = value
+    this[offset + 1] = (value >>> 8)
+  } else objectWriteUInt16(this, value, offset, true)
   return offset + 2
 }
 
-Buffer.prototype.writeInt16LE = function (value, offset, noAssert) {
-  return writeInt16(this, value, offset, true, noAssert)
+Buffer.prototype.writeUInt16BE = function (value, offset, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert)
+    checkInt(this, value, offset, 2, 0xffff, 0)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = (value >>> 8)
+    this[offset + 1] = value
+  } else objectWriteUInt16(this, value, offset, false)
+  return offset + 2
 }
 
-Buffer.prototype.writeInt16BE = function (value, offset, noAssert) {
-  return writeInt16(this, value, offset, false, noAssert)
-}
-
-function writeInt32 (buf, value, offset, littleEndian, noAssert) {
-  if (!noAssert) {
-    assert(value !== undefined && value !== null, 'missing value')
-    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
-    assert(offset !== undefined && offset !== null, 'missing offset')
-    assert(offset + 3 < buf.length, 'Trying to write beyond buffer length')
-    verifsint(value, 0x7fffffff, -0x80000000)
+function objectWriteUInt32 (buf, value, offset, littleEndian) {
+  if (value < 0) value = 0xffffffff + value + 1
+  for (var i = 0, j = Math.min(buf.length - offset, 4); i < j; i++) {
+    buf[offset + i] = (value >>> (littleEndian ? i : 3 - i) * 8) & 0xff
   }
+}
 
-  var len = buf.length
-  if (offset >= len)
-    return
-
-  if (value >= 0)
-    writeUInt32(buf, value, offset, littleEndian, noAssert)
-  else
-    writeUInt32(buf, 0xffffffff + value + 1, offset, littleEndian, noAssert)
+Buffer.prototype.writeUInt32LE = function (value, offset, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert)
+    checkInt(this, value, offset, 4, 0xffffffff, 0)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset + 3] = (value >>> 24)
+    this[offset + 2] = (value >>> 16)
+    this[offset + 1] = (value >>> 8)
+    this[offset] = value
+  } else objectWriteUInt32(this, value, offset, true)
   return offset + 4
 }
 
+Buffer.prototype.writeUInt32BE = function (value, offset, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert)
+    checkInt(this, value, offset, 4, 0xffffffff, 0)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = (value >>> 24)
+    this[offset + 1] = (value >>> 16)
+    this[offset + 2] = (value >>> 8)
+    this[offset + 3] = value
+  } else objectWriteUInt32(this, value, offset, false)
+  return offset + 4
+}
+
+Buffer.prototype.writeInt8 = function (value, offset, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert)
+    checkInt(this, value, offset, 1, 0x7f, -0x80)
+  if (!Buffer.TYPED_ARRAY_SUPPORT) value = Math.floor(value)
+  if (value < 0) value = 0xff + value + 1
+  this[offset] = value
+  return offset + 1
+}
+
+Buffer.prototype.writeInt16LE = function (value, offset, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert)
+    checkInt(this, value, offset, 2, 0x7fff, -0x8000)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = value
+    this[offset + 1] = (value >>> 8)
+  } else objectWriteUInt16(this, value, offset, true)
+  return offset + 2
+}
+
+Buffer.prototype.writeInt16BE = function (value, offset, noAssert) {
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert)
+    checkInt(this, value, offset, 2, 0x7fff, -0x8000)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = (value >>> 8)
+    this[offset + 1] = value
+  } else objectWriteUInt16(this, value, offset, false)
+  return offset + 2
+}
+
 Buffer.prototype.writeInt32LE = function (value, offset, noAssert) {
-  return writeInt32(this, value, offset, true, noAssert)
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert)
+    checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = value
+    this[offset + 1] = (value >>> 8)
+    this[offset + 2] = (value >>> 16)
+    this[offset + 3] = (value >>> 24)
+  } else objectWriteUInt32(this, value, offset, true)
+  return offset + 4
 }
 
 Buffer.prototype.writeInt32BE = function (value, offset, noAssert) {
-  return writeInt32(this, value, offset, false, noAssert)
+  value = +value
+  offset = offset >>> 0
+  if (!noAssert)
+    checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000)
+  if (value < 0) value = 0xffffffff + value + 1
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = (value >>> 24)
+    this[offset + 1] = (value >>> 16)
+    this[offset + 2] = (value >>> 8)
+    this[offset + 3] = value
+  } else objectWriteUInt32(this, value, offset, false)
+  return offset + 4
+}
+
+function checkIEEE754 (buf, value, offset, ext, max, min) {
+  if (value > max || value < min) throw new TypeError('value is out of bounds')
+  if (offset + ext > buf.length) throw new TypeError('index out of range')
 }
 
 function writeFloat (buf, value, offset, littleEndian, noAssert) {
-  if (!noAssert) {
-    assert(value !== undefined && value !== null, 'missing value')
-    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
-    assert(offset !== undefined && offset !== null, 'missing offset')
-    assert(offset + 3 < buf.length, 'Trying to write beyond buffer length')
-    verifIEEE754(value, 3.4028234663852886e+38, -3.4028234663852886e+38)
-  }
-
-  var len = buf.length
-  if (offset >= len)
-    return
-
+  if (!noAssert)
+    checkIEEE754(buf, value, offset, 4, 3.4028234663852886e+38, -3.4028234663852886e+38)
   ieee754.write(buf, value, offset, littleEndian, 23, 4)
   return offset + 4
 }
@@ -9633,19 +11916,8 @@ Buffer.prototype.writeFloatBE = function (value, offset, noAssert) {
 }
 
 function writeDouble (buf, value, offset, littleEndian, noAssert) {
-  if (!noAssert) {
-    assert(value !== undefined && value !== null, 'missing value')
-    assert(typeof littleEndian === 'boolean', 'missing or invalid endian')
-    assert(offset !== undefined && offset !== null, 'missing offset')
-    assert(offset + 7 < buf.length,
-        'Trying to write beyond buffer length')
-    verifIEEE754(value, 1.7976931348623157E+308, -1.7976931348623157E+308)
-  }
-
-  var len = buf.length
-  if (offset >= len)
-    return
-
+  if (!noAssert)
+    checkIEEE754(buf, value, offset, 8, 1.7976931348623157E+308, -1.7976931348623157E+308)
   ieee754.write(buf, value, offset, littleEndian, 52, 8)
   return offset + 8
 }
@@ -9658,20 +11930,56 @@ Buffer.prototype.writeDoubleBE = function (value, offset, noAssert) {
   return writeDouble(this, value, offset, false, noAssert)
 }
 
+// copy(targetBuffer, targetStart=0, sourceStart=0, sourceEnd=buffer.length)
+Buffer.prototype.copy = function (target, target_start, start, end) {
+  var source = this
+
+  if (!start) start = 0
+  if (!end && end !== 0) end = this.length
+  if (!target_start) target_start = 0
+
+  // Copy 0 bytes; we're done
+  if (end === start) return
+  if (target.length === 0 || source.length === 0) return
+
+  // Fatal error conditions
+  if (end < start) throw new TypeError('sourceEnd < sourceStart')
+  if (target_start < 0 || target_start >= target.length)
+    throw new TypeError('targetStart out of bounds')
+  if (start < 0 || start >= source.length) throw new TypeError('sourceStart out of bounds')
+  if (end < 0 || end > source.length) throw new TypeError('sourceEnd out of bounds')
+
+  // Are we oob?
+  if (end > this.length)
+    end = this.length
+  if (target.length - target_start < end - start)
+    end = target.length - target_start + start
+
+  var len = end - start
+
+  if (len < 100 || !Buffer.TYPED_ARRAY_SUPPORT) {
+    for (var i = 0; i < len; i++) {
+      target[i + target_start] = this[i + start]
+    }
+  } else {
+    target._set(this.subarray(start, start + len), target_start)
+  }
+}
+
 // fill(value, start=0, end=buffer.length)
 Buffer.prototype.fill = function (value, start, end) {
   if (!value) value = 0
   if (!start) start = 0
   if (!end) end = this.length
 
-  assert(end >= start, 'end < start')
+  if (end < start) throw new TypeError('end < start')
 
   // Fill 0 bytes; we're done
   if (end === start) return
   if (this.length === 0) return
 
-  assert(start >= 0 && start < this.length, 'start out of bounds')
-  assert(end >= 0 && end <= this.length, 'end out of bounds')
+  if (start < 0 || start >= this.length) throw new TypeError('start out of bounds')
+  if (end < 0 || end > this.length) throw new TypeError('end out of bounds')
 
   var i
   if (typeof value === 'number') {
@@ -9689,26 +11997,13 @@ Buffer.prototype.fill = function (value, start, end) {
   return this
 }
 
-Buffer.prototype.inspect = function () {
-  var out = []
-  var len = this.length
-  for (var i = 0; i < len; i++) {
-    out[i] = toHex(this[i])
-    if (i === exports.INSPECT_MAX_BYTES) {
-      out[i + 1] = '...'
-      break
-    }
-  }
-  return '<Buffer ' + out.join(' ') + '>'
-}
-
 /**
  * Creates a new `ArrayBuffer` with the *copied* memory of the buffer instance.
  * Added in Node 0.12. Only available in browsers that support ArrayBuffer.
  */
 Buffer.prototype.toArrayBuffer = function () {
   if (typeof Uint8Array !== 'undefined') {
-    if (TYPED_ARRAY_SUPPORT) {
+    if (Buffer.TYPED_ARRAY_SUPPORT) {
       return (new Buffer(this)).buffer
     } else {
       var buf = new Uint8Array(this.length)
@@ -9718,7 +12013,7 @@ Buffer.prototype.toArrayBuffer = function () {
       return buf.buffer
     }
   } else {
-    throw new Error('Buffer.toArrayBuffer not supported in this browser')
+    throw new TypeError('Buffer.toArrayBuffer not supported in this browser')
   }
 }
 
@@ -9801,12 +12096,6 @@ function stringtrim (str) {
   return str.replace(/^\s+|\s+$/g, '')
 }
 
-function isArray (subject) {
-  return (Array.isArray || function (subject) {
-    return Object.prototype.toString.call(subject) === '[object Array]'
-  })(subject)
-}
-
 function isArrayish (subject) {
   return isArray(subject) || Buffer.isBuffer(subject) ||
       subject && typeof subject === 'object' &&
@@ -9880,36 +12169,7 @@ function decodeUtf8Char (str) {
   }
 }
 
-/*
- * We have to make sure that the value is a valid integer. This means that it
- * is non-negative. It has no fractional component and that it does not
- * exceed the maximum allowed value.
- */
-function verifuint (value, max) {
-  assert(typeof value === 'number', 'cannot write a non-number as a number')
-  assert(value >= 0, 'specified a negative value for writing an unsigned value')
-  assert(value <= max, 'value is larger than maximum value for type')
-  assert(Math.floor(value) === value, 'value has a fractional component')
-}
-
-function verifsint (value, max, min) {
-  assert(typeof value === 'number', 'cannot write a non-number as a number')
-  assert(value <= max, 'value larger than maximum allowed value')
-  assert(value >= min, 'value smaller than minimum allowed value')
-  assert(Math.floor(value) === value, 'value has a fractional component')
-}
-
-function verifIEEE754 (value, max, min) {
-  assert(typeof value === 'number', 'cannot write a non-number as a number')
-  assert(value <= max, 'value larger than maximum allowed value')
-  assert(value >= min, 'value smaller than minimum allowed value')
-}
-
-function assert (test, message) {
-  if (!test) throw new Error(message || 'Failed assertion')
-}
-
-},{"base64-js":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/node_modules/base64-js/lib/b64.js","ieee754":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/node_modules/ieee754/index.js"}],"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/node_modules/base64-js/lib/b64.js":[function(require,module,exports){
+},{"base64-js":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/node_modules/base64-js/lib/b64.js","ieee754":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/node_modules/ieee754/index.js","is-array":"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/node_modules/is-array/index.js"}],"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/node_modules/base64-js/lib/b64.js":[function(require,module,exports){
 var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 ;(function (exports) {
@@ -10117,6 +12377,41 @@ exports.write = function(buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128;
 };
 
+},{}],"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/buffer/node_modules/is-array/index.js":[function(require,module,exports){
+
+/**
+ * isArray
+ */
+
+var isArray = Array.isArray;
+
+/**
+ * toString
+ */
+
+var str = Object.prototype.toString;
+
+/**
+ * Whether or not the given `val`
+ * is an array.
+ *
+ * example:
+ *
+ *        isArray([]);
+ *        // > true
+ *        isArray(arguments);
+ *        // > false
+ *        isArray('');
+ *        // > false
+ *
+ * @param {mixed} val
+ * @return {bool}
+ */
+
+module.exports = isArray || function (val) {
+  return !! val && '[object Array]' == str.call(val);
+};
+
 },{}],"/usr/lib/node_modules/watchify/node_modules/browserify/node_modules/events/events.js":[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -10177,10 +12472,8 @@ EventEmitter.prototype.emit = function(type) {
       er = arguments[1];
       if (er instanceof Error) {
         throw er; // Unhandled 'error' event
-      } else {
-        throw TypeError('Uncaught, unspecified "error" event.');
       }
-      return false;
+      throw TypeError('Uncaught, unspecified "error" event.');
     }
   }
 

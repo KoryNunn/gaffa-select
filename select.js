@@ -27,7 +27,9 @@ Select.prototype.render = function(){
             }
         }
 
-        data = option && option.data || undefined;
+        if('data' in option){
+            data = option.data;
+        }
 
         view.value.set(data);
     });

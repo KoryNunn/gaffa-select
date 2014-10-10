@@ -7,9 +7,11 @@ var Gaffa = require('gaffa'),
 gaffa.registerConstructor(Select);
 gaffa.registerConstructor(Text);
 
-// create a button to test with
 var text = new Text();
 text.text.binding = '(join " " "Current value of [value]:" [value])';
+
+var text2 = new Text();
+text2.text.binding = '(join " " "Current value of [value2]:" [value2])';
 
 var select1 = new Select();
 select1.value.binding = '[value]';
@@ -46,6 +48,12 @@ select7.value.binding = '[value]';
 select7.options.binding = '[options]';
 select7.validity.binding = '(? [value] null "custom required")';
 
+var select8 = new Select();
+select8.value.binding = '[value2]';
+select8.options.binding = '{"label":"True" "value":true},{"label":"False" "value":false}';
+select8.options.textBinding = 'option.label';
+select8.options.valueBinding = 'option.value';
+
 // An example model
 gaffa.model.set({
     value:'',
@@ -74,7 +82,9 @@ window.onload = function(){
         select4,
         select5,
         select6,
-        select7
+        select7,
+        text2,
+        select8
     ]);
 };
 
